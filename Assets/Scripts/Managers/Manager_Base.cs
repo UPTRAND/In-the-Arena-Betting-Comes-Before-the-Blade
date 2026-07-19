@@ -15,9 +15,7 @@ public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
 
     public virtual bool Setup() => true;
 
-    public abstract bool Init();
-
-    protected abstract bool Initialize();
+    protected abstract bool Init();
 
     /// <summary>
     /// 외부에서 호출할 때 사용하는 안전한 초기화 래퍼
@@ -32,7 +30,7 @@ public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
             return false;
         }
 
-        IsInitialized = Initialize();
+        IsInitialized = Init();
         return IsInitialized;
     }
 
