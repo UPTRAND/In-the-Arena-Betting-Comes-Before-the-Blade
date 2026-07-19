@@ -461,7 +461,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e025fdc85ad179a458b6865c8ac968b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Managers
-  _allManagers: []
+  _allManagers:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   _targetFrameRate: 60
   _vSyncCount: 0
 --- !u!4 &2119349724
