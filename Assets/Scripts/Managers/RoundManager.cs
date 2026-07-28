@@ -4,161 +4,215 @@ using System.Threading;
 using UnityEngine;
 using DG.Tweening;
 
-/// <summary>
-/// MainGame ¾À ³»ºÎ »ı¸íÁÖ±â¿¡ Á¾¼ÓµÇ´Â ¾À Àü¿ª ÄÁÆ®·Ñ·¯ÀÔ´Ï´Ù.
-/// DontDestroyOnLoad ´ë»óÀÌ ¾Æ´Ï¹Ç·Î ¾À ÆÄ±« ½Ã ÇÔ²² ¾ÈÀüÇÏ°Ô Á¤ÁöµË´Ï´Ù.
-/// </summary>
-[DisallowMultipleComponent]
-public class RoundManager : MonoBehaviour
+namespace InTheArena.MainGame
 {
-    private static RoundManager _instance;
-
     /// <summary>
-    /// MainGame ¾À ³»ºÎ¿¡¼­¸¸ À¯È¿ÇÑ ½Ì±ÛÅæ ÇÁ·ÎÆÛÆ¼ÀÔ´Ï´Ù.
-    /// ´Ù¸¥ ¾À¿¡¼­´Â nullÀ» ¹İÈ¯ÇÕ´Ï´Ù.
+    /// MainGame ì”¬ì˜ ë¼ìš´ë“œ ì „ì²´ íë¦„ì„ ê´€ë¦¬
+    /// BettingPhase -> CombatPhase -> ResultPhase ìˆœì„œë¡œ ì§„í–‰
     /// </summary>
-    public static RoundManager Instance
+    [DisallowMultipleComponent]
+    public class RoundManager : MonoBehaviour
     {
-        get
+        private static RoundManager _instance;
+
+        /// <summary>
+        /// MainGame ì”¬ì˜ ë¼ìš´ë“œ ë§¤ë‹ˆì € ì‹±ê¸€í†¤ ì¸ìŠ¤í„´ìŠ¤
+        /// ì”¬ ì–¸ë¡œë“œ ì‹œ null ë°˜í™˜
+        /// </summary>
+        public static RoundManager Instance
         {
-            // [High Safety] À¯´ÏÆ¼ °¡Â¥ Null °¨Áö
-            if (ReferenceEquals(_instance, null) || _instance == null)
+            get
             {
-                return null;
+                if (ReferenceEquals(_instance, null) || _instance == null)
+                {
+                    return null;
+                }
+                return _instance;
             }
-            return _instance;
-        }
-    }
-
-    [Header("Scene-Bound Phases")]
-    [SerializeField] private BettingPhase m_BettingPhase;
-    [SerializeField] private RoundPhaseBase m_CombatPhase;
-    [SerializeField] private RoundPhaseBase m_ResultPhase;
-
-    private RoundContext m_Context;
-    private CancellationTokenSource m_SceneCts;
-
-    public RoundContext Context => m_Context;
-    public bool IsRunning { get; private set; }
-
-    private void Awake()
-    {
-        if (!ReferenceEquals(_instance, null) && _instance != null && _instance != this)
-        {
-            Debug.LogWarning("[RoundManager] Áßº¹ ¾À ÄÁÆ®·Ñ·¯°¡ °¨ÁöµÇ¾î ÆÄ±«ÇÕ´Ï´Ù.");
-            Destroy(gameObject);
-            return;
         }
 
-        _instance = this;
-        m_Context = new RoundContext();
-    }
+        [Header("Phase References")]
+        [SerializeField] private BettingPhase m_BettingPhase;
+        [SerializeField] private CombatPhase m_CombatPhase;
+        [SerializeField] private ResultPhase m_ResultPhase;
 
-    private void Start()
-    {
-        m_SceneCts = new CancellationTokenSource();
-        StartGameLoopAsync(m_SceneCts.Token);
-    }
+        private RoundContext m_Context;
+        private StageData m_CurrentStageData;
+        private CancellationTokenSource m_RoundCts;
+        private int m_CurrentRoundIndex = 0;
+        private bool m_IsRoundRunning = false;
 
-    /// <summary>
-    /// MainGame ¾ÀÀÇ ¸ŞÀÎ ¶ó¿îµå ºñµ¿±â ·çÇÁ
-    /// </summary>
-    private async void StartGameLoopAsync(CancellationToken token)
-    {
-        IsRunning = true;
+        public RoundContext Context => m_Context;
+        public StageData CurrentStageData => m_CurrentStageData;
+        public bool IsRoundRunning => m_IsRoundRunning;
+        public int CurrentRoundIndex => m_CurrentRoundIndex;
 
-        try
+        private void Awake()
         {
-            m_Context.CurrentRound = 1;
-            m_Context.CurrentCall = 100;
-
-            while (m_Context.CurrentRound <= m_Context.MaxRounds)
+            if (!ReferenceEquals(_instance, null) && _instance != null && _instance != this)
             {
+                Debug.LogWarning("[RoundManager] ì¤‘ë³µ RoundManager ì¸ìŠ¤í„´ìŠ¤ ê°ì§€ - ê¸°ì¡´ ì¸ìŠ¤í„´ìŠ¤ íŒŒê´´");
+                Destroy(gameObject);
+                return;
+            }
+
+            _instance = this;
+            m_Context = new RoundContext();
+        }
+
+        /// <summary>
+        /// StageManagerì—ì„œ í˜¸ì¶œí•˜ì—¬ ì»¨í…ìŠ¤íŠ¸ì™€ ìŠ¤í…Œì´ì§€ ë°ì´í„° ì´ˆê¸°í™”
+        /// </summary>
+        public void InitializeContext(RoundContext context, StageData stageData)
+        {
+            m_Context = context ?? new RoundContext();
+            m_CurrentStageData = stageData;
+            Debug.Log($"[RoundManager] ì»¨í…ìŠ¤íŠ¸ ì´ˆê¸°í™” ì™„ë£Œ - ìŠ¤í…Œì´ì§€: {stageData?.FullStageName}");
+        }
+
+        /// <summary>
+        /// ì§€ì •ëœ ë¼ìš´ë“œ ì‹¤í–‰
+        /// </summary>
+        public async Awaitable RunRoundAsync(int roundIndex, CancellationToken token)
+        {
+            if (m_CurrentStageData == null)
+            {
+                Debug.LogError("[RoundManager] ìŠ¤í…Œì´ì§€ ë°ì´í„°ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+                return;
+            }
+
+            if (roundIndex >= m_CurrentStageData.RoundDatas.Count)
+            {
+                Debug.LogError($"[RoundManager] ë¼ìš´ë“œ ì¸ë±ìŠ¤ {roundIndex}ê°€ ë²”ìœ„ë¥¼ ë²—ì–´ë‚¬ìŠµë‹ˆë‹¤. (ìµœëŒ€: {m_CurrentStageData.RoundDatas.Count - 1})");
+                return;
+            }
+
+            m_CurrentRoundIndex = roundIndex;
+            m_RoundCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            m_IsRoundRunning = true;
+
+            try
+            {
+                // 1. ë¼ìš´ë“œ ë°ì´í„° ì„¤ì •
+                SetupRoundData(roundIndex);
+
+                // 2. Betting Phase
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase ì‹œì‘");
+                await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
+                await m_BettingPhase.ExitPhaseAsync(m_RoundCts.Token);
+
                 token.ThrowIfCancellationRequested();
 
-                // 1. ¹èÆÃ ÆäÀÌÁî
-                if (m_BettingPhase != null)
+                // 3. Combat Phase
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase ì‹œì‘");
+                await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
+                await m_CombatPhase.ExitPhaseAsync(m_RoundCts.Token);
+
+                token.ThrowIfCancellationRequested();
+
+                // 4. Result Phase
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase ì‹œì‘");
+                await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
+
+                // ê²°ê³¼ ë°ì´í„° ìˆ˜ì§‘
+                m_Context.IsRoundCompleted = true;
+                m_Context.DidTeamAWin = m_ResultPhase.IsWin();
+                int rewardCall = m_ResultPhase.GetRewardCall();
+                
+                if (m_Context.DidTeamAWin)
                 {
-                    m_BettingPhase.InitializePhase(m_Context);
-                    await m_BettingPhase.EnterPhaseAsync(token);
-                    await m_BettingPhase.ExitPhaseAsync(token);
+                    m_Context.CurrentCall += rewardCall;
+                }
+                else
+                {
+                    m_Context.CurrentCall = Mathf.Max(0, m_Context.CurrentCall - rewardCall);
                 }
 
-                // 2. ÀüÅõ ÆäÀÌÁî
-                if (m_CombatPhase != null)
-                {
-                    m_CombatPhase.InitializePhase(m_Context);
-                    await m_CombatPhase.EnterPhaseAsync(token);
-                    await m_CombatPhase.ExitPhaseAsync(token);
-                }
+                await m_ResultPhase.ExitPhaseAsync(m_RoundCts.Token);
 
-                // 3. °á°ú ÆäÀÌÁî
-                if (m_ResultPhase != null)
-                {
-                    m_ResultPhase.InitializePhase(m_Context);
-                    await m_ResultPhase.EnterPhaseAsync(token);
-                    await m_ResultPhase.ExitPhaseAsync(token);
-                }
-
-                // ½ÂÆĞ ÆÇÁ¤
-                if (m_Context.CurrentCall >= m_Context.TargetCall)
-                {
-                    OnGameClear();
-                    return;
-                }
-
-                m_Context.CurrentRound++;
+                m_Context.IsRoundCompleted = true;
             }
-
-            if (m_Context.CurrentCall >= m_Context.TargetCall)
+            catch (OperationCanceledException)
             {
-                OnGameClear();
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} ì·¨ì†Œë¨");
             }
-            else
+            catch (Exception ex)
             {
-                OnGameOver();
+                Debug.LogException(ex);
+            }
+            finally
+            {
+                m_IsRoundRunning = false;
+                
+                if (m_RoundCts != null)
+                {
+                    m_RoundCts.Dispose();
+                    m_RoundCts = null;
+                }
             }
         }
-        catch (OperationCanceledException)
-        {
-            Debug.Log("[RoundManager] MainGame ¾À Á¾·á¿¡ µû¶ó ¶ó¿îµå ·çÇÁ°¡ ¾ÈÀüÇÏ°Ô Ãë¼ÒµÇ¾ú½À´Ï´Ù.");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogException(ex);
-        }
-        finally
-        {
-            IsRunning = false;
-        }
-    }
 
-    private void OnGameClear()
-    {
-        Debug.Log("[RoundManager] GAME CLEAR!");
-    }
-
-    private void OnGameOver()
-    {
-        Debug.Log("[RoundManager] GAME OVER!");
-    }
-
-    private void OnDestroy()
-    {
-        // ¾À ¾ğ·Îµå ½Ã ºñµ¿±â ·çÇÁ Ãë¼Ò
-        if (m_SceneCts != null)
+        private void SetupRoundData(int roundIndex)
         {
-            m_SceneCts.Cancel();
-            m_SceneCts.Dispose();
-            m_SceneCts = null;
+            var roundData = m_CurrentStageData.RoundDatas[roundIndex];
+            
+            // ì»¨í…ìŠ¤íŠ¸ì— ë¼ìš´ë“œ ë°ì´í„° ì ìš©
+            m_Context.CurrentRound = roundIndex + 1;
+            m_Context.MaxRounds = m_CurrentStageData.TotalRounds;
+            m_Context.TargetCall = m_CurrentStageData.TargetCall;
+            
+            // ìœ ë‹› ë°ì´í„° ì„¤ì •
+            m_Context.TeamAUnitDatas = roundData.GetTeamAUnits();
+            m_Context.TeamBUnitDatas = roundData.GetTeamBUnits();
+            
+            // ë² íŒ… ê¸°ë³¸ê°’
+            m_Context.TeamABetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioA);
+            m_Context.TeamBBetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioB);
+            m_Context.CurrentRoundRule = roundData.SpecialRule;
+
+            // íŠ¹ë³„ ê·œì¹™ ì ìš©
+            ApplyRoundRule(roundData.SpecialRule);
         }
 
-        // ¾À ¾ğ·Îµå ½Ã Æ®À© Á¤¸®
-        transform.DOKill();
-
-        if (ReferenceEquals(_instance, this))
+        private void ApplyRoundRule(RoundRule rule)
         {
-            _instance = null;
+            switch (rule)
+            {
+                case RoundRule.DoubleDamage:
+                    // ëª¨ë“  ìœ ë‹› ë°ë¯¸ì§€ 2ë°° - Unitì—ì„œ ì²˜ë¦¬
+                    break;
+                case RoundRule.HalfHeal:
+                    // íšŒë³µëŸ‰ 50% ê°ì†Œ
+                    break;
+                case RoundRule.NoSkills:
+                    // ìŠ¤í‚¬ ì‚¬ìš© ë¶ˆê°€ - AI/Skillì—ì„œ ì²˜ë¦¬
+                    break;
+                case RoundRule.SpeedUp:
+                    // ê³µê²©/ì´ë™ ì†ë„ 2ë°° - Unit ìŠ¤íƒ¯ì—ì„œ ì²˜ë¦¬
+                    break;
+                case RoundRule.SuddenDeath:
+                    // ì²´ë ¥ 1ë¡œ ì„¤ì •
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// í˜„ì¬ ë¼ìš´ë“œ ê°•ì œ ì¢…ë£Œ
+        /// </summary>
+        public void ForceEndRound()
+        {
+            if (m_RoundCts != null)
+            {
+                m_RoundCts.Cancel();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (ReferenceEquals(_instance, this))
+            {
+                _instance = null;
+            }
         }
     }
 }

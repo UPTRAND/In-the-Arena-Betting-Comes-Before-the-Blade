@@ -1,26 +1,48 @@
 #if UNITY_6000_0_OR_NEWER
+using System;
 using System.Threading;
 using UnityEngine;
 
-public abstract class RoundPhaseBase : MonoBehaviour
+namespace InTheArena.MainGame
 {
-    protected RoundContext Context { get; private set; }
-    public bool IsPhaseCompleted { get; protected set; }
-
-    public virtual void InitializePhase(RoundContext context)
+    /// <summary>
+    /// ë¼ìš´ë“œ í˜ì´ì¦ˆ ê¸°ë³¸ ì¶”ìƒ í´ë˜ìŠ¤
+    /// ê° í˜ì´ì¦ˆ(Betting, Battle, Result)ëŠ” ì´ë¥¼ ìƒì†ë°›ì•„ êµ¬í˜„
+    /// </summary>
+    public abstract class RoundPhaseBase : MonoBehaviour
     {
-        Context = context;
-        IsPhaseCompleted = false;
+        protected RoundContext Context { get; private set; }
+        public bool IsPhaseCompleted { get; protected set; }
+
+        /// <summary>
+        /// í˜ì´ì¦ˆ ì´ˆê¸°í™”
+        /// </summary>
+        /// <param name="context">ë¼ìš´ë“œ ì»¨í…ìŠ¤íŠ¸</param>
+        public virtual void InitializePhase(RoundContext context)
+        {
+            Context = context;
+            IsPhaseCompleted = false;
+        }
+
+        /// <summary>
+        /// í˜ì´ì¦ˆ ì§„ì… ì‹œ ë¹„ë™ê¸° ì²˜ë¦¬
+        /// </summary>
+        /// <param name="token">ì·¨ì†Œ í† í°</param>
+        public abstract Awaitable EnterPhaseAsync(CancellationToken token);
+
+        /// <summary>
+        /// í˜ì´ì¦ˆ ì¢…ë£Œ ì‹œ ë¹„ë™ê¸° ì²˜ë¦¬
+        /// </summary>
+        /// <param name="token">ì·¨ì†Œ í† í°</param>
+        public abstract Awaitable ExitPhaseAsync(CancellationToken token);
+
+        /// <summary>
+        /// í˜ì´ì¦ˆ ì™„ë£Œ ì²˜ë¦¬
+        /// </summary>
+        protected void CompletePhase()
+        {
+            IsPhaseCompleted = true;
+        }
     }
-
-    /// <summary>
-    /// ÆäÀÌÁî ÁøÀÔ ½Ã ½ÇÇàµÇ´Â ºñµ¿±â ÃÊ±âÈ­ ¸Ş¼­µå
-    /// </summary>
-    public abstract Awaitable EnterPhaseAsync(CancellationToken token);
-
-    /// <summary>
-    /// ÆäÀÌÁî Á¾·á ½Ã ¸®¼Ò½º Á¤¸®¸¦ ¼öÇàÇÏ´Â ºñµ¿±â ¸Ş¼­µå
-    /// </summary>
-    public abstract Awaitable ExitPhaseAsync(CancellationToken token);
 }
 #endif

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6ba603ddbb12d24692a26adce379518, type: 3}
+  m_Name: CameraSettings_MainGame
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraSettings
+  m_UsePerspective: 1
+  m_ClearFlags: 2
+  m_BackgroundColor: {r: 0.1, g: 0.1, b: 0.12, a: 1}
+  m_FieldOfView: 30
+  m_CameraDistance: 18
+  m_CameraHeight: 15
+  m_CameraAngleX: 45
+  m_CameraAngleY: 0
+  m_OrthoSize: 12
+  m_OrthoAspect: 1.7777778
+  m_CombatAreaCenter: {x: 0, y: 0, z: 0}
+  m_CombatAreaSize: {x: 28, y: 0, z: 12}
+  m_MinZoom: 8
+  m_MaxZoom: 30
+  m_MinHeight: 8
+  m_MaxHeight: 25
+  m_FollowLerpSpeed: 8
+  m_BoostFollowSpeed: 15
+  m_ZoomLerpSpeed: 10
+  m_BoostZoomSpeed: 20
+  m_DeadZoneRadius: 0.1
+  m_DefaultShakeIntensity: 0.5
+  m_DefaultShakeDuration: 0.3

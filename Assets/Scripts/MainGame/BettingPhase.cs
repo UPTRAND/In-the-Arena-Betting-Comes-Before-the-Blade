@@ -2,140 +2,284 @@
 using System;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.UI;
 using DG.Tweening;
+using InTheArena.Unit;
+using UnitType = InTheArena.Unit.Unit;
 
-[DisallowMultipleComponent]
-public class BettingPhase : RoundPhaseBase
+namespace InTheArena.MainGame
 {
-    [Header("UI & Animation References")]
-    [SerializeField] private CanvasGroup m_BettingUiCanvasGroup;
-
-    private AwaitableCompletionSource m_PhaseCompletionSource;
-
-    public override async Awaitable EnterPhaseAsync(CancellationToken token)
-    {
-        InitializePhaseData();
-
-        if (m_BettingUiCanvasGroup != null)
-        {
-            m_BettingUiCanvasGroup.gameObject.SetActive(true);
-            m_BettingUiCanvasGroup.alpha = 0f;
-
-            // [High Safety / Fix CS1061] DOTween v1.2.675 °ø½Ä AsyncWaitForCompletion API ¿¬µ¿
-            var tween = m_BettingUiCanvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad);
-            await AwaitTweenAsync(tween, token);
-        }
-
-        m_PhaseCompletionSource = new AwaitableCompletionSource();
-
-        // ÇÃ·¹ÀÌ¾î°¡ UI¿¡¼­ [¹èÆÃ ¿Ï·á] ¹öÆ°À» ´©¸¦ ¶§±îÁö ºñµ¿±â ´ë±â
-        await m_PhaseCompletionSource.Awaitable;
-    }
-
-    private void InitializePhaseData()
-    {
-        IsPhaseCompleted = false;
-        Context.ResetBettingData();
-        Debug.Log($"[BettingPhase] ¶ó¿îµå {Context.CurrentRound} ¹èÆÃ ½ÃÀÛ. º¸À¯ Äİ: {Context.CurrentCall}");
-    }
-
     /// <summary>
-    /// ¹èÆÃ ºñÀ² º¯°æ (UI ½½¶óÀÌ´õ ¿¬µ¿)
-    /// ±âÈ¹¼­ Á¦¾à Á¶°Ç: 50:50 ¹èÆÃÀº ºÒ°¡´ÉÇÕ´Ï´Ù.
+    /// ë² íŒ… í˜ì´ì¦ˆ
+    /// í”Œë ˆì´ì–´ê°€ íŒ€ Aì™€ íŒ€ Bì˜ ìŠ¹ë¥ ì— ë² íŒ…í•˜ëŠ” ë‹¨ê³„
     /// </summary>
-    public bool SetBettingRatio(int teamARatio)
+    [DisallowMultipleComponent]
+    public class BettingPhase : RoundPhaseBase
     {
-        teamARatio = Mathf.Clamp(teamARatio, 0, 100);
+        [Header("UI References")]
+        [SerializeField] private CanvasGroup m_BettingUiCanvasGroup;
+        [SerializeField] private Slider m_BetRatioSlider;
+        [SerializeField] private Text m_TeamANameText;
+        [SerializeField] private Text m_TeamBNameText;
+        [SerializeField] private Text m_TeamARatioText;
+        [SerializeField] private Text m_TeamBRatioText;
+        [SerializeField] private Text m_CurrentCallText;
+        [SerializeField] private Button m_ConfirmBetButton;
+        [SerializeField] private Button m_ExtraBetButton;
+        [SerializeField] private Button m_RearrangeButton;
 
-        if (teamARatio == 50)
+        private AwaitableCompletionSource m_PhaseCompletionSource;
+        private bool m_IsSliderInteractable = true;
+
+        public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
-            Debug.LogWarning("[BettingPhase] 50:50 ¹èÆÃÀº ºÒ°¡´ÉÇÕ´Ï´Ù.");
-            return false;
-        }
+            InitializePhaseData();
+            SetupUI();
+            SubscribeEvents();
 
-        Context.TeamABetRatio = teamARatio;
-        Context.TeamBBetRatio = 100 - teamARatio;
-        Debug.Log($"[BettingPhase] ¹èÆÃ ºñÀ² ¼³Á¤ ¿Ï·á -> A: {Context.TeamABetRatio}% | B: {Context.TeamBBetRatio}%");
-        return true;
-    }
-
-    /// <summary>
-    /// ¹èÆÃ ¾ÆÀÌÅÛ 1: Ãß°¡ ¹èÆÃ±Ç »ç¿ë (+50 Äİ Ãß°¡ ÅõÀÔ)
-    /// </summary>
-    public void UseExtraBetItem()
-    {
-        if (IsPhaseCompleted) return;
-
-        Context.ExtraBetCall += 50;
-        Debug.Log($"[BettingPhase] Ãß°¡ ¹èÆÃ±Ç »ç¿ë! Ãß°¡ Äİ: +{Context.ExtraBetCall}");
-    }
-
-    /// <summary>
-    /// ¹èÆÃ ¾ÆÀÌÅÛ 2: À¯´Ö ÀçÆí¼º »ç¿ë (ÆÀ À¯´Ö Á¶ÇÕ Àç¹èÄ¡)
-    /// </summary>
-    public void UseRearrangeItem()
-    {
-        if (IsPhaseCompleted) return;
-
-        Debug.Log("[BettingPhase] ÆÀ ÀçÆí¼º ¾ÆÀÌÅÛ »ç¿ë! À¯´Ö Á¶ÇÕÀ» Àç¹èÄ¡ÇÕ´Ï´Ù.");
-    }
-
-    /// <summary>
-    /// UI [¹èÆÃ ¿Ï·á] ¹öÆ° Å¬¸¯ ½Ã È£Ãâ
-    /// </summary>
-    public void CompleteBetting()
-    {
-        if (IsPhaseCompleted) return;
-
-        // 50:50 ¹èÆÃ ¹æ¾î °ËÁõ
-        if (Context.TeamABetRatio == 50)
-        {
-            Debug.LogError("[BettingPhase] 50:50 ¹èÆÃ »óÅÂ·Î´Â ¿Ï·áÇÒ ¼ö ¾ø½À´Ï´Ù.");
-            return;
-        }
-
-        IsPhaseCompleted = true;
-        m_PhaseCompletionSource?.TrySetResult();
-    }
-
-    public override async Awaitable ExitPhaseAsync(CancellationToken token)
-    {
-        if (m_BettingUiCanvasGroup != null)
-        {
-            // [High Safety / Fix CS1061] DOTween v1.2.675 °ø½Ä AsyncWaitForCompletion API ¿¬µ¿
-            var tween = m_BettingUiCanvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad);
-            await AwaitTweenAsync(tween, token);
-            m_BettingUiCanvasGroup.gameObject.SetActive(false);
-        }
-
-        transform.DOKill();
-    }
-
-    /// <summary>
-    /// [High Safety] DOTween v1.2.675 Æ®À©À» CancellationToken°ú ÇÔ²² Unity 6 Awaitable·Î ´ë±âÇÏ´Â ¾ÈÀü ·¡ÆÛ
-    /// </summary>
-    private async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
-    {
-        if (tween == null || !tween.IsActive()) return;
-
-        using (token.Register(() =>
-        {
-            if (tween != null && tween.IsActive())
+            if (m_BettingUiCanvasGroup != null)
             {
-                tween.Kill();
-            }
-        }))
-        {
-            await tween.AsyncWaitForCompletion();
-        }
-    }
+                m_BettingUiCanvasGroup.gameObject.SetActive(true);
+                m_BettingUiCanvasGroup.alpha = 0f;
 
-    private void OnDestroy()
-    {
-        transform.DOKill();
-        if (m_BettingUiCanvasGroup != null)
+                // [High Safety / Fix CS1061] DOTween v1.2.675+ supports AsyncWaitForCompletion API
+                var tween = m_BettingUiCanvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad);
+                await AwaitTweenAsync(tween, token);
+            }
+
+            m_PhaseCompletionSource = new AwaitableCompletionSource();
+
+            // ë² íŒ… UIê°€ [í™•ì¸] ë²„íŠ¼ì„ ëˆŒëŸ¬ ì™„ë£Œë  ë•Œê¹Œì§€ ëŒ€ê¸°
+            await m_PhaseCompletionSource.Awaitable;
+        }
+
+        private void InitializePhaseData()
         {
-            m_BettingUiCanvasGroup.DOKill();
+            IsPhaseCompleted = false;
+            Context.ResetBettingData();
+
+            // ê¸°ë³¸ ë² íŒ… ë¹„ìœ¨ ì„¤ì •
+            m_BetRatioSlider.value = Context.TeamABetRatio / 100f;
+            UpdateRatioTexts();
+        }
+
+        private void SetupUI()
+        {
+            // íŒ€ ì´ë¦„ ì„¤ì • (ìœ ë‹› ë°ì´í„°ì—ì„œ ê°€ì ¸ì˜¤ê±°ë‚˜ ê¸°ë³¸ê°’)
+            if (m_TeamANameText != null && Context.TeamAUnitDatas.Count > 0)
+            {
+                m_TeamANameText.text = Context.TeamAUnitDatas[0].UnitName;
+            }
+            if (m_TeamBNameText != null && Context.TeamBUnitDatas.Count > 0)
+            {
+                m_TeamBNameText.text = Context.TeamBUnitDatas[0].UnitName;
+            }
+
+            // í˜„ì¬ ì½œ í‘œì‹œ
+            if (m_CurrentCallText != null)
+            {
+                m_CurrentCallText.text = $"Call: {Context.CurrentCall}";
+            }
+
+            // ë²„íŠ¼ ì¸í„°ë ‰ì…˜ ì„¤ì •
+            UpdateButtonInteractable();
+        }
+
+        private void SubscribeEvents()
+        {
+            if (m_BetRatioSlider != null)
+            {
+                m_BetRatioSlider.onValueChanged.AddListener(OnBetRatioChanged);
+            }
+            if (m_ConfirmBetButton != null)
+            {
+                m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
+            }
+            if (m_ExtraBetButton != null)
+            {
+                m_ExtraBetButton.onClick.AddListener(OnExtraBetClicked);
+            }
+            if (m_RearrangeButton != null)
+            {
+                m_RearrangeButton.onClick.AddListener(OnRearrangeClicked);
+            }
+        }
+
+        private void UnsubscribeEvents()
+        {
+            if (m_BetRatioSlider != null)
+            {
+                m_BetRatioSlider.onValueChanged.RemoveListener(OnBetRatioChanged);
+            }
+            if (m_ConfirmBetButton != null)
+            {
+                m_ConfirmBetButton.onClick.RemoveListener(OnConfirmBetClicked);
+            }
+            if (m_ExtraBetButton != null)
+            {
+                m_ExtraBetButton.onClick.RemoveListener(OnExtraBetClicked);
+            }
+            if (m_RearrangeButton != null)
+            {
+                m_RearrangeButton.onClick.RemoveListener(OnRearrangeClicked);
+            }
+        }
+
+        private void OnBetRatioChanged(float value)
+        {
+            if (!m_IsSliderInteractable) return;
+
+            int teamARatio = Mathf.RoundToInt(value * 100f);
+            teamARatio = Mathf.Clamp(teamARatio, 0, 100);
+
+            Context.TeamABetRatio = teamARatio;
+            Context.TeamBBetRatio = 100 - teamARatio;
+
+            UpdateRatioTexts();
+            UpdateButtonInteractable();
+        }
+
+        private void UpdateRatioTexts()
+        {
+            if (m_TeamARatioText != null)
+                m_TeamARatioText.text = $"{Context.TeamABetRatio}%";
+            if (m_TeamBRatioText != null)
+                m_TeamBRatioText.text = $"{Context.TeamBBetRatio}%";
+        }
+
+        private void UpdateButtonInteractable()
+        {
+            // 50:50 ë¹„ìœ¨ì¼ ë•Œ í™•ì¸ ë²„íŠ¼ ë¹„í™œì„±í™”
+            bool canConfirm = Context.TeamABetRatio != 50;
+            if (m_ConfirmBetButton != null)
+                m_ConfirmBetButton.interactable = canConfirm;
+        }
+
+        /// <summary>
+        /// ë² íŒ… ë¹„ìœ¨ ì§ì ‘ ì„¤ì • (ì™¸ë¶€ì—ì„œ í˜¸ì¶œ ê°€ëŠ¥)
+        /// </summary>
+        public bool SetBettingRatio(int teamARatio)
+        {
+            teamARatio = Mathf.Clamp(teamARatio, 0, 100);
+
+            if (teamARatio == 50)
+            {
+                Debug.LogWarning("[BettingPhase] 50:50 ë¹„ìœ¨ì€ ë² íŒ…í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+                return false;
+            }
+
+            Context.TeamABetRatio = teamARatio;
+            Context.TeamBBetRatio = 100 - teamARatio;
+
+            if (m_BetRatioSlider != null)
+            {
+                m_IsSliderInteractable = false;
+                m_BetRatioSlider.value = teamARatio / 100f;
+                m_IsSliderInteractable = true;
+            }
+
+            UpdateRatioTexts();
+            UpdateButtonInteractable();
+            Debug.Log($"[BettingPhase] ë² íŒ… ë¹„ìœ¨ ì„¤ì • -> A: {Context.TeamABetRatio}% | B: {Context.TeamBBetRatio}%");
+            return true;
+        }
+
+        /// <summary>
+        /// ë² íŒ… ì•„ì´í…œ ì‚¬ìš© 1: ì¶”ê°€ ë² íŒ… ì½œ (+50)
+        /// </summary>
+        public void UseExtraBetItem()
+        {
+            if (IsPhaseCompleted) return;
+
+            Context.ExtraBetCall += 50;
+            Debug.Log($"[BettingPhase] ì¶”ê°€ ë² íŒ… ì•„ì´í…œ ì‚¬ìš©! ì¶”ê°€ ì½œ: +{Context.ExtraBetCall}");
+
+            if (m_CurrentCallText != null)
+            {
+                m_CurrentCallText.text = $"Call: {Context.CurrentCall + Context.ExtraBetCall}";
+            }
+        }
+
+        /// <summary>
+        /// ë² íŒ… ì•„ì´í…œ ì‚¬ìš© 2: ìœ ë‹› ì¬ë°°ì¹˜
+        /// </summary>
+        public void UseRearrangeItem()
+        {
+            if (IsPhaseCompleted) return;
+
+            Debug.Log("[BettingPhase] ìœ ë‹› ì¬ë°°ì¹˜ ì•„ì´í…œ ì‚¬ìš©! ìœ ë‹› ë°°ì¹˜ ë³€ê²½ ë¡œì§ í•„ìš”");
+            // TODO: ìœ ë‹› ì¬ë°°ì¹˜ ë¡œì§ êµ¬í˜„
+        }
+
+        /// <summary>
+        /// UI [í™•ì¸] ë²„íŠ¼ í´ë¦­ ì‹œ í˜¸ì¶œ
+        /// </summary>
+        private void OnConfirmBetClicked()
+        {
+            if (IsPhaseCompleted) return;
+
+            // 50:50 ë² íŒ… ë°©ì§€
+            if (Context.TeamABetRatio == 50)
+            {
+                Debug.LogError("[BettingPhase] 50:50 ë¹„ìœ¨ì€ ë² íŒ…í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+                return;
+            }
+
+            CompletePhase();
+            m_PhaseCompletionSource?.TrySetResult();
+        }
+
+        private void OnExtraBetClicked()
+        {
+            UseExtraBetItem();
+        }
+
+        private void OnRearrangeClicked()
+        {
+            UseRearrangeItem();
+        }
+
+        public override async Awaitable ExitPhaseAsync(CancellationToken token)
+        {
+            UnsubscribeEvents();
+
+            if (m_BettingUiCanvasGroup != null)
+            {
+                var tween = m_BettingUiCanvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad);
+                await AwaitTweenAsync(tween, token);
+                m_BettingUiCanvasGroup.gameObject.SetActive(false);
+            }
+
+            transform.DOKill();
+        }
+
+        /// <summary>
+        /// [High Safety] DOTween v1.2.675+ CancellationToken ì§€ì› Unity 6 Awaitableë¡œ ë˜í•‘
+        /// </summary>
+        private async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
+        {
+            if (tween == null || !tween.IsActive()) return;
+
+            using (token.Register(() =>
+            {
+                if (tween != null && tween.IsActive())
+                {
+                    tween.Kill();
+                }
+            }))
+            {
+                await tween.AsyncWaitForCompletion();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            transform.DOKill();
+            if (m_BettingUiCanvasGroup != null)
+            {
+                m_BettingUiCanvasGroup.DOKill();
+            }
+            UnsubscribeEvents();
         }
     }
 }

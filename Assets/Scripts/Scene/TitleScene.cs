@@ -21,7 +21,7 @@ public class TitleScene : MonoBehaviour, IPointerClickHandler
 
     [Header("Scene Settings")]
     [Tooltip("터치 시 이동할 목적지 씬 이름")]
-    [SerializeField] private string m_TargetSceneName = "Stage";
+    [SerializeField] private string m_TargetSceneName = "Lobby";
 
     private bool m_IsTransitioning;
     private Tween m_BlinkTween;

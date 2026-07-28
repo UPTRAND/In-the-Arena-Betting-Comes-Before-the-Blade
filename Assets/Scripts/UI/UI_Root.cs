@@ -25,6 +25,12 @@ public class UI_Root : MonoBehaviour
         _group = GetComponent<CanvasGroup>();
 
         UpdatePPU();
+
+        // 씬이 시작될 때 UIManager에 자신을 동적으로 등록
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.RegisterUiRoot(this);
+        }
     }
 
     /// <summary>
@@ -72,6 +78,12 @@ public class UI_Root : MonoBehaviour
 
     private void OnDestroy()
     {
+        // 씬이 파괴될 때 UIManager에서 해제
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UnregisterUiRoot(this);
+        }
+
         // 이벤트 메모리 누수 방지
         OnControlAdded = null;
         OnControlRemoved = null;

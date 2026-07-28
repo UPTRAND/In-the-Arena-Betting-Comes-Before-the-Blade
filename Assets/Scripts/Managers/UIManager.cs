@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using DG.Tweening;
 
@@ -17,7 +18,7 @@ public class UIManager : Manager_Base
     [Header("Pool Settings")]
     [SerializeField] private bool m_CreatePool;
     private UIObjectPoolingFactory m_Pool;
-    // FX °ü·Ã Ãß°¡ ÈÄ ¼öÁ¤
+    // FX ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     //private ObjectPoolingFactory<UI_FX> m_PoolHud;
 
     [Header("UI Roots")]
@@ -25,17 +26,17 @@ public class UIManager : Manager_Base
     private readonly Dictionary<EUIObjectPoolingParent, UI_Root> m_BakedUiRoots = new Dictionary<EUIObjectPoolingParent, UI_Root>();
     private readonly List<GameObject> m_AllUiBaseObjects = new List<GameObject>();
 
-    // [High Safety] GC ¹Ú½Ì ¹æÁö¸¦ À§ÇÑ Á¦³×¸¯ Dictionary ÀüÈ¯
+    // [High Safety] GC ï¿½Ú½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½×¸ï¿½ Dictionary ï¿½ï¿½È¯
     private readonly Dictionary<string, IUIBase> m_UiElementsByTypename = new Dictionary<string, IUIBase>();
     private readonly Dictionary<string, Transform> m_UiElementsByName = new Dictionary<string, Transform>();
 
-    // ÄÁÆ®·Ñ ½ºÅÃ Á¦¾î
+    // ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     private readonly List<List<UI_Base>> m_ControlStack = new List<List<UI_Base>>();
     private bool m_BindCallbacks;
     private bool m_IsScreenFaderOpened;
 
     public static UIObjectPoolingFactory Pool => Instance != null ? Instance.m_Pool : null;
-    // FX °ü·Ã Ãß°¡ ÈÄ ¼öÁ¤
+    // FX ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     //public static ObjectPoolingFactory<UI_FX> Pool_FX_HUD => Instance != null ? Instance.m_PoolHud : null;
 
     public bool IsHidden { get; private set; }
@@ -52,18 +53,21 @@ public class UIManager : Manager_Base
     }
 
     /// <summary>
-    /// Manager_Base 1´Ü°è ÃÊ±âÈ­ : ½Ì±ÛÅæ ¼³Á¤ ¹× »çÀü ¹ÙÀÎµù
+    /// Manager_Base 1ï¿½Ü°ï¿½ ï¿½Ê±ï¿½È­ : ï¿½Ì±ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Îµï¿½
     /// </summary>
     public override bool Setup()
     {
         if (!ReferenceEquals(Instance, null) && Instance != null && Instance != this)
         {
-            Debug.LogWarning("[UIManager] Áßº¹ ÀÎ½ºÅÏ½º°¡ ¹ß°ßµÇ¾î ÆÄ±«ÇÕ´Ï´Ù.");
+            Debug.LogWarning("[UIManager] ï¿½ßºï¿½ ï¿½Î½ï¿½ï¿½Ï½ï¿½ï¿½ï¿½ ï¿½ß°ßµÇ¾ï¿½ ï¿½Ä±ï¿½ï¿½Õ´Ï´ï¿½.");
             Destroy(gameObject);
             return false;
         }
 
         Instance = this;
+
+        // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ìºï¿½Æ® ï¿½ï¿½ï¿½Îµï¿½ (ï¿½ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ä³ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
+        UnityEngine.SceneManagement.SceneManager.activeSceneChanged += OnActiveSceneChanged;
 
         InitializeUiRoots();
         BindScreenFaderEvents();
@@ -73,7 +77,7 @@ public class UIManager : Manager_Base
     }
 
     /// <summary>
-    /// Manager_Base 2´Ü°è ÃÊ±âÈ­ : ¸Å´ÏÀú ¸ŞÀÎ ·ÎÁ÷ °¡µ¿
+    /// Manager_Base 2ï¿½Ü°ï¿½ ï¿½Ê±ï¿½È­ : ï¿½Å´ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     protected override bool Init()
     {
@@ -130,6 +134,78 @@ public class UIManager : Manager_Base
         }
     }
 
+    private void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene current, UnityEngine.SceneManagement.Scene next)
+    {
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ç¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ UI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        ClearSceneCache();
+    }
+
+    /// <summary>
+    /// UI_Rootï¿½ï¿½ Awakeï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½Ç¾ï¿½ UIManagerï¿½ï¿½ ï¿½ï¿½ÏµË´Ï´ï¿½.
+    /// </summary>
+    public void RegisterUiRoot(UI_Root uiRoot)
+    {
+        if (uiRoot == null || m_UiRoots.Contains(uiRoot)) return;
+
+        m_UiRoots.Add(uiRoot);
+
+        if (uiRoot.Type != EUIObjectPoolingParent.None && !m_BakedUiRoots.ContainsKey(uiRoot.Type))
+        {
+            m_BakedUiRoots.Add(uiRoot.Type, uiRoot);
+        }
+
+        // ï¿½Ìºï¿½Æ® ï¿½ï¿½ï¿½Îµï¿½
+        uiRoot.OnControlAdded += OnControlAdded;
+        uiRoot.OnControlRemoved += OnControlRemoved;
+
+        // UI ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Îµï¿½ ï¿½ï¿½ Ä³ï¿½ï¿½
+        BindUiElementsInRoot(uiRoot);
+    }
+
+    /// <summary>
+    /// UI_Rootï¿½ï¿½ ï¿½Ä±ï¿½(ï¿½ï¿½ ï¿½ï¿½È¯)ï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½Ç¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ë´Ï´ï¿½.
+    /// </summary>
+    public void UnregisterUiRoot(UI_Root uiRoot)
+    {
+        if (uiRoot == null || !m_UiRoots.Contains(uiRoot)) return;
+
+        uiRoot.OnControlAdded -= OnControlAdded;
+        uiRoot.OnControlRemoved -= OnControlRemoved;
+
+        m_BakedUiRoots.Remove(uiRoot.Type);
+        m_UiRoots.Remove(uiRoot);
+    }
+
+    private void BindUiElementsInRoot(UI_Root uiRoot)
+    {
+        int childCount = uiRoot.transform.childCount;
+        for (int i = 0; i < childCount; ++i)
+        {
+            Transform child = uiRoot.transform.GetChild(i);
+            if (child.TryGetComponent<IUIBase>(out var component))
+            {
+                component.SetRoot(uiRoot);
+                m_AllUiBaseObjects.Add(child.gameObject);
+
+                string typeName = component.GetType().Name;
+                if (component.BIsSearchedByTypeHash && !m_UiElementsByTypename.ContainsKey(typeName))
+                {
+                    m_UiElementsByTypename.Add(typeName, component);
+                }
+
+                if (!m_UiElementsByName.ContainsKey(child.name))
+                {
+                    m_UiElementsByName.Add(child.name, child);
+                }
+
+                if (component.BIsOpened && component is UI_Base control && control.HasControl)
+                {
+                    uiRoot.AddControl(control);
+                }
+            }
+        }
+    }
+
     private void BindScreenFaderEvents()
     {
         if (ScreenFader.Instance != null)
@@ -137,6 +213,16 @@ public class UIManager : Manager_Base
             ScreenFader.Instance.OnOpened += OnScreenFaderOpened;
             ScreenFader.Instance.OnClosed += OnScreenFaderClosed;
         }
+    }
+
+    private void ClearSceneCache()
+    {
+        m_ControlStack.Clear();
+        m_AllUiBaseObjects.Clear();
+        m_UiElementsByTypename.Clear();
+        m_UiElementsByName.Clear();
+        m_BakedUiRoots.Clear();
+        m_UiRoots.Clear();
     }
 
     private void UnbindCallbacks()
@@ -171,7 +257,7 @@ public class UIManager : Manager_Base
         var hudRoot = GetRootFromType(EUIObjectPoolingParent.HUD);
         if (hudRoot != null)
         {
-            // FX °ü·Ã Ãß°¡ ÈÄ ¼öÁ¤
+            // FX ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             //m_PoolHud = new ObjectPoolingFactory<UI_FX>();
             //m_PoolHud.Initialize(hudRoot.transform, poolablePrefabs2, string.Empty);
         }
@@ -315,6 +401,29 @@ public class UIManager : Manager_Base
         }
     }
 
+    /// <summary>
+    /// ìŠ¤í…Œì´ì§€ ê²°ê³¼ íŒ¨ë„ í‘œì‹œ (í´ë¦¬ì–´/ì‹¤íŒ¨)
+    /// </summary>
+    public async Awaitable ShowStageResultAsync(bool isClear, int currentCoin, int targetCoin, CancellationToken token)
+    {
+        // ê²°ê³¼ UI íŒ¨ë„ ìƒì„±/í‘œì‹œ ë¡œì§
+        // í˜„ì¬ëŠ” ê°„ë‹¨íˆ ë¡œê·¸ë§Œ ì¶œë ¥
+        Debug.Log($"[UIManager] Stage Result - Clear: {isClear}, CurrentCoin: {currentCoin}, TargetCoin: {targetCoin}");
+        
+        // ì‹¤ì œ êµ¬í˜„ì—ì„œëŠ” ê²°ê³¼ íŒ¨ë„ UI í”„ë¦¬íŒ¹ì„ í’€ì—ì„œ êº¼ë‚´ì„œ í‘œì‹œ
+        // await m_Pool.GetAsync<UI_StageResult>("UI_StageResult", panel => 
+        // {
+        //     panel.SetResult(isClear, currentCoin, targetCoin);
+        //     panel.Show();
+        // });
+
+        // ì‚¬ìš©ì ì…ë ¥ ëŒ€ê¸° (ë¡œë¹„ ë²„íŠ¼ í´ë¦­ ë“±)
+        await Awaitable.WaitForSecondsAsync(1f); // ì„ì‹œ ëŒ€ê¸°
+        
+        // ì‚¬ìš©ì í´ë¦­ ëŒ€ê¸° ë¡œì§ ì¶”ê°€ í•„ìš”
+        // ì˜ˆ: await WaitForButtonClickAsync(token);
+    }
+
     public void Hide()
     {
         if (IsHidden) return;
@@ -344,11 +453,13 @@ public class UIManager : Manager_Base
     }
 
     /// <summary>
-    /// Manager_BaseÀÇ ÀÚ¿ø ÇØÁ¦ ±¸Çö
+    /// Manager_Baseï¿½ï¿½ ï¿½Ú¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public override void Release()
     {
+        UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= OnActiveSceneChanged;
         UnbindCallbacks();
+        ClearSceneCache();
 
         if (m_Pool != null)
         {
@@ -356,7 +467,7 @@ public class UIManager : Manager_Base
             m_Pool = null;
         }
 
-        // FX °ü·Ã Ãß°¡ ÈÄ ¼öÁ¤
+        // FX ï¿½ï¿½ï¿½ï¿½ ï¿½ß°ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         /*
         if (m_PoolHud != null)
         {
@@ -365,7 +476,7 @@ public class UIManager : Manager_Base
         }
         */
 
-        // [High Safety] DOTween: ¸Å´ÏÀú ÆÄ±« ½Ã ¿¬°áµÈ Æ®À© Á¤Áö
+        // [High Safety] DOTween: ï¿½Å´ï¿½ï¿½ï¿½ ï¿½Ä±ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         transform.DOKill();
 
         if (ReferenceEquals(Instance, this))

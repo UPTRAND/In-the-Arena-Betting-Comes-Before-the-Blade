@@ -1,32 +1,101 @@
 #if UNITY_6000_0_OR_NEWER
+using UnityEngine;
 using System.Collections.Generic;
+using System.Threading;
+using InTheArena.Unit;
+using UnitType = InTheArena.Unit.Unit;
 
-public class RoundContext
+namespace InTheArena.MainGame
 {
-    // ½ºÅ×ÀÌÁö Á¤º¸
-    public int CurrentStageId { get; set; }
-    public int CurrentRound { get; set; }
-    public int MaxRounds { get; set; } = 5; // ÀÏ¹İ: 5, ÇÏµå: 7
-    public int TargetCall { get; set; } = 200; // ¸ñÇ¥ ÀÚ±İ
-    public int CurrentCall { get; set; } = 100; // ½ÃÀÛ ÀÚ±İ (±âº» 100Äİ)
-
-    // ÆÀ ¹× À¯´Ö Á¤º¸
-    public List<object> TeamAUnits { get; set; } = new List<object>();
-    public List<object> TeamBUnits { get; set; } = new List<object>();
-
-    // ¹èÆÃ ÆäÀÌÁî °á°ú µ¥ÀÌÅÍ
-    public int TeamABetRatio { get; set; } = 60; // ±âº» 60:40
-    public int TeamBBetRatio { get; set; } = 40;
-    public int ExtraBetCall { get; set; } = 0; // Ãß°¡ ¹èÆÃ±ÇÀ¸·Î ÅõÀÔµÈ Äİ
-
-    // ÀüÅõ ÆäÀÌÁî °á°ú µ¥ÀÌÅÍ
-    public bool DidTeamAWin { get; set; }
-
-    public void ResetBettingData()
+    /// <summary>
+    /// ë¼ìš´ë“œ ì§„í–‰ ì¤‘ í•„ìš”í•œ ì»¨í…ìŠ¤íŠ¸ ë°ì´í„°
+    /// ë¼ìš´ë“œ ë‹¨ìœ„ë¡œ ì´ˆê¸°í™”ë˜ê³  ë¼ìš´ë“œê°€ ëë‚˜ë©´ ë¦¬ì…‹ë¨
+    /// </summary>
+    public class RoundContext
     {
-        TeamABetRatio = 60;
-        TeamBBetRatio = 40;
-        ExtraBetCall = 0;
+        // ë¼ìš´ë“œ ê¸°ë³¸ ì •ë³´
+        public int CurrentStageId { get; set; }
+        public int CurrentRound { get; set; }
+        public int MaxRounds { get; set; } = 5;
+        public int TargetCall { get; set; } = 200;
+        public int CurrentCall { get; set; } = 100;
+        public int CurrentCoin { get; set; } = 100;
+        public StageData CurrentStageData { get; set; }
+
+        // íŒ€ ìœ ë‹› ë°ì´í„° (ì—ë””í„° ì„¤ì •ìš© - ëŸ°íƒ€ì„ì—ëŠ” Unit ë¦¬ìŠ¤íŠ¸ë¡œ ë³€í™˜)
+        public List<UnitData> TeamAUnitDatas { get; set; } = new List<UnitData>();
+        public List<UnitData> TeamBUnitDatas { get; set; } = new List<UnitData>();
+
+        // ëŸ°íƒ€ì„ ìœ ë‹› ë¦¬ìŠ¤íŠ¸ (ì‹¤ì œ ì „íˆ¬ì—ì„œ ì‚¬ìš©)
+        public List<UnitType> TeamAUnits { get; set; } = new List<UnitType>();
+        public List<UnitType> TeamBUnits { get; set; } = new List<UnitType>();
+
+        // ë² íŒ… ë°ì´í„°
+        public int TeamABetRatio { get; set; } = 50;
+        public int TeamBBetRatio { get; set; } = 50;
+        public int ExtraBetCall { get; set; } = 0;
+
+        // ë¼ìš´ë“œ ê²°ê³¼
+        public bool DidTeamAWin { get; set; }
+        public bool IsRoundCompleted { get; set; }
+
+        // íŠ¹ë³„ ê·œì¹™
+        public RoundRule CurrentRoundRule { get; set; } = RoundRule.None;
+
+        /// <summary>
+        /// ë² íŒ… ë°ì´í„° ì´ˆê¸°í™”
+        /// </summary>
+        public void ResetBettingData()
+        {
+            TeamABetRatio = 50;
+            TeamBBetRatio = 50;
+            ExtraBetCall = 0;
+        }
+
+        /// <summary>
+        /// ë¼ìš´ë“œ ë°ì´í„° ì„¤ì • (StageDataì—ì„œ ë³µì‚¬)
+        /// </summary>
+        public void SetRoundData(StageData stageData, int roundIndex)
+        {
+            CurrentStageId = stageData.StageId;
+            MaxRounds = stageData.TotalRounds;
+            TargetCall = stageData.TargetCall;
+            CurrentCall = stageData.InitialCoin;
+            CurrentCoin = stageData.InitialCoin;
+            CurrentRound = roundIndex + 1;
+            CurrentStageData = stageData;
+
+            if (roundIndex < stageData.RoundDatas.Count)
+            {
+                var roundData = stageData.RoundDatas[roundIndex];
+                TeamAUnitDatas = new List<UnitData>(roundData.GetTeamAUnits());
+                TeamBUnitDatas = new List<UnitData>(roundData.GetTeamBUnits());
+                TeamABetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioA);
+                TeamBBetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioB);
+                CurrentRoundRule = roundData.SpecialRule;
+            }
+        }
+
+        /// <summary>
+        /// ëª¨ë“  ë°ì´í„° ì´ˆê¸°í™”
+        /// </summary>
+        public void Clear()
+        {
+            CurrentStageId = 0;
+            CurrentRound = 0;
+            MaxRounds = 0;
+            TargetCall = 0;
+            CurrentCall = 0;
+            CurrentCoin = 0;
+            TeamAUnitDatas.Clear();
+            TeamBUnitDatas.Clear();
+            TeamAUnits.Clear();
+            TeamBUnits.Clear();
+            ResetBettingData();
+            DidTeamAWin = false;
+            IsRoundCompleted = false;
+            CurrentRoundRule = RoundRule.None;
+        }
     }
 }
 #endif
