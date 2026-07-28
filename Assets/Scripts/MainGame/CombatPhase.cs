@@ -311,6 +311,7 @@ namespace InTheArena.MainGame
         private void OnDrawGizmos()
         {
             if (!Application.isPlaying) return;
+            if (Context == null) return;
             if (Context.CurrentStageData == null) return;
 
             var roundData = GetRoundDataForTeam(Team.Ally);

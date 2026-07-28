@@ -61,14 +61,15 @@ namespace InTheArena.MainGame
         }
 
         /// <summary>
-        /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
-        /// </summary>
-        public void InitializeContext(RoundContext context, StageData stageData)
-        {
-            m_Context = context ?? new RoundContext();
-            m_CurrentStageData = stageData;
-            Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
-        }
+                /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
+                /// </summary>
+                public void InitializeContext(RoundContext context, StageData stageData)
+                {
+                    m_Context = context ?? new RoundContext();
+                    m_CurrentStageData = stageData;
+                    m_Context.CurrentStageData = stageData;  // Context에도 스테이지 데이터 설정
+                    Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
+                }
 
         /// <summary>
         /// 지정된 라운드 실행
@@ -92,27 +93,30 @@ namespace InTheArena.MainGame
             m_IsRoundRunning = true;
 
             try
-            {
-                // 1. 라운드 데이터 설정
-                SetupRoundData(roundIndex);
+                        {
+                            // 1. 라운드 데이터 설정
+                            SetupRoundData(roundIndex);
 
-                // 2. Betting Phase
-                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
-                await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
-                await m_BettingPhase.ExitPhaseAsync(m_RoundCts.Token);
+                            // 2. Betting Phase
+                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
+                            m_BettingPhase.InitializePhase(m_Context);
+                            await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
+                            await m_BettingPhase.ExitPhaseAsync(m_RoundCts.Token);
 
-                token.ThrowIfCancellationRequested();
+                            token.ThrowIfCancellationRequested();
 
-                // 3. Combat Phase
-                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
-                await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
-                await m_CombatPhase.ExitPhaseAsync(m_RoundCts.Token);
+                            // 3. Combat Phase
+                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
+                            m_CombatPhase.InitializePhase(m_Context);
+                            await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
+                            await m_CombatPhase.ExitPhaseAsync(m_RoundCts.Token);
 
-                token.ThrowIfCancellationRequested();
+                            token.ThrowIfCancellationRequested();
 
-                // 4. Result Phase
-                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase 시작");
-                await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
+                            // 4. Result Phase
+                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase 시작");
+                            m_ResultPhase.InitializePhase(m_Context);
+                            await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
 
                 // 결과 데이터 수집
                 m_Context.IsRoundCompleted = true;

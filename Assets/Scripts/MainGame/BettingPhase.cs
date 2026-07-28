@@ -11,25 +11,29 @@ using TMPro;
 namespace InTheArena.MainGame
 {
     /// <summary>
-    /// 베팅 페이즈
-    /// 플레이어가 팀 A와 팀 B의 승률에 베팅하는 단계
+    /// 베팅 페이즈 - 이미지 기반 UI 구성
+    /// 1. 상단: 현재 라운드 텍스트
+    /// 2. 중간: 팀A/팀B 유닛 정보 (좌표 + 유닛명 텍스트)
+    /// 3. 하단: 진영 배팅 슬라이더
+    /// 4. 최하단: 초록색 확인 버튼 (×2)
     /// </summary>
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
-        [Header("UI References")]
-        [SerializeField] private CanvasGroup m_BettingUiCanvasGroup;
-        [SerializeField] private Slider m_BetRatioSlider;
-        [SerializeField] private TMP_Text m_TeamANameText;
-        [SerializeField] private TMP_Text m_TeamBNameText;
-        [SerializeField] private TMP_Text m_TeamARatioText;
-        [SerializeField] private TMP_Text m_TeamBRatioText;
-        [SerializeField] private TMP_Text m_CurrentCallText;
-        [SerializeField] private Button m_ConfirmBetButton;
-        [SerializeField] private Button m_ExtraBetButton;
-        [SerializeField] private Button m_RearrangeButton;
-        [SerializeField] private TMP_Text m_TeamAGridUnitText;
-        [SerializeField] private TMP_Text m_TeamBGridUnitText;
+        [Header("UI References - Top")]
+        [SerializeField] private TMP_Text m_RoundText;           // "Round 3"
+
+        [Header("UI References - Team Info (Middle)")]
+        [SerializeField] private TMP_Text m_TeamANameText;       // 팀A 이름
+        [SerializeField] private TMP_Text m_TeamAUnitInfoText;    // 팀A 유닛 정보 (좌표 + 유닛명)
+        [SerializeField] private TMP_Text m_TeamBNameText;       // 팀B 이름
+        [SerializeField] private TMP_Text m_TeamBUnitInfoText;    // 팀B 유닛 정보 (좌표 + 유닛명)
+
+        [Header("UI References - Betting (Bottom)")]
+        [SerializeField] private Slider m_BetRatioSlider;         // 진영 배팅 슬라이더
+        [SerializeField] private TMP_Text m_TeamARatioText;       // 팀A 비율 텍스트
+        [SerializeField] private TMP_Text m_TeamBRatioText;       // 팀B 비율 텍스트
+        [SerializeField] private Button m_ConfirmBetButton;       // 초록색 확인 버튼 (×2)
 
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private bool m_IsSliderInteractable = true;
@@ -40,19 +44,17 @@ namespace InTheArena.MainGame
             SetupUI();
             SubscribeEvents();
 
-            if (m_BettingUiCanvasGroup != null)
+            // 페이드 인
+            var canvasGroup = GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
             {
-                m_BettingUiCanvasGroup.gameObject.SetActive(true);
-                m_BettingUiCanvasGroup.alpha = 0f;
-
-                // [High Safety / Fix CS1061] DOTween v1.2.675+ supports AsyncWaitForCompletion API
-                var tween = m_BettingUiCanvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad);
+                canvasGroup.gameObject.SetActive(true);
+                canvasGroup.alpha = 0f;
+                var tween = canvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad);
                 await AwaitTweenAsync(tween, token);
             }
 
             m_PhaseCompletionSource = new AwaitableCompletionSource();
-
-            // 베팅 UI가 [확인] 버튼을 눌러 완료될 때까지 대기
             await m_PhaseCompletionSource.Awaitable;
         }
 
@@ -60,74 +62,75 @@ namespace InTheArena.MainGame
         {
             IsPhaseCompleted = false;
             Context.ResetBettingData();
-
-            // 기본 베팅 비율 설정
             m_BetRatioSlider.value = Context.TeamABetRatio / 100f;
             UpdateRatioTexts();
         }
 
         private void SetupUI()
         {
-            // 팀 이름 설정 (유닛 데이터에서 가져오거나 기본값)
-            if (m_TeamANameText != null && Context.TeamAUnitDatas.Count > 0)
+            // 1. 라운드 텍스트
+            if (m_RoundText != null)
             {
-                m_TeamANameText.text = Context.TeamAUnitDatas[0].UnitName;
-            }
-            if (m_TeamBNameText != null && Context.TeamBUnitDatas.Count > 0)
-            {
-                m_TeamBNameText.text = Context.TeamBUnitDatas[0].UnitName;
+                m_RoundText.text = $"Round {Context.CurrentRound}";
             }
 
-            // 현재 콜 표시
-            if (m_CurrentCallText != null)
-            {
-                m_CurrentCallText.text = $"Call: {Context.CurrentCall}";
-            }
+            // 2. 팀 유닛 정보 텍스트 (좌표 + 유닛명)
+            UpdateTeamUnitInfo();
 
-            UpdateGridUnitText();
-
-            // 버튼 인터렉션 설정
+            // 3. 베팅 슬라이더 초기값
+            m_BetRatioSlider.value = Context.TeamABetRatio / 100f;
+            UpdateRatioTexts();
             UpdateButtonInteractable();
+        }
+
+        private void UpdateTeamUnitInfo()
+        {
+            // 팀A: 좌측 그리드 (Red 팀)
+            if (m_TeamAUnitInfoText != null && Context.TeamAUnitDatas.Count > 0)
+            {
+                var lines = new System.Text.StringBuilder();
+                for (int i = 0; i < Context.TeamAUnitDatas.Count; i++)
+                {
+                    var unit = Context.TeamAUnitDatas[i];
+                    // 2x3 그리드 좌표 계산 (0~5)
+                    int col = i % 3;
+                    int row = i / 3;
+                    lines.Append($"({col},{row}) {unit.UnitName}");
+                    if (i < Context.TeamAUnitDatas.Count - 1) lines.Append("\n");
+                }
+                m_TeamAUnitInfoText.text = lines.ToString();
+            }
+
+            // 팀B: 우측 그리드 (Blue 팀)
+            if (m_TeamBUnitInfoText != null && Context.TeamBUnitDatas.Count > 0)
+            {
+                var lines = new System.Text.StringBuilder();
+                for (int i = 0; i < Context.TeamBUnitDatas.Count; i++)
+                {
+                    var unit = Context.TeamBUnitDatas[i];
+                    int col = i % 3;
+                    int row = i / 3;
+                    lines.Append($"({col},{row}) {unit.UnitName}");
+                    if (i < Context.TeamBUnitDatas.Count - 1) lines.Append("\n");
+                }
+                m_TeamBUnitInfoText.text = lines.ToString();
+            }
         }
 
         private void SubscribeEvents()
         {
             if (m_BetRatioSlider != null)
-            {
                 m_BetRatioSlider.onValueChanged.AddListener(OnBetRatioChanged);
-            }
             if (m_ConfirmBetButton != null)
-            {
                 m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
-            }
-            if (m_ExtraBetButton != null)
-            {
-                m_ExtraBetButton.onClick.AddListener(OnExtraBetClicked);
-            }
-            if (m_RearrangeButton != null)
-            {
-                m_RearrangeButton.onClick.AddListener(OnRearrangeClicked);
-            }
         }
 
         private void UnsubscribeEvents()
         {
             if (m_BetRatioSlider != null)
-            {
                 m_BetRatioSlider.onValueChanged.RemoveListener(OnBetRatioChanged);
-            }
             if (m_ConfirmBetButton != null)
-            {
                 m_ConfirmBetButton.onClick.RemoveListener(OnConfirmBetClicked);
-            }
-            if (m_ExtraBetButton != null)
-            {
-                m_ExtraBetButton.onClick.RemoveListener(OnExtraBetClicked);
-            }
-            if (m_RearrangeButton != null)
-            {
-                m_RearrangeButton.onClick.RemoveListener(OnRearrangeClicked);
-            }
         }
 
         private void OnBetRatioChanged(float value)
@@ -142,14 +145,6 @@ namespace InTheArena.MainGame
 
             UpdateRatioTexts();
             UpdateButtonInteractable();
-        }
-
-        private void UpdateGridUnitText()
-        {
-            if (m_TeamAGridUnitText != null)
-                m_TeamAGridUnitText.text = $"{Context.TeamAUnitDatas}";
-            if (m_TeamAGridUnitText != null)
-                m_TeamAGridUnitText.text = $"{Context.TeamBUnitDatas}";
         }
 
         private void UpdateRatioTexts()
@@ -169,63 +164,7 @@ namespace InTheArena.MainGame
         }
 
         /// <summary>
-        /// 베팅 비율 직접 설정 (외부에서 호출 가능)
-        /// </summary>
-        public bool SetBettingRatio(int teamARatio)
-        {
-            teamARatio = Mathf.Clamp(teamARatio, 0, 100);
-
-            if (teamARatio == 50)
-            {
-                Debug.LogWarning("[BettingPhase] 50:50 비율은 베팅할 수 없습니다.");
-                return false;
-            }
-
-            Context.TeamABetRatio = teamARatio;
-            Context.TeamBBetRatio = 100 - teamARatio;
-
-            if (m_BetRatioSlider != null)
-            {
-                m_IsSliderInteractable = false;
-                m_BetRatioSlider.value = teamARatio / 100f;
-                m_IsSliderInteractable = true;
-            }
-
-            UpdateRatioTexts();
-            UpdateButtonInteractable();
-            Debug.Log($"[BettingPhase] 베팅 비율 설정 -> A: {Context.TeamABetRatio}% | B: {Context.TeamBBetRatio}%");
-            return true;
-        }
-
-        /// <summary>
-        /// 베팅 아이템 사용 1: 추가 베팅 콜 (+50)
-        /// </summary>
-        public void UseExtraBetItem()
-        {
-            if (IsPhaseCompleted) return;
-
-            Context.ExtraBetCall += 50;
-            Debug.Log($"[BettingPhase] 추가 베팅 아이템 사용! 추가 콜: +{Context.ExtraBetCall}");
-
-            if (m_CurrentCallText != null)
-            {
-                m_CurrentCallText.text = $"Call: {Context.CurrentCall + Context.ExtraBetCall}";
-            }
-        }
-
-        /// <summary>
-        /// 베팅 아이템 사용 2: 유닛 재배치
-        /// </summary>
-        public void UseRearrangeItem()
-        {
-            if (IsPhaseCompleted) return;
-
-            Debug.Log("[BettingPhase] 유닛 재배치 아이템 사용! 유닛 배치 변경 로직 필요");
-            // TODO: 유닛 재배치 로직 구현
-        }
-
-        /// <summary>
-        /// UI [확인] 버튼 클릭 시 호출
+        /// UI [확인] 버튼 클릭 시 호출 (×2 버튼)
         /// </summary>
         private void OnConfirmBetClicked()
         {
@@ -242,25 +181,16 @@ namespace InTheArena.MainGame
             m_PhaseCompletionSource?.TrySetResult();
         }
 
-        private void OnExtraBetClicked()
-        {
-            UseExtraBetItem();
-        }
-
-        private void OnRearrangeClicked()
-        {
-            UseRearrangeItem();
-        }
-
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             UnsubscribeEvents();
 
-            if (m_BettingUiCanvasGroup != null)
+            var canvasGroup = GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
             {
-                var tween = m_BettingUiCanvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad);
+                var tween = canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad);
                 await AwaitTweenAsync(tween, token);
-                m_BettingUiCanvasGroup.gameObject.SetActive(false);
+                canvasGroup.gameObject.SetActive(false);
             }
 
             transform.DOKill();
@@ -288,10 +218,6 @@ namespace InTheArena.MainGame
         private void OnDestroy()
         {
             transform.DOKill();
-            if (m_BettingUiCanvasGroup != null)
-            {
-                m_BettingUiCanvasGroup.DOKill();
-            }
             UnsubscribeEvents();
         }
     }
