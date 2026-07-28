@@ -1,5 +1,6 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace InTheArena.Unit
 {
@@ -26,10 +27,12 @@ namespace InTheArena.Unit
         [SerializeField] private GameObject m_UnitPrefab;
 
         [Tooltip("유닛 스킬 데이터 (SkillData ScriptableObject)")]
+        [FormerlySerializedAs("m_Skill")]
         [SerializeField] private SkillData m_SkillData;
 
-        [Tooltip("유닛 AI (UnitAI_Base 상속 클래스만 할당 가능)")]
-        [SerializeField] private UnitAI_Base m_AI;
+        [Tooltip("유닛 AI 데이터 (AIData ScriptableObject)")]
+        [FormerlySerializedAs("m_AI")]
+        [SerializeField] private AIData m_AIData;
 
         /// <summary> 유닛 이름 </summary>
         public string UnitName => m_UnitName;
@@ -46,8 +49,26 @@ namespace InTheArena.Unit
         /// <summary> 스킬 데이터 </summary>
         public SkillData SkillData => m_SkillData;
 
-        /// <summary> AI </summary>
-        public UnitAI_Base AI => m_AI;
+        /// <summary> AI 데이터 </summary>
+        public AIData AIData => m_AIData;
+
+        /// <summary> AI 로직 (런타임용) </summary>
+        public UnitAI_Base AI => m_AIData?.AILogic;
+
+        /// <summary>
+        /// 런타임용 AI 인스턴스 생성 및 초기화
+        /// </summary>
+        public UnitAI_Base CreateRuntimeAI(Unit owner = null)
+        {
+            if (m_AIData == null) return null;
+
+            var ai = m_AIData.CreateRuntimeAI();
+            if (ai != null && owner != null)
+            {
+                ai.Initialize(owner);
+            }
+            return ai;
+        }
 
         /// <summary>
         /// 데이터 유효성 검사 (에디터에서만 사용)
@@ -93,10 +114,18 @@ namespace InTheArena.Unit
                 }
             }
 
-            if (m_AI != null && !(m_AI is UnitAI_Base))
+            if (m_AIData != null)
             {
-                Debug.LogError($"[UnitData] {name}: AI가 UnitAI_Base를 상속받지 않았습니다.");
-                isValid = false;
+                if (!(m_AIData is AIData))
+                {
+                    Debug.LogError($"[UnitData] {name}: AI 데이터가 AIData를 상속받지 않았습니다.");
+                    isValid = false;
+                }
+                else if (!m_AIData.IsValid())
+                {
+                    Debug.LogError($"[UnitData] {name}: AI 데이터가 유효하지 않습니다.");
+                    isValid = false;
+                }
             }
 
             return isValid;

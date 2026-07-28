@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using DG.Tweening;
+using InTheArena.UI;
 
 [DisallowMultipleComponent]
 public class UIManager : Manager_Base
@@ -404,24 +405,23 @@ public class UIManager : Manager_Base
     /// <summary>
     /// 스테이지 결과 패널 표시 (클리어/실패)
     /// </summary>
-    public async Awaitable ShowStageResultAsync(bool isClear, int currentCoin, int targetCoin, CancellationToken token)
+    public async Awaitable ShowStageResultAsync(bool isClear, int currentCall, int targetCall, CancellationToken token)
     {
-        // 결과 UI 패널 생성/표시 로직
-        // 현재는 간단히 로그만 출력
-        Debug.Log($"[UIManager] Stage Result - Clear: {isClear}, CurrentCoin: {currentCoin}, TargetCoin: {targetCoin}");
-        
-        // 실제 구현에서는 결과 패널 UI 프리팹을 풀에서 꺼내서 표시
-        // await m_Pool.GetAsync<UI_StageResult>("UI_StageResult", panel => 
-        // {
-        //     panel.SetResult(isClear, currentCoin, targetCoin);
-        //     panel.Show();
-        // });
+        var panel = GetElement<UI_StageResultPanel>();
+        if (panel == null)
+        {
+            panel = UnityEngine.Object.FindAnyObjectByType<UI_StageResultPanel>(
+                FindObjectsInactive.Include);
+        }
 
-        // 사용자 입력 대기 (로비 버튼 클릭 등)
-        await Awaitable.WaitForSecondsAsync(1f); // 임시 대기
-        
-        // 사용자 클릭 대기 로직 추가 필요
-        // 예: await WaitForButtonClickAsync(token);
+        if (panel == null)
+        {
+            Debug.LogError("[UIManager] MainGame 씬에서 UI_StageResultPanel을 찾을 수 없습니다.");
+            return;
+        }
+
+        Debug.Log($"[UIManager] Stage Result - Clear: {isClear}, CurrentCall: {currentCall}, TargetCall: {targetCall}");
+        await panel.ShowAsync(isClear, currentCall, targetCall, token);
     }
 
     public void Hide()

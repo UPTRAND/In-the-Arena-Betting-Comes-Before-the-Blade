@@ -61,45 +61,41 @@ namespace InTheArena.MainGame
         private void InitializeResult()
         {
             IsPhaseCompleted = false;
-            m_IsWin = Context.DidTeamAWin;
-            m_RewardCall = CalculateRewardCall();
+            m_IsWin = Context.Settlement != null && Context.Settlement.IsWin;
+            m_RewardCall = Context.Settlement != null ? Context.Settlement.PayoutCall : 0;
         }
 
         private void SetupResultUI()
         {
             // 팀 이름
-            if (m_TeamANameText != null && Context.TeamAUnitDatas.Count > 0)
-                m_TeamANameText.text = Context.TeamAUnitDatas[0].UnitName;
-            if (m_TeamBNameText != null && Context.TeamBUnitDatas.Count > 0)
-                m_TeamBNameText.text = Context.TeamBUnitDatas[0].UnitName;
+            if (m_TeamANameText != null) m_TeamANameText.text = "Red Team";
+            if (m_TeamBNameText != null) m_TeamBNameText.text = "Blue Team";
 
             // 결과 타이틀
             if (m_ResultTitleText != null)
             {
-                m_ResultTitleText.text = m_IsWin ? "VICTORY" : "DEFEAT";
+                m_ResultTitleText.text = m_IsWin ? "BET WIN" : "BET LOSE";
                 m_ResultTitleText.color = m_IsWin ? Color.green : Color.red;
             }
 
-            // 팀별 콜 표시
-            int teamACall = m_IsWin ? Context.CurrentCall + Context.ExtraBetCall : 0;
-            int teamBCall = !m_IsWin ? Context.CurrentCall + Context.ExtraBetCall : 0;
-
             if (m_TeamACallText != null)
-                m_TeamACallText.text = $"{Context.TeamABetRatio}% : {teamACall}";
+                m_TeamACallText.text = $"Alive: {Context.CombatResult?.RedAliveCount ?? 0}";
             if (m_TeamBCallText != null)
-                m_TeamBCallText.text = $"{Context.TeamBBetRatio}% : {teamBCall}";
+                m_TeamBCallText.text = $"Alive: {Context.CombatResult?.BlueAliveCount ?? 0}";
 
             // 보상/페널티 콜
             if (m_RewardCallText != null)
             {
                 if (m_IsWin)
                 {
-                    m_RewardCallText.text = $"+{m_RewardCall} Call 획득!";
+                    m_RewardCallText.text =
+                        $"×{Context.Settlement.Multiplier} / {m_RewardCall} Call 지급\n보유: {Context.CurrentCall} Call";
                     m_RewardCallText.color = Color.green;
                 }
                 else
                 {
-                    m_RewardCallText.text = $"-{Context.CurrentCall} Call 잃음";
+                    m_RewardCallText.text =
+                        $"-{Context.Settlement?.WagerCall ?? 0} Call\n보유: {Context.CurrentCall} Call";
                     m_RewardCallText.color = Color.red;
                 }
             }
@@ -137,20 +133,6 @@ namespace InTheArena.MainGame
             
             CompletePhase();
             m_PhaseCompletionSource?.TrySetResult();
-        }
-
-        /// <summary>
-        /// 보상 콜 계산
-        /// </summary>
-        private int CalculateRewardCall()
-        {
-            if (!m_IsWin) return 0;
-
-            // 기본 콜 * 베팅 비율 보너스
-            float ratioBonus = Context.TeamABetRatio / 50f; // 50% 기준 1.0, 80%면 1.6
-            int baseReward = Context.CurrentCall + Context.ExtraBetCall;
-            
-            return Mathf.RoundToInt(baseReward * ratioBonus);
         }
 
         /// <summary>

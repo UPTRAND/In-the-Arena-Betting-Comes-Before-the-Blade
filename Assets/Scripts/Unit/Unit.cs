@@ -15,6 +15,9 @@ namespace InTheArena.Unit
     [RequireComponent(typeof(Collider))]
     public class Unit : MonoBehaviour
     {
+        private const string RedTeamTag = "RedTeam";
+        private const string BlueTeamTag = "BlueTeam";
+
         #region 이벤트 정의 (옵저버 패턴)
         /// <summary> 체력 변경 이벤트 (현재체력, 최대체력) </summary>
         public event Action<float, float> OnHpChanged;
@@ -184,6 +187,20 @@ namespace InTheArena.Unit
         /// <summary> 이동 중 여부 </summary>
         public bool IsMoving => m_IsMoving;
 
+        /// <summary> 전투 페이즈에서 런타임 AI의 행동 여부를 제어합니다. </summary>
+        public void SetAIActive(bool active)
+        {
+            if (active)
+            {
+                m_RuntimeAI?.Resume();
+            }
+            else
+            {
+                m_RuntimeAI?.Pause();
+                StopMovement();
+            }
+        }
+
         /// <summary> 공격 가능 여부 (쿨다운, 기절, 시전중, 사망 체크) </summary>
         public bool CanAttack => !IsDead && !m_IsStunned && !m_IsCastingSkill && !m_IsAttacking && m_AttackCooldown <= 0f;
 
@@ -298,10 +315,10 @@ namespace InTheArena.Unit
             }
 
             // AI 인스턴스 생성 및 초기화
-            if (data.AI != null)
+            if (data.AIData != null)
             {
-                m_RuntimeAI = data.AI.Clone();
-                m_RuntimeAI.Initialize(this);
+                m_RuntimeAI = data.AIData.CreateRuntimeAI();
+                m_RuntimeAI?.Initialize(this);
             }
 
             // 컴포넌트 설정
@@ -336,11 +353,18 @@ namespace InTheArena.Unit
 
         private void SetupComponents()
         {
-            // 레이어 설정 (팀별)
-            gameObject.layer = m_Team == 0 ? LayerMask.NameToLayer("Ally") : LayerMask.NameToLayer("Enemy");
+            string teamName = m_Team == 0 ? RedTeamTag : BlueTeamTag;
 
-            // 태그 설정
-            gameObject.tag = m_Team == 0 ? "Ally" : "Enemy";
+            // 팀 태그는 모든 유닛 초기화 경로에서 일관되게 여기서 설정한다.
+            gameObject.tag = teamName;
+
+            // 프로젝트에 동일한 이름의 레이어가 있을 때만 레이어를 변경한다.
+            // 등록되지 않은 레이어는 NameToLayer가 -1을 반환하므로 기존 레이어를 유지한다.
+            int teamLayer = LayerMask.NameToLayer(teamName);
+            if (teamLayer >= 0)
+            {
+                gameObject.layer = teamLayer;
+            }
         }
 
         private void SubscribeEvents()

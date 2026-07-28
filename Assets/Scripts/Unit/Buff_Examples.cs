@@ -151,6 +151,20 @@ namespace InTheArena.Unit
 
         private float m_RemainingShield;
 
+        /// <summary> 보호막 흡수량 (런타임 설정용) </summary>
+        public float ShieldAmount
+        {
+            get => m_ShieldAmount;
+            set => m_ShieldAmount = value;
+        }
+
+        /// <summary> 최대 체력 비율로 보호막량 설정 (런타임 설정용) </summary>
+        public float ShieldPercentOfMaxHp
+        {
+            get => m_ShieldPercentOfMaxHp;
+            set => m_ShieldPercentOfMaxHp = value;
+        }
+
         protected override void OnValidate()
         {
             base.OnValidate();

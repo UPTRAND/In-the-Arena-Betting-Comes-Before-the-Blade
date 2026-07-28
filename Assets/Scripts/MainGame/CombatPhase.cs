@@ -16,8 +16,16 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class CombatPhase : RoundPhaseBase
     {
+        private const int BattlefieldColumnCount = 7;
+        private const int BattlefieldRowCount = 3;
+        private const int TeamGridColumnCount = 2;
+        private const int TeamGridCellCount = TeamGridColumnCount * BattlefieldRowCount;
+        private const float GridCellSize = 2f;
+        private const float BattlefieldMinX = -(BattlefieldColumnCount * GridCellSize) * 0.5f;
+        private const float BattlefieldMinZ = -(BattlefieldRowCount * GridCellSize) * 0.5f;
+
         [Header("Combat Settings")]
-        [SerializeField] private float m_CombatTimeout = 60f; // 전투 최대 시간
+        [SerializeField] [Min(1f)] private float m_CombatTimeout = 30f;
         [SerializeField] private float m_UnitSpawnInterval = 0.1f; // 유닛 소환 간격
         [SerializeField] private Transform m_TeamASpawnRoot;
         [SerializeField] private Transform m_TeamBSpawnRoot;
@@ -27,30 +35,38 @@ namespace InTheArena.MainGame
         [SerializeField] private float m_FastSpeed = 2f;
         private float m_CurrentSpeed = 1f;
 
-        private AwaitableCompletionSource m_PhaseCompletionSource;
         private CancellationTokenSource m_CombatCts;
         private bool m_IsCombatEnded = false;
+        private float m_RemainingCombatTime;
+        private readonly Dictionary<UnitType, UnitSlotKey> m_UnitSlots = new Dictionary<UnitType, UnitSlotKey>();
+        private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
+        private int m_FirstEliminatedSlot = -1;
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
             InitializeCombat();
 
             m_CombatCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            m_PhaseCompletionSource = new AwaitableCompletionSource();
 
-            // 유닛 스폰 및 전투 시작
-            await SpawnUnitsAndStartCombatAsync(m_CombatCts.Token);
+            await ActivateUnitsAsync(m_CombatCts.Token);
+            if (m_CombatCts.IsCancellationRequested) return;
 
-            // 전투 종료 대기 (한 팀 전멸 또는 타임아웃)
-            await m_PhaseCompletionSource.Awaitable;
+            await RunCombatLoopAsync(m_CombatCts.Token);
         }
 
         private void InitializeCombat()
         {
             IsPhaseCompleted = false;
             m_IsCombatEnded = false;
+            m_RemainingCombatTime = m_CombatTimeout;
             m_CurrentSpeed = m_NormalSpeed;
             Time.timeScale = m_CurrentSpeed;
+            Context.CombatWinner = Team.None;
+            Context.IsRoundCompleted = false;
+            Context.CombatResult = null;
+            m_UnitSlots.Clear();
+            m_DeathHandlers.Clear();
+            m_FirstEliminatedSlot = -1;
 
             // 컨텍스트에서 유닛 데이터로 런타임 유닛 생성
             CreateRuntimeUnitsFromData();
@@ -61,42 +77,39 @@ namespace InTheArena.MainGame
             Context.TeamAUnits.Clear();
             Context.TeamBUnits.Clear();
 
-            // Team A 유닛 생성 (왼쪽 2x3 그리드)
-            SpawnTeamUnits(Context.TeamAUnitDatas, Context.TeamAUnits, Team.Ally, m_TeamASpawnRoot);
+            // BettingPhase에서 확정한 셀별 편성을 그대로 사용한다.
+            SpawnTeamUnits(Context.TeamADeployments, Context.TeamAUnits, Team.Red, m_TeamASpawnRoot);
+            SpawnTeamUnits(Context.TeamBDeployments, Context.TeamBUnits, Team.Blue, m_TeamBSpawnRoot);
 
-            // Team B 유닛 생성 (오른쪽 2x3 그리드)
-            SpawnTeamUnits(Context.TeamBUnitDatas, Context.TeamBUnits, Team.Enemy, m_TeamBSpawnRoot);
+            Debug.Log($"[CombatPhase] 런타임 유닛 생성 완료 - Red: {Context.TeamAUnits.Count}, Blue: {Context.TeamBUnits.Count}");
         }
 
-        private void SpawnTeamUnits(List<UnitData> unitDatas, List<UnitType> runtimeUnits, Team team, Transform spawnRoot)
+        private void SpawnTeamUnits(List<TeamUnitDeployment> deployments, List<UnitType> runtimeUnits, Team team, Transform spawnRoot)
         {
-            // RoundData의 그리드 데이터 기반으로 유닛 생성
-            var roundData = GetRoundDataForTeam(team);
-            if (roundData == null) return;
-
-            var grid = (team == Team.Ally) ? roundData.TeamAGrid : roundData.TeamBGrid;
-            if (grid == null) return;
-
-            // 2x3 그리드 (6칸) 순회
-            for (int cellIndex = 0; cellIndex < 6; cellIndex++)
+            if (deployments == null)
             {
-                var cellData = grid[cellIndex];
-                if (cellData == null || !cellData.IsValid()) continue;
+                Debug.LogError($"[CombatPhase] {team} 팀의 베팅 편성이 없습니다.");
+                return;
+            }
 
-                // 생성 확률 체크
-                if (UnityEngine.Random.value > cellData.SpawnProbability) continue;
+            foreach (var deployment in deployments)
+            {
+                if (deployment == null || deployment.Units == null || deployment.Units.Count == 0) continue;
 
-                // 해당 칸의 중앙 위치 계산
-                var spawnPos = GetGridCellCenterPosition(team, cellIndex);
+                var spawnPos = GetGridCellCenterPosition(team, deployment.CellIndex);
                 
-                // 해당 칸에 생성할 유닛 리스트 생성
-                var unitsToSpawn = cellData.GenerateRuntimeUnits();
-                
-                foreach (var unitData in unitsToSpawn)
+                foreach (var unitData in deployment.Units)
                 {
+                    if (unitData == null) continue;
+
                     var unit = unitData.CreateUnit(spawnRoot, (int)team);
                     if (unit != null)
                     {
+                        if (unit.AI == null)
+                        {
+                            Debug.LogError($"[CombatPhase] {unitData.UnitName}에 런타임 AI가 없어 전투 행동을 할 수 없습니다.");
+                        }
+
                         // 칸 내부에서 약간 랜덤한 오프셋 적용 (겹침 방지)
                         var finalPos = spawnPos + new Vector3(
                             UnityEngine.Random.Range(-0.3f, 0.3f),
@@ -104,15 +117,46 @@ namespace InTheArena.MainGame
                             UnityEngine.Random.Range(-0.3f, 0.3f)
                         );
                         unit.transform.position = finalPos;
+                        unit.SetAIActive(false);
+                        unit.gameObject.SetActive(false);
                         runtimeUnits.Add(unit);
+                        RegisterUnitSlot(unit, team, deployment.CellIndex);
                     }
                 }
             }
         }
 
-        private RoundData GetRoundDataForTeam(Team team)
+        private void RegisterUnitSlot(UnitType unit, Team team, int cellIndex)
         {
-            if (Context.CurrentStageData == null || Context.CurrentRound <= 0) return null;
+            var key = new UnitSlotKey(team, cellIndex);
+            m_UnitSlots[unit] = key;
+            Action<UnitType> handler = _ => OnUnitDied(unit, key);
+            m_DeathHandlers[unit] = handler;
+            unit.OnDied += handler;
+        }
+
+        private void OnUnitDied(UnitType deadUnit, UnitSlotKey key)
+        {
+            if (m_FirstEliminatedSlot > 0 || deadUnit == null) return;
+
+            foreach (var pair in m_UnitSlots)
+            {
+                if (pair.Value.Team == key.Team &&
+                    pair.Value.CellIndex == key.CellIndex &&
+                    pair.Key != null &&
+                    !pair.Key.IsDead)
+                {
+                    return;
+                }
+            }
+
+            // Red/Blue의 같은 인덱스는 공통 슬롯 번호 1~6으로 판정한다.
+            m_FirstEliminatedSlot = key.CellIndex + 1;
+        }
+
+        private RoundData GetCurrentRoundData()
+        {
+            if (Context == null || Context.CurrentStageData == null || Context.CurrentRound <= 0) return null;
             
             int roundIndex = Context.CurrentRound - 1;
             if (roundIndex < 0 || roundIndex >= Context.CurrentStageData.RoundDatas.Count) return null;
@@ -122,26 +166,23 @@ namespace InTheArena.MainGame
 
         private Vector3 GetGridCellCenterPosition(Team team, int cellIndex)
         {
-            // 2x3 그리드 (2행 3열)
-            // cellIndex: 0~5 (row*3 + col)
-            // Team.Ally (왼쪽): x = -4 ~ -2, z = -1 ~ 1 (간격 2)
-            // Team.Enemy (오른쪽): x = 2 ~ 4, z = -1 ~ 1 (간격 2)
-            // 각 칸 크기: 2x2, 칸 중심 좌표 계산
+            // 전체 전장은 7열 x 3행이다.
+            // Red는 왼쪽 2열, Blue는 오른쪽 2열을 사용하고 중앙 3열은 중립 전투 영역이다.
+            // cellIndex: 0~5 (row * 2 + col)
+            int col = cellIndex % TeamGridColumnCount;
+            int row = cellIndex / TeamGridColumnCount;
 
-            int col = cellIndex % 3;
-            int row = cellIndex / 3;
+            int battlefieldCol = team == Team.Red
+                ? col
+                : BattlefieldColumnCount - TeamGridColumnCount + col;
 
-            float cellSize = 2f;
-            float startX = (team == Team.Ally) ? -4f : 2f; // 왼쪽: -4, 오른쪽: 2
-            float startZ = -1f;
-
-            float centerX = startX + col * cellSize + cellSize * 0.5f;
-            float centerZ = startZ + row * cellSize + cellSize * 0.5f;
+            float centerX = BattlefieldMinX + (battlefieldCol + 0.5f) * GridCellSize;
+            float centerZ = BattlefieldMinZ + (row + 0.5f) * GridCellSize;
 
             return new Vector3(centerX, 0f, centerZ);
         }
 
-        private async Awaitable SpawnUnitsAndStartCombatAsync(CancellationToken token)
+        private async Awaitable ActivateUnitsAsync(CancellationToken token)
         {
             // 모든 유닛을 0.1초 간격으로 스폰
             var allUnits = new List<UnitType>();
@@ -156,94 +197,128 @@ namespace InTheArena.MainGame
                 await Awaitable.WaitForSecondsAsync(m_UnitSpawnInterval);
             }
 
-            // 전투 시작
-            StartCombatLoop(token);
+            if (token.IsCancellationRequested) return;
+
+            // 모든 유닛이 배치된 뒤 동시에 AI 전투를 시작한다.
+            foreach (var unit in allUnits)
+            {
+                if (unit != null && !unit.IsDead)
+                {
+                    unit.SetAIActive(true);
+                }
+            }
         }
 
-        private async void StartCombatLoop(CancellationToken token)
+        private async Awaitable RunCombatLoopAsync(CancellationToken token)
         {
-            float elapsedTime = 0f;
+            Debug.Log($"[CombatPhase] 전투 시작 - 제한 시간: {m_CombatTimeout:0.##}초");
 
             while (!m_IsCombatEnded && !token.IsCancellationRequested)
             {
-                await Awaitable.NextFrameAsync();
+                if (TryResolveElimination()) break;
 
-                if (token.IsCancellationRequested) break;
-
-                float deltaTime = Time.deltaTime * m_CurrentSpeed;
-                elapsedTime += deltaTime;
-
-                // AI 업데이트 (각 유닛의 AI가 스스로 판단하여 행동)
-                UpdateUnitAI(Context.TeamAUnits, deltaTime);
-                UpdateUnitAI(Context.TeamBUnits, deltaTime);
-
-                // 승리 조건 체크
-                CheckVictoryCondition();
-
-                // 타임아웃 체크
-                if (elapsedTime >= m_CombatTimeout)
+                if (m_RemainingCombatTime <= 0f)
                 {
                     Debug.Log("[CombatPhase] 전투 타임아웃 - 무승부 처리");
-                    ForceEndCombat(Team.None);
+                    CompleteCombat(Team.None);
                     break;
                 }
+
+                await Awaitable.NextFrameAsync();
+                if (token.IsCancellationRequested) break;
+
+                // Unit.Update에서 각 유닛의 런타임 AI가 행동한다.
+                // Time.deltaTime은 timeScale이 반영된 전투 시간이다.
+                m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - Time.deltaTime);
             }
         }
 
-        private void UpdateUnitAI(List<UnitType> units, float deltaTime)
+        private bool TryResolveElimination()
         {
-            foreach (var unit in units)
+            bool redAlive = HasLivingUnit(Context.TeamAUnits);
+            bool blueAlive = HasLivingUnit(Context.TeamBUnits);
+
+            if (!redAlive && !blueAlive)
             {
-                if (unit != null && !unit.IsDead && unit.AI != null)
-                {
-                    unit.AI.UpdateAI(deltaTime);
-                }
+                CompleteCombat(Team.None);
             }
+            else if (!redAlive)
+            {
+                CompleteCombat(Team.Blue);
+            }
+            else if (!blueAlive)
+            {
+                CompleteCombat(Team.Red);
+            }
+
+            return m_IsCombatEnded;
         }
 
-        private void CheckVictoryCondition()
+        private static bool HasLivingUnit(List<UnitType> units)
         {
-            bool teamAAlive = Context.TeamAUnits.Exists(u => u != null && !u.IsDead);
-            bool teamBAlive = Context.TeamBUnits.Exists(u => u != null && !u.IsDead);
-
-            if (!teamAAlive && !teamBAlive)
-            {
-                // 무승부
-                ForceEndCombat(Team.None);
-            }
-            else if (!teamAAlive)
-            {
-                // Team B 승리
-                ForceEndCombat(Team.Enemy);
-            }
-            else if (!teamBAlive)
-            {
-                // Team A 승리
-                ForceEndCombat(Team.Ally);
-            }
+            return units != null &&
+                   units.Exists(unit => unit != null && !unit.IsDead && unit.gameObject.activeInHierarchy);
         }
 
-        private void ForceEndCombat(Team winner)
+        private void CompleteCombat(Team winner)
         {
             if (m_IsCombatEnded) return;
 
             m_IsCombatEnded = true;
             Time.timeScale = 1f;
 
-            Context.DidTeamAWin = (winner == Team.Ally);
+            Context.CombatWinner = winner;
             Context.IsRoundCompleted = true;
+            Context.CombatResult = BuildCombatResult(winner);
 
             // 생존 유닛 정리
             foreach (var unit in Context.TeamAUnits)
             {
-                if (unit != null) unit.StopMovement();
+                if (unit != null) unit.SetAIActive(false);
             }
             foreach (var unit in Context.TeamBUnits)
             {
-                if (unit != null) unit.StopMovement();
+                if (unit != null) unit.SetAIActive(false);
             }
 
-            m_PhaseCompletionSource?.TrySetResult();
+            string result = winner == Team.None ? "Draw" : $"{winner} Win";
+            Debug.Log($"[CombatPhase] 전투 종료 - {result}, 남은 시간: {m_RemainingCombatTime:0.00}초");
+            CompletePhase();
+        }
+
+        private CombatResultSnapshot BuildCombatResult(Team winner)
+        {
+            int redAlive = 0;
+            int blueAlive = 0;
+            var redSlots = new HashSet<int>();
+            var blueSlots = new HashSet<int>();
+
+            foreach (var pair in m_UnitSlots)
+            {
+                UnitType unit = pair.Key;
+                if (unit == null || unit.IsDead) continue;
+
+                int slot = pair.Value.CellIndex + 1;
+                if (pair.Value.Team == Team.Red)
+                {
+                    redAlive++;
+                    redSlots.Add(slot);
+                }
+                else if (pair.Value.Team == Team.Blue)
+                {
+                    blueAlive++;
+                    blueSlots.Add(slot);
+                }
+            }
+
+            return new CombatResultSnapshot(
+                winner,
+                m_RemainingCombatTime,
+                redAlive,
+                blueAlive,
+                redSlots,
+                blueSlots,
+                m_FirstEliminatedSlot);
         }
 
         /// <summary>
@@ -260,6 +335,8 @@ namespace InTheArena.MainGame
         /// 현재 전투 속도 반환
         /// </summary>
         public float CurrentSpeed => m_CurrentSpeed;
+        public float RemainingCombatTime => m_RemainingCombatTime;
+        public float CombatTimeout => m_CombatTimeout;
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
@@ -279,6 +356,7 @@ namespace InTheArena.MainGame
 
         private void CleanupUnits()
         {
+            UnsubscribeDeathEvents();
             foreach (var unit in Context.TeamAUnits)
             {
                 if (unit != null && unit.gameObject != null)
@@ -296,11 +374,22 @@ namespace InTheArena.MainGame
 
             Context.TeamAUnits.Clear();
             Context.TeamBUnits.Clear();
+            m_UnitSlots.Clear();
+        }
+
+        private void UnsubscribeDeathEvents()
+        {
+            foreach (var pair in m_DeathHandlers)
+            {
+                if (pair.Key != null) pair.Key.OnDied -= pair.Value;
+            }
+            m_DeathHandlers.Clear();
         }
 
         private void OnDestroy()
         {
             Time.timeScale = 1f;
+            UnsubscribeDeathEvents();
             transform.DOKill();
         }
 
@@ -310,51 +399,73 @@ namespace InTheArena.MainGame
         /// </summary>
         private void OnDrawGizmos()
         {
+            DrawBattlefieldGizmos();
+
             if (!Application.isPlaying) return;
             if (Context == null) return;
             if (Context.CurrentStageData == null) return;
 
-            var roundData = GetRoundDataForTeam(Team.Ally);
+            var roundData = GetCurrentRoundData();
             if (roundData == null) return;
 
-            // Team A 그리드 (빨간색)
-            DrawGridGizmos(roundData.TeamAGrid, Team.Ally, new Color(1f, 0.2f, 0.2f, 0.3f));
+            // Team A 배치 정보 (빨간색)
+            DrawGridContentGizmos(roundData.TeamAGrid, Team.Red, new Color(1f, 0.2f, 0.2f, 0.8f));
             
-            // Team B 그리드 (파란색)
-            roundData = GetRoundDataForTeam(Team.Enemy);
-            if (roundData != null)
+            // Team B 배치 정보 (파란색)
+            DrawGridContentGizmos(roundData.TeamBGrid, Team.Blue, new Color(0.2f, 0.5f, 1f, 0.8f));
+        }
+
+        private void DrawBattlefieldGizmos()
+        {
+            Color redFill = new Color(1f, 0.2f, 0.2f, 0.18f);
+            Color blueFill = new Color(0.2f, 0.7f, 1f, 0.18f);
+            Color neutralLine = new Color(1f, 1f, 1f, 0.65f);
+
+            for (int row = 0; row < BattlefieldRowCount; row++)
             {
-                DrawGridGizmos(roundData.TeamBGrid, Team.Enemy, new Color(0.2f, 0.5f, 1f, 0.3f));
+                for (int col = 0; col < BattlefieldColumnCount; col++)
+                {
+                    Vector3 center = new Vector3(
+                        BattlefieldMinX + (col + 0.5f) * GridCellSize,
+                        0f,
+                        BattlefieldMinZ + (row + 0.5f) * GridCellSize
+                    );
+
+                    bool isRedZone = col < TeamGridColumnCount;
+                    bool isBlueZone = col >= BattlefieldColumnCount - TeamGridColumnCount;
+
+                    if (isRedZone || isBlueZone)
+                    {
+                        Gizmos.color = isRedZone ? redFill : blueFill;
+                        Gizmos.DrawCube(
+                            center + Vector3.down * 0.01f,
+                            new Vector3(GridCellSize, 0.02f, GridCellSize)
+                        );
+                    }
+
+                    Gizmos.color = isRedZone
+                        ? new Color(1f, 0.25f, 0.25f, 0.9f)
+                        : isBlueZone
+                            ? new Color(0.25f, 0.65f, 1f, 0.9f)
+                            : neutralLine;
+                    Gizmos.DrawWireCube(center, new Vector3(GridCellSize, 0f, GridCellSize));
+                }
             }
         }
 
-        private void DrawGridGizmos(GridCellData[] grid, Team team, Color color)
+        private void DrawGridContentGizmos(GridCellData[] grid, Team team, Color color)
         {
             if (grid == null) return;
 
             Gizmos.color = color;
             
-            for (int cellIndex = 0; cellIndex < 6; cellIndex++)
+            int cellCount = Mathf.Min(grid.Length, TeamGridCellCount);
+            for (int cellIndex = 0; cellIndex < cellCount; cellIndex++)
             {
                 var cellData = grid[cellIndex];
                 if (cellData == null || !cellData.IsValid()) continue;
 
                 var center = GetGridCellCenterPosition(team, cellIndex);
-                
-                // 칸 경계 그리기 (2x2 정사각형)
-                float halfSize = 1f; // cellSize * 0.5f = 1f
-                Vector3[] corners = new Vector3[4]
-                {
-                    center + new Vector3(-halfSize, 0, -halfSize),
-                    center + new Vector3(halfSize, 0, -halfSize),
-                    center + new Vector3(halfSize, 0, halfSize),
-                    center + new Vector3(-halfSize, 0, halfSize)
-                };
-                
-                for (int i = 0; i < 4; i++)
-                {
-                    Gizmos.DrawLine(corners[i], corners[(i + 1) % 4]);
-                }
 
                 // 칸 번호 표시
                 Gizmos.color = Color.yellow;
@@ -384,8 +495,20 @@ namespace InTheArena.MainGame
     public enum Team
     {
         None = -1,
-        Ally = 0,   // Team A (Red)
-        Enemy = 1   // Team B (Blue)
+        Red = 0,   // Team A (Red)
+        Blue = 1   // Team B (Blue)
+    }
+
+    internal readonly struct UnitSlotKey
+    {
+        public Team Team { get; }
+        public int CellIndex { get; }
+
+        public UnitSlotKey(Team team, int cellIndex)
+        {
+            Team = team;
+            CellIndex = cellIndex;
+        }
     }
 }
 #endif

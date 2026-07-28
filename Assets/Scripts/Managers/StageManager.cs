@@ -130,7 +130,6 @@ namespace InTheArena.MainGame
                 ? CancellationTokenSource.CreateLinkedTokenSource(token) : new CancellationTokenSource();
 
             m_CurrentStageData = stageData;
-            m_StageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             m_IsStageRunning = true;
             m_CurrentRoundIndex = 0;
 
@@ -142,7 +141,7 @@ namespace InTheArena.MainGame
 
                 // 2. 데이터 로드 (Loading 씬에서 진행 표시)
                 m_Context.Clear();
-                m_Context.CurrentCoin = stageData.InitialCoin;
+                m_Context.InitializeStage(stageData);
                 
                 // 로딩 진행도 시뮬레이션 (실제로는 AssetBundle/Addressables 로드)
                 await LoadStageDataAsync(m_StageCts.Token);
@@ -238,9 +237,6 @@ namespace InTheArena.MainGame
                 // 라운드 진행 (RoundManager가 처리)
                 await RoundManager.Instance.RunRoundAsync(m_CurrentRoundIndex, token);
 
-                // 라운드 결과 처리
-                ProcessRoundResult();
-
                 // 게임 클리어/오버 체크
                 if (CheckStageClear())
                 {
@@ -267,34 +263,14 @@ namespace InTheArena.MainGame
             await ReturnToLobbyAsync();
         }
 
-        private void ProcessRoundResult()
-        {
-            if (!m_Context.IsRoundCompleted) return;
-
-            if (m_Context.DidTeamAWin)
-            {
-                // 승리: 베팅한 만큼 1.5배 획득 (단순화: TeamA 베팅 비율 * 콜 * 1.5)
-                int reward = Mathf.RoundToInt(m_Context.CurrentCall * (m_Context.TeamABetRatio / 100f) * 1.5f);
-                m_Context.CurrentCoin += reward;
-                Debug.Log($"[StageManager] 라운드 승리! +{reward} 코인 (현재: {m_Context.CurrentCoin})");
-            }
-            else
-            {
-                // 패배: 베팅한 코인 잃음 (TeamA 베팅분)
-                int loss = Mathf.RoundToInt(m_Context.CurrentCall * (m_Context.TeamABetRatio / 100f));
-                m_Context.CurrentCoin -= loss;
-                Debug.Log($"[StageManager] 라운드 패배! -{loss} 코인 (현재: {m_Context.CurrentCoin})");
-            }
-        }
-
         private bool CheckStageClear()
         {
-            return m_Context.CurrentCoin >= m_CurrentStageData.TargetCall;
+            return m_Context.CurrentCall >= m_CurrentStageData.TargetCall;
         }
 
         private bool CheckGameOver()
         {
-            return m_Context.CurrentCoin <= 0 || m_CurrentRoundIndex >= m_CurrentStageData.TotalRounds - 1;
+            return m_Context.CurrentCall <= 0 || m_CurrentRoundIndex >= m_CurrentStageData.TotalRounds - 1;
         }
 
         private async Awaitable ShowResultPanelAsync(bool isClear, CancellationToken token)
@@ -302,20 +278,11 @@ namespace InTheArena.MainGame
             // UIManager를 통해 결과 패널 표시
             if (UIManager.Instance != null)
             {
-                await UIManager.Instance.ShowStageResultAsync(isClear, m_Context.CurrentCoin, m_CurrentStageData.TargetCall, token);
-            }
-            
-            // 사용자 입력 대기 (로비로 돌아가기 버튼 클릭)
-            await WaitForLobbyReturnAsync(token);
-        }
-
-        private async Awaitable WaitForLobbyReturnAsync(CancellationToken token)
-        {
-            // UI에서 로비 버튼 클릭 시 완료되는 Awaitable 대기
-            // 구현은 UIManager에서 처리
-            while (!token.IsCancellationRequested)
-            {
-                await Awaitable.NextFrameAsync();
+                await UIManager.Instance.ShowStageResultAsync(
+                    isClear,
+                    m_Context.CurrentCall,
+                    m_CurrentStageData.TargetCall,
+                    token);
             }
         }
 

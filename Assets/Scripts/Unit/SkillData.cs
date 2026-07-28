@@ -1,6 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
-using MackySoft.SerializeReferenceExtensions;
 
 namespace InTheArena.Unit
 {
@@ -12,36 +11,36 @@ namespace InTheArena.Unit
     public class SkillData : ScriptableObject
     {
         [Header("스킬 기본 정보")]
-        [Tooltip("스킬 이름")]
-        [SerializeField] private string m_SkillName;
+                [Tooltip("스킬 이름")]
+                [SerializeField] protected string m_SkillName;
 
-        [Tooltip("스킬 설명")]
-        [SerializeField] [TextArea(2, 4)] private string m_Description;
+                [Tooltip("스킬 설명")]
+                [SerializeField] [TextArea(2, 4)] protected string m_Description;
 
-        [Tooltip("스킬 타입 (액티브/패시브)")]
-        [SerializeField] private SkillType m_SkillType;
+                [Tooltip("스킬 타입 (액티브/패시브)")]
+                [SerializeField] protected SkillType m_SkillType;
 
-        [Tooltip("스킬 타겟 타입")]
-        [SerializeField] private SkillTargetType m_TargetType;
+                [Tooltip("스킬 타겟 타입")]
+                [SerializeField] protected SkillTargetType m_TargetType;
 
-        [Header("스킬 수치")]
-        [Tooltip("스킬 고유 데미지 (유닛 공격력과 별개)")]
-        [SerializeField] private float m_SkillDamage;
+                [Header("스킬 수치")]
+                [Tooltip("스킬 고유 데미지 (유닛 공격력과 별개)")]
+                [SerializeField] protected float m_SkillDamage;
 
-        [Tooltip("스킬 사거리")]
-        [SerializeField] private float m_SkillRange;
+                [Tooltip("스킬 사거리")]
+                [SerializeField] protected float m_SkillRange;
 
-        [Header("액티브 스킬 전용")]
-        [Tooltip("쿨타임 (초) - 액티브 스킬만 사용")]
-        [SerializeField] private float m_Cooldown;
+                [Header("액티브 스킬 전용")]
+                [Tooltip("쿨타임 (초) - 액티브 스킬만 사용")]
+                [SerializeField] protected float m_Cooldown;
 
-        [Tooltip("시전 시간 (초) - 액티브 스킬만 사용")]
-        [SerializeField] private float m_CastTime;
+                [Tooltip("시전 시간 (초) - 액티브 스킬만 사용")]
+                [SerializeField] protected float m_CastTime;
 
         [Header("스킬 로직")]
         [Tooltip("실제 스킬 동작을 구현한 Skill_Base 상속 클래스")]
         [SerializeReference, SubclassSelector]
-        private Skill_Base m_SkillLogic;
+        protected Skill_Base m_SkillLogic;
 
         /// <summary> 스킬 이름 </summary>
         public string SkillName => m_SkillName;
@@ -98,7 +97,7 @@ namespace InTheArena.Unit
         }
 
 #if UNITY_EDITOR
-        private void OnValidate()
+        protected virtual void OnValidate()
         {
             IsValid();
         }

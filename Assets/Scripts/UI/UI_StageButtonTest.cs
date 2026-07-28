@@ -60,7 +60,9 @@ namespace InTheArena.UI
                     m_StageNameText.text = m_TargetStageData.FullStageName;
 
                 if (m_StageDescText != null)
-                    m_StageDescText.text = $"Region: {m_TargetStageData.Region} | Round: {m_TargetStageData.TotalRounds} | Target: {m_TargetStageData.TargetCall}코인";
+                    m_StageDescText.text =
+                        $"Region: {m_TargetStageData.Region} | Round: {m_TargetStageData.TotalRounds} | " +
+                        $"Target: {m_TargetStageData.TargetCall} Call";
             }
         }
 

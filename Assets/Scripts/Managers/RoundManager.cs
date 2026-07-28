@@ -67,7 +67,7 @@ namespace InTheArena.MainGame
                 {
                     m_Context = context ?? new RoundContext();
                     m_CurrentStageData = stageData;
-                    m_Context.CurrentStageData = stageData;  // Context에도 스테이지 데이터 설정
+                    m_Context.InitializeStage(stageData);
                     Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
                 }
 
@@ -113,28 +113,15 @@ namespace InTheArena.MainGame
 
                             token.ThrowIfCancellationRequested();
 
-                            // 4. Result Phase
+                            // 4. 베팅 정산 - StageSession만 Call을 변경한다.
+                            SettleRound();
+
+                            // 5. Result Phase (표시 전용)
                             Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase 시작");
                             m_ResultPhase.InitializePhase(m_Context);
                             await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
-
-                // 결과 데이터 수집
-                m_Context.IsRoundCompleted = true;
-                m_Context.DidTeamAWin = m_ResultPhase.IsWin();
-                int rewardCall = m_ResultPhase.GetRewardCall();
-                
-                if (m_Context.DidTeamAWin)
-                {
-                    m_Context.CurrentCall += rewardCall;
-                }
-                else
-                {
-                    m_Context.CurrentCall = Mathf.Max(0, m_Context.CurrentCall - rewardCall);
-                }
-
-                await m_ResultPhase.ExitPhaseAsync(m_RoundCts.Token);
-
-                m_Context.IsRoundCompleted = true;
+                            await m_ResultPhase.ExitPhaseAsync(m_RoundCts.Token);
+                            m_Context.IsRoundCompleted = true;
             }
             catch (OperationCanceledException)
             {
@@ -159,23 +146,23 @@ namespace InTheArena.MainGame
         private void SetupRoundData(int roundIndex)
         {
             var roundData = m_CurrentStageData.RoundDatas[roundIndex];
-            
-            // 컨텍스트에 라운드 데이터 적용
-            m_Context.CurrentRound = roundIndex + 1;
-            m_Context.MaxRounds = m_CurrentStageData.TotalRounds;
-            m_Context.TargetCall = m_CurrentStageData.TargetCall;
-            
-            // 유닛 데이터 설정
-            m_Context.TeamAUnitDatas = roundData.GetTeamAUnits();
-            m_Context.TeamBUnitDatas = roundData.GetTeamBUnits();
-            
-            // 베팅 기본값
-            m_Context.TeamABetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioA);
-            m_Context.TeamBBetRatio = Mathf.RoundToInt(roundData.DefaultBetRatioB);
-            m_Context.CurrentRoundRule = roundData.SpecialRule;
+            m_Context.SetRoundData(m_CurrentStageData, roundIndex);
 
             // 특별 규칙 적용
             ApplyRoundRule(roundData.SpecialRule);
+        }
+
+        private void SettleRound()
+        {
+            if (m_Context.BetTicket == null)
+                throw new InvalidOperationException("확정된 베팅 티켓이 없습니다.");
+            if (m_Context.CombatResult == null)
+                throw new InvalidOperationException("전투 결과 스냅샷이 없습니다.");
+
+            m_Context.Settlement = BetSettlementService.Settle(
+                m_Context.BetTicket,
+                m_Context.CombatResult);
+            m_Context.StageSession.ApplySettlement(m_Context.Settlement);
         }
 
         private void ApplyRoundRule(RoundRule rule)

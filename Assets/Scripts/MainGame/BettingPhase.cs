@@ -1,42 +1,65 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Threading;
-using UnityEngine;
-using UnityEngine.UI;
 using DG.Tweening;
 using InTheArena.Unit;
-using UnitType = InTheArena.Unit.Unit;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace InTheArena.MainGame
 {
     /// <summary>
-    /// 베팅 페이즈 - 이미지 기반 UI 구성
-    /// 1. 상단: 현재 라운드 텍스트
-    /// 2. 중간: 팀A/팀B 유닛 정보 (좌표 + 유닛명 텍스트)
-    /// 3. 하단: 진영 배팅 슬라이더
-    /// 4. 최하단: 초록색 확인 버튼 (×2)
+    /// 라운드 편성을 확정하고 단일 복합 베팅 티켓을 입력받는 페이즈입니다.
     /// </summary>
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
-        [Header("UI References - Top")]
-        [SerializeField] private TMP_Text m_RoundText;           // "Round 3"
+        [Header("Round / Team Info")]
+        [SerializeField] private CanvasGroup m_BettingCanvasGroup;
+        [SerializeField] private TMP_Text m_RoundText;
+        [SerializeField] private TMP_Text m_TeamANameText;
+        [SerializeField] private TMP_Text m_TeamAUnitInfoText;
+        [SerializeField] private TMP_Text m_TeamBNameText;
+        [SerializeField] private TMP_Text m_TeamBUnitInfoText;
 
-        [Header("UI References - Team Info (Middle)")]
-        [SerializeField] private TMP_Text m_TeamANameText;       // 팀A 이름
-        [SerializeField] private TMP_Text m_TeamAUnitInfoText;    // 팀A 유닛 정보 (좌표 + 유닛명)
-        [SerializeField] private TMP_Text m_TeamBNameText;       // 팀B 이름
-        [SerializeField] private TMP_Text m_TeamBUnitInfoText;    // 팀B 유닛 정보 (좌표 + 유닛명)
+        [Header("Wager")]
+        [FormerlySerializedAs("m_BetRatioSlider")]
+        [SerializeField] private Slider m_WagerSlider;
+        [FormerlySerializedAs("m_TeamARatioText")]
+        [SerializeField] private TMP_Text m_CurrentCallText;
+        [FormerlySerializedAs("m_TeamBRatioText")]
+        [SerializeField] private TMP_Text m_WagerCallText;
+        [SerializeField] private TMP_Text m_MultiplierText;
+        [SerializeField] private TMP_Text m_EstimatedPayoutText;
 
-        [Header("UI References - Betting (Bottom)")]
-        [SerializeField] private Slider m_BetRatioSlider;         // 진영 배팅 슬라이더
-        [SerializeField] private TMP_Text m_TeamARatioText;       // 팀A 비율 텍스트
-        [SerializeField] private TMP_Text m_TeamBRatioText;       // 팀B 비율 텍스트
-        [SerializeField] private Button m_ConfirmBetButton;       // 초록색 확인 버튼 (×2)
+        [Header("Faction Bet")]
+        [SerializeField] private GameObject m_FactionBetRoot;
+        [SerializeField] private Button m_RedButton;
+        [SerializeField] private Button m_BlueButton;
+        [SerializeField] private Button m_DrawButton;
+        [SerializeField] private Button m_ClearFactionButton;
 
+        [Header("Special Bets")]
+        [SerializeField] private GameObject m_RemainingTimeRoot;
+        [SerializeField] private Button[] m_RemainingTimeButtons = new Button[5];
+        [SerializeField] private GameObject m_SurvivingSlotsRoot;
+        [SerializeField] private Button[] m_SurvivingSlotButtons = new Button[6];
+        [SerializeField] private GameObject m_OddEvenRoot;
+        [SerializeField] private Button[] m_OddEvenButtons = new Button[2];
+        [SerializeField] private GameObject m_FirstEliminatedSlotRoot;
+        [SerializeField] private Button[] m_FirstEliminatedSlotButtons = new Button[6];
+
+        [Header("Confirm")]
+        [SerializeField] private TMP_Text m_ValidationText;
+        [SerializeField] private Button m_ConfirmBetButton;
+
+        private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
         private AwaitableCompletionSource m_PhaseCompletionSource;
-        private bool m_IsSliderInteractable = true;
+        private RoundBetTicket m_DraftTicket;
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
@@ -44,139 +67,290 @@ namespace InTheArena.MainGame
             SetupUI();
             SubscribeEvents();
 
-            // 페이드 인
-            var canvasGroup = GetComponent<CanvasGroup>();
+            CanvasGroup canvasGroup = m_BettingCanvasGroup;
             if (canvasGroup != null)
             {
                 canvasGroup.gameObject.SetActive(true);
                 canvasGroup.alpha = 0f;
-                var tween = canvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad);
-                await AwaitTweenAsync(tween, token);
+                await AwaitTweenAsync(canvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad), token);
             }
 
             m_PhaseCompletionSource = new AwaitableCompletionSource();
-            await m_PhaseCompletionSource.Awaitable;
+            using (token.Register(() => m_PhaseCompletionSource?.TrySetResult()))
+            {
+                await m_PhaseCompletionSource.Awaitable;
+            }
+            token.ThrowIfCancellationRequested();
         }
 
         private void InitializePhaseData()
         {
             IsPhaseCompleted = false;
-            Context.ResetBettingData();
-            m_BetRatioSlider.value = Context.TeamABetRatio / 100f;
-            UpdateRatioTexts();
+            Context.AssignUnitsForBetting();
+            m_DraftTicket = new RoundBetTicket();
+            m_DraftTicket.SetWager(Mathf.Max(1, Context.CurrentCall));
+            m_SelectedSurvivingSlots.Clear();
         }
 
         private void SetupUI()
         {
-            // 1. 라운드 텍스트
-            if (m_RoundText != null)
+            if (m_RoundText != null) m_RoundText.text = $"Round {Context.CurrentRound}";
+            if (m_TeamANameText != null) m_TeamANameText.text = "Red Team";
+            if (m_TeamBNameText != null) m_TeamBNameText.text = "Blue Team";
+            SetTeamUnitInfo(m_TeamAUnitInfoText, Context.TeamADeployments);
+            SetTeamUnitInfo(m_TeamBUnitInfoText, Context.TeamBDeployments);
+
+            if (m_WagerSlider != null)
             {
-                m_RoundText.text = $"Round {Context.CurrentRound}";
+                m_WagerSlider.wholeNumbers = true;
+                m_WagerSlider.minValue = 1f;
+                m_WagerSlider.maxValue = Mathf.Max(1, Context.CurrentCall);
+                m_WagerSlider.value = Mathf.Max(1, Context.CurrentCall);
             }
 
-            // 2. 팀 유닛 정보 텍스트 (좌표 + 유닛명)
-            UpdateTeamUnitInfo();
-
-            // 3. 베팅 슬라이더 초기값
-            m_BetRatioSlider.value = Context.TeamABetRatio / 100f;
-            UpdateRatioTexts();
-            UpdateButtonInteractable();
+            StageData stageData = Context.CurrentStageData;
+            SetActive(m_FactionBetRoot, stageData != null && stageData.EnableFactionBet);
+            SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
+            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
+            SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
+            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
+            UpdateSurvivingSlotAvailability();
+            RefreshBetSummary();
         }
 
-        private void UpdateTeamUnitInfo()
+        private bool HasSpecial(SpecialBetType type)
         {
-            // 팀A: 좌측 그리드 (Red 팀)
-            if (m_TeamAUnitInfoText != null && Context.TeamAUnitDatas.Count > 0)
+            return Context.CurrentStageData != null && Context.CurrentStageData.HasSpecialBet(type);
+        }
+
+        private static void SetActive(GameObject target, bool active)
+        {
+            if (target != null) target.SetActive(active);
+        }
+
+        private static void SetTeamUnitInfo(TMP_Text infoText, List<TeamUnitDeployment> deployments)
+        {
+            if (infoText == null) return;
+            if (deployments == null || deployments.Count == 0)
             {
-                var lines = new System.Text.StringBuilder();
-                for (int i = 0; i < Context.TeamAUnitDatas.Count; i++)
-                {
-                    var unit = Context.TeamAUnitDatas[i];
-                    // 2x3 그리드 좌표 계산 (0~5)
-                    int col = i % 3;
-                    int row = i / 3;
-                    lines.Append($"({col},{row}) {unit.UnitName}");
-                    if (i < Context.TeamAUnitDatas.Count - 1) lines.Append("\n");
-                }
-                m_TeamAUnitInfoText.text = lines.ToString();
+                infoText.text = "No units deployed";
+                return;
             }
 
-            // 팀B: 우측 그리드 (Blue 팀)
-            if (m_TeamBUnitInfoText != null && Context.TeamBUnitDatas.Count > 0)
+            var lines = new StringBuilder();
+            for (int i = 0; i < deployments.Count; i++)
             {
-                var lines = new System.Text.StringBuilder();
-                for (int i = 0; i < Context.TeamBUnitDatas.Count; i++)
-                {
-                    var unit = Context.TeamBUnitDatas[i];
-                    int col = i % 3;
-                    int row = i / 3;
-                    lines.Append($"({col},{row}) {unit.UnitName}");
-                    if (i < Context.TeamBUnitDatas.Count - 1) lines.Append("\n");
-                }
-                m_TeamBUnitInfoText.text = lines.ToString();
+                TeamUnitDeployment deployment = deployments[i];
+                int col = deployment.CellIndex % 2;
+                int row = deployment.CellIndex / 2;
+                lines.Append($"({col},{row}) {DescribeUnits(deployment.Units)}");
+                if (i < deployments.Count - 1) lines.Append('\n');
             }
+            infoText.text = lines.ToString();
+        }
+
+        private static string DescribeUnits(List<UnitData> units)
+        {
+            if (units == null || units.Count == 0) return "Empty";
+            UnitData first = units[0];
+            bool sameType = first != null;
+            for (int i = 1; i < units.Count; i++)
+            {
+                if (units[i] != first)
+                {
+                    sameType = false;
+                    break;
+                }
+            }
+            return sameType
+                ? $"{first.UnitName} x{units.Count}"
+                : string.Join(", ", units.ConvertAll(unit => unit != null ? unit.UnitName : "Unknown"));
         }
 
         private void SubscribeEvents()
         {
-            if (m_BetRatioSlider != null)
-                m_BetRatioSlider.onValueChanged.AddListener(OnBetRatioChanged);
-            if (m_ConfirmBetButton != null)
-                m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
+            if (m_WagerSlider != null) m_WagerSlider.onValueChanged.AddListener(OnWagerChanged);
+            AddClick(m_RedButton, () => SetFaction(FactionPrediction.Red));
+            AddClick(m_BlueButton, () => SetFaction(FactionPrediction.Blue));
+            AddClick(m_DrawButton, () => SetFaction(FactionPrediction.Draw));
+            AddClick(m_ClearFactionButton, () => SetFaction(FactionPrediction.NotSelected));
+
+            for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
+            {
+                int index = i;
+                AddClick(m_RemainingTimeButtons[i], () => ToggleRemainingTime((RemainingTimePrediction)index));
+            }
+            for (int i = 0; i < m_OddEvenButtons.Length; i++)
+            {
+                int index = i;
+                AddClick(m_OddEvenButtons[i], () => ToggleOddEven((OddEvenPrediction)index));
+            }
+            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+            {
+                int slot = i + 1;
+                AddClick(m_FirstEliminatedSlotButtons[i], () => ToggleFirstEliminatedSlot(slot));
+            }
+            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
+            {
+                int slot = i + 1;
+                AddClick(m_SurvivingSlotButtons[i], () => ToggleSurvivingSlot(slot));
+            }
+            if (m_ConfirmBetButton != null) m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
+        }
+
+        private static void AddClick(Button button, UnityEngine.Events.UnityAction action)
+        {
+            if (button != null) button.onClick.AddListener(action);
         }
 
         private void UnsubscribeEvents()
         {
-            if (m_BetRatioSlider != null)
-                m_BetRatioSlider.onValueChanged.RemoveListener(OnBetRatioChanged);
-            if (m_ConfirmBetButton != null)
-                m_ConfirmBetButton.onClick.RemoveListener(OnConfirmBetClicked);
+            if (m_WagerSlider != null) m_WagerSlider.onValueChanged.RemoveAllListeners();
+            RemoveClicks(m_RedButton, m_BlueButton, m_DrawButton, m_ClearFactionButton, m_ConfirmBetButton);
+            RemoveClicks(m_RemainingTimeButtons);
+            RemoveClicks(m_OddEvenButtons);
+            RemoveClicks(m_FirstEliminatedSlotButtons);
+            RemoveClicks(m_SurvivingSlotButtons);
         }
 
-        private void OnBetRatioChanged(float value)
+        private static void RemoveClicks(params Button[] buttons)
         {
-            if (!m_IsSliderInteractable) return;
-
-            int teamARatio = Mathf.RoundToInt(value * 100f);
-            teamARatio = Mathf.Clamp(teamARatio, 0, 100);
-
-            Context.TeamABetRatio = teamARatio;
-            Context.TeamBBetRatio = 100 - teamARatio;
-
-            UpdateRatioTexts();
-            UpdateButtonInteractable();
+            if (buttons == null) return;
+            foreach (Button button in buttons)
+            {
+                if (button != null) button.onClick.RemoveAllListeners();
+            }
         }
 
-        private void UpdateRatioTexts()
+        private void OnWagerChanged(float value)
         {
-            if (m_TeamARatioText != null)
-                m_TeamARatioText.text = $"{Context.TeamABetRatio}%";
-            if (m_TeamBRatioText != null)
-                m_TeamBRatioText.text = $"{Context.TeamBBetRatio}%";
+            m_DraftTicket.SetWager(Mathf.Clamp(Mathf.RoundToInt(value), 1, Mathf.Max(1, Context.CurrentCall)));
+            RefreshBetSummary();
         }
 
-        private void UpdateButtonInteractable()
+        private void SetFaction(FactionPrediction prediction)
         {
-            // 50:50 비율일 때 확인 버튼 비활성화
-            bool canConfirm = Context.TeamABetRatio != 50;
-            if (m_ConfirmBetButton != null)
-                m_ConfirmBetButton.interactable = canConfirm;
+            m_DraftTicket.SetFaction(prediction);
+            if (prediction != FactionPrediction.Red && prediction != FactionPrediction.Blue)
+            {
+                m_SelectedSurvivingSlots.Clear();
+                m_DraftTicket.ClearSurvivingSlots();
+            }
+            else if (m_DraftTicket.HasSurvivingSlotsPrediction)
+            {
+                m_DraftTicket.SetSurvivingSlots(GetSelectedTeam(), m_SelectedSurvivingSlots);
+            }
+            UpdateSurvivingSlotAvailability();
+            RefreshBetSummary();
         }
 
-        /// <summary>
-        /// UI [확인] 버튼 클릭 시 호출 (×2 버튼)
-        /// </summary>
+        private Team GetSelectedTeam()
+        {
+            return m_DraftTicket.Faction == FactionPrediction.Red ? Team.Red :
+                m_DraftTicket.Faction == FactionPrediction.Blue ? Team.Blue : Team.None;
+        }
+
+        private void ToggleRemainingTime(RemainingTimePrediction value)
+        {
+            m_DraftTicket.SetRemainingTime(m_DraftTicket.RemainingTime == value ? null : value);
+            RefreshBetSummary();
+        }
+
+        private void ToggleOddEven(OddEvenPrediction value)
+        {
+            m_DraftTicket.SetOddEven(m_DraftTicket.OddEven == value ? null : value);
+            RefreshBetSummary();
+        }
+
+        private void ToggleFirstEliminatedSlot(int slot)
+        {
+            m_DraftTicket.SetFirstEliminatedSlot(m_DraftTicket.FirstEliminatedSlot == slot ? null : slot);
+            RefreshBetSummary();
+        }
+
+        private void ToggleSurvivingSlot(int slot)
+        {
+            Team team = GetSelectedTeam();
+            if (team == Team.None || !IsOccupiedSlot(team, slot)) return;
+
+            if (!m_SelectedSurvivingSlots.Add(slot)) m_SelectedSurvivingSlots.Remove(slot);
+            if (m_SelectedSurvivingSlots.Count == 0)
+                m_DraftTicket.ClearSurvivingSlots();
+            else
+                m_DraftTicket.SetSurvivingSlots(team, m_SelectedSurvivingSlots);
+            RefreshBetSummary();
+        }
+
+        private void UpdateSurvivingSlotAvailability()
+        {
+            Team team = GetSelectedTeam();
+            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
+            {
+                Button button = m_SurvivingSlotButtons[i];
+                if (button != null) button.interactable = team != Team.None && IsOccupiedSlot(team, i + 1);
+            }
+        }
+
+        private bool IsOccupiedSlot(Team team, int slot)
+        {
+            List<TeamUnitDeployment> deployments = team == Team.Red
+                ? Context.TeamADeployments
+                : Context.TeamBDeployments;
+            return deployments.Exists(item => item.CellIndex == slot - 1 && item.Units.Count > 0);
+        }
+
+        private void RefreshBetSummary()
+        {
+            RefreshSelectionVisuals();
+            int wager = Mathf.Clamp(m_DraftTicket.WagerCall, 1, Mathf.Max(1, Context.CurrentCall));
+            if (m_CurrentCallText != null) m_CurrentCallText.text = $"{Context.CurrentCall} Call";
+            if (m_WagerCallText != null) m_WagerCallText.text = $"{wager} Call";
+            if (m_MultiplierText != null) m_MultiplierText.text = $"×{m_DraftTicket.Multiplier}";
+            if (m_EstimatedPayoutText != null)
+            {
+                m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
+            }
+
+            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context.CurrentCall, out string error);
+            if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
+            if (m_ValidationText != null) m_ValidationText.text = valid ? string.Empty : error;
+        }
+
+        private void RefreshSelectionVisuals()
+        {
+            SetSelected(m_RedButton, m_DraftTicket.Faction == FactionPrediction.Red);
+            SetSelected(m_BlueButton, m_DraftTicket.Faction == FactionPrediction.Blue);
+            SetSelected(m_DrawButton, m_DraftTicket.Faction == FactionPrediction.Draw);
+
+            for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
+                SetSelected(m_RemainingTimeButtons[i], m_DraftTicket.RemainingTime == (RemainingTimePrediction)i);
+            for (int i = 0; i < m_OddEvenButtons.Length; i++)
+                SetSelected(m_OddEvenButtons[i], m_DraftTicket.OddEven == (OddEvenPrediction)i);
+            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+                SetSelected(m_FirstEliminatedSlotButtons[i], m_DraftTicket.FirstEliminatedSlot == i + 1);
+            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
+                SetSelected(m_SurvivingSlotButtons[i], m_SelectedSurvivingSlots.Contains(i + 1));
+        }
+
+        private static void SetSelected(Button button, bool selected)
+        {
+            if (button == null || button.image == null) return;
+            button.image.color = selected
+                ? new Color(0.95f, 0.72f, 0.18f)
+                : new Color(0.2f, 0.24f, 0.3f);
+        }
+
         private void OnConfirmBetClicked()
         {
             if (IsPhaseCompleted) return;
-
-            // 50:50 베팅 방지
-            if (Context.TeamABetRatio == 50)
+            if (!Context.StageSession.TryPlaceBet(m_DraftTicket, out string error))
             {
-                Debug.LogError("[BettingPhase] 50:50 비율은 베팅할 수 없습니다.");
+                if (m_ValidationText != null) m_ValidationText.text = error;
+                Debug.LogError($"[BettingPhase] {error}");
                 return;
             }
 
+            Context.BetTicket = m_DraftTicket;
             CompletePhase();
             m_PhaseCompletionSource?.TrySetResult();
         }
@@ -184,31 +358,21 @@ namespace InTheArena.MainGame
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             UnsubscribeEvents();
-
-            var canvasGroup = GetComponent<CanvasGroup>();
+            CanvasGroup canvasGroup = m_BettingCanvasGroup;
             if (canvasGroup != null)
             {
-                var tween = canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad);
-                await AwaitTweenAsync(tween, token);
+                await AwaitTweenAsync(canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad), token);
                 canvasGroup.gameObject.SetActive(false);
             }
-
             transform.DOKill();
         }
 
-        /// <summary>
-        /// [High Safety] DOTween v1.2.675+ CancellationToken 지원 Unity 6 Awaitable로 래핑
-        /// </summary>
-        private async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
+        private static async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
         {
             if (tween == null || !tween.IsActive()) return;
-
             using (token.Register(() =>
             {
-                if (tween != null && tween.IsActive())
-                {
-                    tween.Kill();
-                }
+                if (tween.IsActive()) tween.Kill();
             }))
             {
                 await tween.AsyncWaitForCompletion();

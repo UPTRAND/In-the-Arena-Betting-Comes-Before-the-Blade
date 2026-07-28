@@ -41,10 +41,6 @@ namespace InTheArena.Editor.MainGame
             var teamBGridProp = property.FindPropertyRelative("m_TeamBGrid");
             root.Add(CreateTeamGridSection("Team B (Blue - 우측 2x3)", teamBGridProp, new Color(0.3f, 0.5f, 1f, 0.1f)));
 
-            // 베팅 설정
-            var betRatioProp = property.FindPropertyRelative("m_DefaultBetRatioA");
-            root.Add(new PropertyField(betRatioProp));
-
             // 특별 규칙
             var specialRuleProp = property.FindPropertyRelative("m_SpecialRule");
             root.Add(new PropertyField(specialRuleProp));

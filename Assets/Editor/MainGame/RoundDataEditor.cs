@@ -10,7 +10,6 @@ namespace InTheArena.MainGame.Editor
         private SerializedProperty m_RoundNumberProp;
         private SerializedProperty m_TeamAGridProp;
         private SerializedProperty m_TeamBGridProp;
-        private SerializedProperty m_DefaultBetRatioAProp;
         private SerializedProperty m_SpecialRuleProp;
 
         // 팀별 접기/펼치기(Foldout) 상태
@@ -22,7 +21,6 @@ namespace InTheArena.MainGame.Editor
             m_RoundNumberProp = serializedObject.FindProperty("m_RoundNumber");
             m_TeamAGridProp = serializedObject.FindProperty("m_TeamAGrid");
             m_TeamBGridProp = serializedObject.FindProperty("m_TeamBGrid");
-            m_DefaultBetRatioAProp = serializedObject.FindProperty("m_DefaultBetRatioA");
             m_SpecialRuleProp = serializedObject.FindProperty("m_SpecialRule");
         }
 
@@ -45,18 +43,6 @@ namespace InTheArena.MainGame.Editor
 
             // 3. 팀 B 유닛 배치 (2x3 그리드)
             DrawTeamSection("팀 B 유닛 배치 (우측 2x3 그리드)", m_TeamBGridProp, ref m_ShowTeamBGrid, new Color(0.4f, 0.6f, 0.9f, 0.3f));
-
-            EditorGUILayout.Space(10);
-
-            // 4. 베팅 설정
-            EditorGUILayout.LabelField("베팅 설정", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(m_DefaultBetRatioAProp, new GUIContent("Default Bet Ratio A (%)"));
-
-            float ratioA = m_DefaultBetRatioAProp.floatValue;
-            float ratioB = 100f - ratioA;
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.FloatField("Calculated Bet Ratio B (%)", ratioB);
-            EditorGUI.EndDisabledGroup();
 
             serializedObject.ApplyModifiedProperties();
         }

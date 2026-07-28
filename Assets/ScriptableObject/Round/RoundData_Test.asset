@@ -97,5 +97,4 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
-  m_DefaultBetRatioA: 50
   m_SpecialRule: 0

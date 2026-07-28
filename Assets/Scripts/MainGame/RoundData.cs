@@ -8,7 +8,7 @@ namespace InTheArena.MainGame
 {
     /// <summary>
     /// 라운드별 데이터 ScriptableObject
-    /// 팀 A/B의 유닛 배치(고정/가변 칸), 기본 베팅 비율, 특별 규칙 포함
+    /// 팀 A/B의 유닛 배치(고정/가변 칸)와 전투 규칙 포함
     /// 인라인 직렬화 + Custom Editor로 2x3 그리드 시각화 지원
     /// </summary>
     [CreateAssetMenu(fileName = "RoundData_", menuName = "In The Arena/MainGame/Round Data", order = 1)]
@@ -23,9 +23,6 @@ namespace InTheArena.MainGame
         [Header("팀 B 유닛 배치 (우측 2x3 그리드)")]
         [SerializeField] private GridCellData[] m_TeamBGrid = new GridCellData[6]; // 2x3 = 6칸
 
-        [Header("베팅 설정")]
-        [SerializeField] [Range(0f, 100f)] private float m_DefaultBetRatioA = 50f;
-
         [Header("특별 규칙 (Test)")]
         [SerializeField] private RoundRule m_SpecialRule = RoundRule.None;
 
@@ -33,8 +30,6 @@ namespace InTheArena.MainGame
         public int RoundNumber => m_RoundNumber;
         public GridCellData[] TeamAGrid => m_TeamAGrid;
         public GridCellData[] TeamBGrid => m_TeamBGrid;
-        public float DefaultBetRatioA => m_DefaultBetRatioA;
-        public float DefaultBetRatioB => 100f - m_DefaultBetRatioA;
         public RoundRule SpecialRule => m_SpecialRule;
 
         /// <summary>
@@ -125,12 +120,6 @@ namespace InTheArena.MainGame
                 }
             }
 
-            if (m_DefaultBetRatioA < 0f || m_DefaultBetRatioA > 100f)
-            {
-                Debug.LogError($"[RoundData] {name}: 기본 베팅 비율이 0~100 범위를 벗어났습니다.");
-                isValid = false;
-            }
-
             return isValid;
         }
 
@@ -187,7 +176,7 @@ namespace InTheArena.MainGame
         [Tooltip("가변 시 추가 유닛 수 범위 (0~2)")]
         [SerializeField] [Range(0, 2)] private int m_ExtraCountRange = 1;
 
-        [Tooltip("유닛 생성 확률 (0~1, 기본 0.3 = 30%)")]
+        [Tooltip("가변 칸의 유닛 생성 확률 (0~1, 기본 0.3 = 30%). 고정 칸은 항상 생성됩니다.")]
         [SerializeField] [Range(0f, 1f)] private float m_SpawnProbability = 0.3f;
 
         // Properties
@@ -221,8 +210,9 @@ namespace InTheArena.MainGame
         {
             var units = new List<UnitData>();
 
-            // 생성 확률 체크
-            if (UnityEngine.Random.value > m_SpawnProbability)
+            // 고정 배치는 라운드 편성에 지정된 유닛이므로 항상 생성한다.
+            // 가변 배치만 확률에 따라 이번 전투에 참여할지 결정한다.
+            if (!m_IsFixed && UnityEngine.Random.value > m_SpawnProbability)
             {
                 return units; // 빈 리스트 반환 (생성 안 함)
             }
@@ -247,9 +237,10 @@ namespace InTheArena.MainGame
                         int extraCount = UnityEngine.Random.Range(0, m_ExtraCountRange + 1);
                         int totalCount = baseCount + extraCount;
 
+                        UnitData selectedUnit = validPool[UnityEngine.Random.Range(0, validPool.Count)];
                         for (int i = 0; i < totalCount; i++)
                         {
-                            units.Add(validPool[UnityEngine.Random.Range(0, validPool.Count)]);
+                            units.Add(selectedUnit);
                         }
                     }
                 }
