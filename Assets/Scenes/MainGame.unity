@@ -381,7 +381,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4562217a2a79e6845acecddd1fc83a81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraController
-  m_CameraSettings: {fileID: 0}
+  m_CameraSettings: {fileID: 11400000, guid: 0cca6479f37da8345a06864a09bb4bb5, type: 2}
   m_MainCamera: {fileID: 330585545}
   m_CurrentPhase: 0
   m_FramingPadding: 3

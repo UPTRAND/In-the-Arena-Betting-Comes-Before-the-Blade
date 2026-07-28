@@ -15,11 +15,11 @@ MonoBehaviour:
   m_StageName: Castle_1
   m_Region: 0
   m_StageNum: 1
-  m_InitialCoin: 100
+  m_InitialCoin: 500
   m_RoundDatas:
   - {fileID: 11400000, guid: 09fa6070c8d1e9c45aaf7b4263f083e8, type: 2}
   - {fileID: 11400000, guid: 09fa6070c8d1e9c45aaf7b4263f083e8, type: 2}
   - {fileID: 11400000, guid: 09fa6070c8d1e9c45aaf7b4263f083e8, type: 2}
   - {fileID: 11400000, guid: 09fa6070c8d1e9c45aaf7b4263f083e8, type: 2}
   - {fileID: 11400000, guid: 09fa6070c8d1e9c45aaf7b4263f083e8, type: 2}
-  m_TargetCall: 200
+  m_TargetCall: 1800

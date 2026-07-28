@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using DG.Tweening;
 using InTheArena.Unit;
 using UnitType = InTheArena.Unit.Unit;
+using TMPro;
 
 namespace InTheArena.MainGame
 {
@@ -19,14 +20,16 @@ namespace InTheArena.MainGame
         [Header("UI References")]
         [SerializeField] private CanvasGroup m_BettingUiCanvasGroup;
         [SerializeField] private Slider m_BetRatioSlider;
-        [SerializeField] private Text m_TeamANameText;
-        [SerializeField] private Text m_TeamBNameText;
-        [SerializeField] private Text m_TeamARatioText;
-        [SerializeField] private Text m_TeamBRatioText;
-        [SerializeField] private Text m_CurrentCallText;
+        [SerializeField] private TMP_Text m_TeamANameText;
+        [SerializeField] private TMP_Text m_TeamBNameText;
+        [SerializeField] private TMP_Text m_TeamARatioText;
+        [SerializeField] private TMP_Text m_TeamBRatioText;
+        [SerializeField] private TMP_Text m_CurrentCallText;
         [SerializeField] private Button m_ConfirmBetButton;
         [SerializeField] private Button m_ExtraBetButton;
         [SerializeField] private Button m_RearrangeButton;
+        [SerializeField] private TMP_Text m_TeamAGridUnitText;
+        [SerializeField] private TMP_Text m_TeamBGridUnitText;
 
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private bool m_IsSliderInteractable = true;
@@ -80,6 +83,8 @@ namespace InTheArena.MainGame
             {
                 m_CurrentCallText.text = $"Call: {Context.CurrentCall}";
             }
+
+            UpdateGridUnitText();
 
             // 버튼 인터렉션 설정
             UpdateButtonInteractable();
@@ -137,6 +142,14 @@ namespace InTheArena.MainGame
 
             UpdateRatioTexts();
             UpdateButtonInteractable();
+        }
+
+        private void UpdateGridUnitText()
+        {
+            if (m_TeamAGridUnitText != null)
+                m_TeamAGridUnitText.text = $"{Context.TeamAUnitDatas}";
+            if (m_TeamAGridUnitText != null)
+                m_TeamAGridUnitText.text = $"{Context.TeamBUnitDatas}";
         }
 
         private void UpdateRatioTexts()

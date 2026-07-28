@@ -72,9 +72,25 @@ namespace InTheArena.UI
                 return;
             }
 
-            // destroyCancellationToken과 링크하지 않음 - 씬 전환 시 UI가 파괴되어도 스테이지는 계속 진행되어야 함
-            m_ButtonCts = new CancellationTokenSource();
-            _ = StartStageAsync(m_ButtonCts.Token);
+            var stageManager = StageManager.Instance;
+            if (stageManager == null)
+            {
+                Debug.LogError("[UI_StageButtonTest] StageManager 인스턴스를 찾을 수 없습니다.");
+                return;
+            }
+
+            // 1. 중복 클릭 방지 및 로딩 UI 표시 (씬 전환 전까지 유효)
+            if (m_StartButton != null)
+                m_StartButton.interactable = false;
+
+            if (m_LoadingOverlay != null)
+                m_LoadingOverlay.SetActive(true);
+
+            Debug.Log($"[UI_StageButtonTest] {m_TargetStageData.FullStageName} 스테이지 시작 요청");
+
+            // 2. 핵심: UI 내부에서 await하지 않고 StageManager를 직접 실행합니다.
+            // CancellationToken.None을 전달하여 UI의 파괴 여부와 관계없이 StageManager가 씬 전환을 완수하도록 합니다.
+            _ = stageManager.StartStageAsync(m_TargetStageData, CancellationToken.None);
         }
 
         private async Awaitable StartStageAsync(CancellationToken token)

@@ -510,7 +510,7 @@ MonoBehaviour:
   _allManagers:
   - {fileID: 1818288464}
   - {fileID: 1752125880}
-  - {fileID: 0}
+  - {fileID: 1818478476}
   _targetFrameRate: 60
   _vSyncCount: 0
 --- !u!4 &873386173
@@ -916,6 +916,7 @@ MonoBehaviour:
   m_LobbySceneName: Lobby
   m_LoadingSceneName: Loading
   m_MainGameSceneName: MainGame
+  m_InitializationOrder: 10
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -93,9 +93,19 @@ namespace InTheArena.MainGame
             return IsInitialized;
         }
 
-        public new void Release()
+        public override void Release()
         {
             IsInitialized = false;
+            Cleanup();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (ReferenceEquals(_instance, this))
+            {
+                _instance = null;
+            }
             Cleanup();
         }
 
@@ -112,6 +122,12 @@ namespace InTheArena.MainGame
                 Debug.LogError("[StageManager] 유효하지 않은 스테이지 데이터입니다.");
                 return;
             }
+
+            m_StageCts?.Cancel();
+            m_StageCts?.Dispose();
+
+            m_StageCts = token.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(token) : new CancellationTokenSource();
 
             m_CurrentStageData = stageData;
             m_StageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -333,15 +349,6 @@ namespace InTheArena.MainGame
             }
 
             m_Context?.Clear();
-        }
-
-        private new void OnDestroy()
-        {
-            if (ReferenceEquals(_instance, this))
-            {
-                _instance = null;
-            }
-            Cleanup();
         }
     }
 }
