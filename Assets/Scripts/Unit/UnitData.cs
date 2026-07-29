@@ -1,6 +1,7 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
 using UnityEngine.Serialization;
+using System.Collections.Generic;
 
 namespace InTheArena.Unit
 {
@@ -26,13 +27,24 @@ namespace InTheArena.Unit
         [Tooltip("유닛 프리팹 (씬에 생성될 오브젝트)")]
         [SerializeField] private GameObject m_UnitPrefab;
 
-        [Tooltip("유닛 스킬 데이터 (SkillData ScriptableObject)")]
+        [Tooltip("기존 단일 스킬 데이터. 마이그레이션 호환성을 위해 유지됩니다.")]
         [FormerlySerializedAs("m_Skill")]
-        [SerializeField] private SkillData m_SkillData;
+        [SerializeField, HideInInspector] private SkillData m_SkillData;
+
+        [Tooltip("AI가 앞에서부터 사용 가능 여부를 검사하는 스킬 목록")]
+        [SerializeField] private List<SkillData> m_SkillDatas = new List<SkillData>();
 
         [Tooltip("유닛 AI 데이터 (AIData ScriptableObject)")]
         [FormerlySerializedAs("m_AI")]
         [SerializeField] private AIData m_AIData;
+
+        [Header("시작 상태효과")]
+        [Tooltip("전투 시작 시 한 번 적용되는 Buff/Debuff 데이터")]
+        [SerializeField] private List<StatusEffectData> m_StartingStatusEffects = new List<StatusEffectData>();
+
+        [Header("전투 시각 기준")]
+        [Tooltip("카메라 프레이밍과 soft separation에서 사용할 유닛 반경")]
+        [SerializeField, Min(0.1f)] private float m_VisualRadius = 0.5f;
 
         /// <summary> 유닛 이름 </summary>
         public string UnitName => m_UnitName;
@@ -47,10 +59,18 @@ namespace InTheArena.Unit
         public GameObject UnitPrefab => m_UnitPrefab;
 
         /// <summary> 스킬 데이터 </summary>
-        public SkillData SkillData => m_SkillData;
+        public SkillData SkillData => m_SkillDatas != null && m_SkillDatas.Count > 0
+            ? m_SkillDatas[0]
+            : m_SkillData;
+
+        public IReadOnlyList<SkillData> SkillDatas => m_SkillDatas;
 
         /// <summary> AI 데이터 </summary>
         public AIData AIData => m_AIData;
+
+        public IReadOnlyList<StatusEffectData> StartingStatusEffects => m_StartingStatusEffects;
+
+        public float VisualRadius => Mathf.Max(0.1f, m_VisualRadius);
 
         /// <summary> AI 로직 (런타임용) </summary>
         public UnitAI_Base AI => m_AIData?.AILogic;
@@ -100,17 +120,21 @@ namespace InTheArena.Unit
                 isValid = false;
             }
 
-            if (m_SkillData != null)
+            SkillData primarySkill = SkillData;
+            if (primarySkill != null)
             {
-                if (!(m_SkillData is SkillData))
-                {
-                    Debug.LogError($"[UnitData] {name}: 스킬 데이터가 SkillData를 상속받지 않았습니다.");
-                    isValid = false;
-                }
-                else if (!m_SkillData.IsValid())
+                if (!primarySkill.IsValid())
                 {
                     Debug.LogError($"[UnitData] {name}: 스킬 데이터가 유효하지 않습니다.");
                     isValid = false;
+                }
+            }
+
+            if (m_SkillDatas != null)
+            {
+                for (int i = 0; i < m_SkillDatas.Count; i++)
+                {
+                    if (m_SkillDatas[i] != null && !m_SkillDatas[i].IsValid()) isValid = false;
                 }
             }
 
@@ -145,18 +169,7 @@ namespace InTheArena.Unit
                 return null;
             }
 
-            GameObject instance = Object.Instantiate(m_UnitPrefab, parent);
-            Unit unit = instance.GetComponent<Unit>();
-
-            if (unit == null)
-            {
-                Debug.LogError($"[UnitData] {name}: 프리팹에 Unit 컴포넌트가 없습니다.");
-                Object.Destroy(instance);
-                return null;
-            }
-
-            unit.Initialize(this, team);
-            return unit;
+            return UnitPoolService.Spawn(this, parent, team, Vector3.zero);
         }
 
 #if UNITY_EDITOR
@@ -165,6 +178,11 @@ namespace InTheArena.Unit
         /// </summary>
         private void OnValidate()
         {
+            if (m_SkillData != null && m_SkillDatas != null && !m_SkillDatas.Contains(m_SkillData))
+            {
+                m_SkillDatas.Insert(0, m_SkillData);
+            }
+            m_VisualRadius = Mathf.Max(0.1f, m_VisualRadius);
             IsValid();
         }
 #endif

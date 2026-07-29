@@ -297,11 +297,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.CombatPhase
   m_CombatTimeout: 30
-  m_UnitSpawnInterval: 0.1
   m_TeamASpawnRoot: {fileID: 32410856}
   m_TeamBSpawnRoot: {fileID: 309867658}
   m_NormalSpeed: 1
   m_FastSpeed: 2
+  m_CombatHud: {fileID: 1117530232}
 --- !u!4 &301048621
 Transform:
   m_ObjectHideFlags: 0
@@ -1052,17 +1052,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e0dc975dee7a804e9baf862dfe9ccec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.ResultPhase
-  m_ResultUiCanvasGroup: {fileID: 1419202684329294075}
-  m_ResultTitleText: {fileID: 0}
-  m_TeamANameText: {fileID: 0}
-  m_TeamBNameText: {fileID: 0}
-  m_TeamACallText: {fileID: 0}
-  m_TeamBCallText: {fileID: 0}
-  m_RewardCallText: {fileID: 0}
-  m_RoundProgressText: {fileID: 0}
-  m_ContinueButton: {fileID: 0}
-  m_VictoryEffectImage: {fileID: 0}
-  m_DefeatEffectImage: {fileID: 0}
+  m_ResultUi: {fileID: 1419202684329294076}
   m_ResultDelay: 1
   m_FadeDuration: 0.5
 --- !u!4 &498285542
@@ -1868,6 +1858,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4436462966198657998, guid: 7f521c2e3ccfa474583bf7161af38b01, type: 3}
   m_PrefabInstance: {fileID: 1117530230}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1117530232 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4162727389892916077, guid: 7f521c2e3ccfa474583bf7161af38b01, type: 3}
+  m_PrefabInstance: {fileID: 1117530230}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c063cc697427ae34c8c545093bcee307, type: 3}
+  m_Name: UI_CombatHUD
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_CombatHUD
 --- !u!114 &1495061278 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6111486210942901844, guid: 954e66415ff621d47b603ebe9f58bd89, type: 3}
@@ -2370,6 +2371,17 @@ CanvasGroup:
   m_CorrespondingSourceObject: {fileID: 2553990319163555295, guid: f1b779ac641dbb046a60461a3d34aa27, type: 3}
   m_PrefabInstance: {fileID: 1419202684329294073}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1419202684329294076 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7176526958263241457, guid: f1b779ac641dbb046a60461a3d34aa27, type: 3}
+  m_PrefabInstance: {fileID: 1419202684329294073}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72f22b82987a1274ab74ab5742fc46f6, type: 3}
+  m_Name: UI_ResultPhase
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_ResultPhase
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

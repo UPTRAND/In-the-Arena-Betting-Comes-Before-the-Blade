@@ -1,9 +1,7 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
-using System.Collections.Generic;
 using System;
 using MackySoft.SerializeReferenceExtensions;
-using InTheArena.MainGame;
 
 namespace InTheArena.Unit
 {
@@ -135,15 +133,7 @@ namespace InTheArena.Unit
         protected bool SearchAndSetTarget()
         {
             if (m_Owner == null) return false;
-
-            List<Unit> candidates = GetTargetCandidates();
-            if (candidates == null || candidates.Count == 0)
-            {
-                m_CurrentTarget = null;
-                return false;
-            }
-
-            Unit bestTarget = SelectBestTarget(candidates);
+            Unit bestTarget = UnitRegistry.FindBestTarget(m_Owner, m_TargetPriority, m_MaxSearchDistance);
             if (bestTarget != m_CurrentTarget)
             {
                 m_CurrentTarget = bestTarget;
@@ -156,91 +146,6 @@ namespace InTheArena.Unit
         /// <summary>
         /// 타겟 후보군 획득 (자식에서 오버라이드하여 팀 필터링 등 구현)
         /// </summary>
-        protected virtual List<Unit> GetTargetCandidates()
-        {
-            var context = RoundManager.Instance?.Context;
-            if (context == null || m_Owner == null)
-            {
-                return new List<Unit>();
-            }
-
-            List<Unit> enemyTeam = m_Owner.Team == (int)Team.Red
-                ? context.TeamBUnits
-                : context.TeamAUnits;
-
-            var candidates = new List<Unit>(enemyTeam.Count);
-            foreach (var candidate in enemyTeam)
-            {
-                if (candidate == null ||
-                    candidate == m_Owner ||
-                    candidate.IsDead ||
-                    !candidate.gameObject.activeInHierarchy ||
-                    candidate.Team == m_Owner.Team)
-                {
-                    continue;
-                }
-
-                candidates.Add(candidate);
-            }
-
-            return candidates;
-        }
-
-        /// <summary>
-        /// 우선순위에 따른 최적 타겟 선택
-        /// </summary>
-        protected Unit SelectBestTarget(List<Unit> candidates)
-        {
-            if (candidates == null || candidates.Count == 0) return null;
-
-            Unit best = null;
-            float bestScore = float.MaxValue;
-
-            foreach (var candidate in candidates)
-            {
-                if (candidate == null || candidate.IsDead) continue;
-
-                float distance = Vector3.Distance(m_Owner.transform.position, candidate.transform.position);
-
-                // 최대 탐색 거리 체크
-                if (m_MaxSearchDistance > 0f && distance > m_MaxSearchDistance) continue;
-
-                float score = CalculateTargetScore(candidate, distance);
-                if (score < bestScore)
-                {
-                    bestScore = score;
-                    best = candidate;
-                }
-            }
-
-            return best;
-        }
-
-        /// <summary>
-        /// 타겟 점수 계산 (낮을수록 우선순위 높음)
-        /// </summary>
-        protected virtual float CalculateTargetScore(Unit target, float distance)
-        {
-            switch (m_TargetPriority)
-            {
-                case TargetPriorityType.Nearest:
-                    return distance;
-
-                case TargetPriorityType.LowestHp:
-                    return target.CurrentHp / Mathf.Max(1f, target.MaxHp) * 1000f + distance * 0.1f;
-
-                case TargetPriorityType.HighestThreat:
-                    // 위협도 시스템이 구현되면 사용
-                    return distance;
-
-                case TargetPriorityType.Random:
-                    return UnityEngine.Random.value * 1000f;
-
-                default:
-                    return distance;
-            }
-        }
-
         /// <summary>
         /// 타겟 변경 시 콜백
         /// </summary>
@@ -302,9 +207,10 @@ namespace InTheArena.Unit
         {
             if (m_CurrentTarget == null) return false;
 
-            float distance = Vector3.Distance(m_Owner.transform.position, m_CurrentTarget.transform.position);
             float attackRange = m_Owner.CurrentAttackRange * m_AttackStopDistanceRatio;
-            return distance <= attackRange;
+            Vector3 delta = m_Owner.GroundPosition - m_CurrentTarget.GroundPosition;
+            delta.y = 0f;
+            return delta.sqrMagnitude <= attackRange * attackRange;
         }
 
         /// <summary>
@@ -320,7 +226,10 @@ namespace InTheArena.Unit
             if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
-                m_Owner.transform.rotation = Quaternion.Slerp(m_Owner.transform.rotation, targetRotation, Time.deltaTime * 10f);
+                m_Owner.transform.rotation = Quaternion.Slerp(
+                    m_Owner.transform.rotation,
+                    targetRotation,
+                    0.5f);
             }
         }
     }

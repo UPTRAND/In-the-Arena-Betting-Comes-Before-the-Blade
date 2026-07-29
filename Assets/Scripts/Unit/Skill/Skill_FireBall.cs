@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace InTheArena.Unit
@@ -26,17 +27,14 @@ namespace InTheArena.Unit
             if (ProjectilePrefab != null)
             {
                 // 투사체 생성 및 발사
-                GameObject projectile = UnityEngine.Object.Instantiate(ProjectilePrefab, owner.transform.position + Vector3.up, Quaternion.identity);
-                var projScript = projectile.GetComponent<Projectile>();
+                Projectile projScript = ProjectilePoolService.Spawn(ProjectilePrefab, owner.CastPosition);
                 if (projScript != null)
                 {
                     projScript.Initialize(owner, target, this, ProjectileSpeed);
                 }
                 else
                 {
-                    // 투사체 스크립트가 없으면 즉시 히트
                     ApplyDamageToTarget(owner, target);
-                    UnityEngine.Object.Destroy(projectile);
                 }
             }
             else
@@ -63,17 +61,26 @@ namespace InTheArena.Unit
             }
         }
 
+        public override void OnProjectileHit(Unit owner, Unit target)
+        {
+            ApplyDamageToTarget(owner, target);
+        }
+
         private void ApplyAreaDamage(Unit owner, Vector3 center, float damage, bool isCritical)
         {
             // 주변 적 탐색 (Physics.OverlapSphere 사용)
-            Collider[] hits = Physics.OverlapSphere(center, ExplosionRadius, LayerMask.GetMask("Enemy"));
-            foreach (var hit in hits)
+            IReadOnlyList<Unit> enemies = owner.Team == 0 ? UnitRegistry.BlueTeam : UnitRegistry.RedTeam;
+            float radiusSqr = ExplosionRadius * ExplosionRadius;
+            for (int i = 0; i < enemies.Count; i++)
             {
-                Unit unit = hit.GetComponent<Unit>();
-                if (unit != null && !unit.IsDead && unit.Team != owner.Team)
+                Unit unit = enemies[i];
+                if (unit != null && !unit.IsDead)
                 {
                     // 거리에 따른 데미지 감쇠
-                    float dist = Vector3.Distance(center, unit.transform.position);
+                    Vector3 offset = unit.GroundPosition - center;
+                    offset.y = 0f;
+                    if (offset.sqrMagnitude > radiusSqr) continue;
+                    float dist = Mathf.Sqrt(offset.sqrMagnitude);
                     float damageMultiplier = 1f - (dist / ExplosionRadius) * 0.5f; // 중심 100%, 가장자리 50%
                     unit.ApplyDamage(damage * damageMultiplier, owner, isCritical, true);
                 }

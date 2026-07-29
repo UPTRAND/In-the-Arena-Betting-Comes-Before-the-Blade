@@ -286,6 +286,8 @@ GameObject:
   m_Component:
   - component: {fileID: 4436462966198657998}
   - component: {fileID: 3245321216261185399}
+  - component: {fileID: 5550421457178160371}
+  - component: {fileID: 4162727389892916077}
   m_Layer: 5
   m_Name: CombatHUD
   m_TagString: Untagged
@@ -324,6 +326,38 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6814093836664178821}
   m_CullTransparentMesh: 1
+--- !u!225 &5550421457178160371
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6814093836664178821}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &4162727389892916077
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6814093836664178821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c063cc697427ae34c8c545093bcee307, type: 3}
+  m_Name: UI_CombatHUD
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_CombatHUD
+  m_HasControl: 0
+  m_CanCloseControlWithBackButton: 1
+  m_BIsPlayerUI: 0
+  m_TeamACountText: {fileID: 3161100852167025707}
+  m_TeamBCountText: {fileID: 580439579743644969}
+  m_RoundTimerText: {fileID: 4399393837291261957}
+  m_SpeedToggleButton: {fileID: 4396854303998183460}
+  m_SpeedText: {fileID: 724614145872929314}
 --- !u!1 &7354116116111234918
 GameObject:
   m_ObjectHideFlags: 0

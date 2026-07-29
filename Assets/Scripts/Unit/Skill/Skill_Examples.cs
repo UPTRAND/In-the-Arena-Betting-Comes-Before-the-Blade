@@ -98,8 +98,7 @@ namespace InTheArena.Unit
             if (triggerType != PassiveTriggerType.OnKill) return;
             if (owner == null || owner.IsDead || BuffToGrant == null) return;
 
-            var buffInstance = BuffToGrant.Clone();
-            owner.ApplyStatusEffect(buffInstance, owner, BuffDuration);
+            owner.ApplyStatusEffect(BuffToGrant, owner, BuffDuration);
         }
 
         public override Skill_Base Clone()
@@ -120,6 +119,20 @@ namespace InTheArena.Unit
         private Skill_Base m_Skill;
         private float m_Speed;
         private bool m_Initialized = false;
+        private GameObject m_PoolSource;
+
+        internal GameObject PoolSource => m_PoolSource;
+
+        internal void SetPoolSource(GameObject source) => m_PoolSource = source;
+
+        internal void ResetRuntime()
+        {
+            m_Owner = null;
+            m_Target = null;
+            m_Skill = null;
+            m_Speed = 0f;
+            m_Initialized = false;
+        }
 
         public void Initialize(Unit owner, Unit target, Skill_Base skill, float speed)
         {
@@ -132,7 +145,7 @@ namespace InTheArena.Unit
             // 타겟 방향 회전
             if (m_Target != null)
             {
-                transform.LookAt(m_Target.transform.position + Vector3.up);
+                transform.LookAt(m_Target.HitPosition);
             }
         }
 
@@ -140,16 +153,16 @@ namespace InTheArena.Unit
         {
             if (!m_Initialized || m_Target == null || m_Target.IsDead)
             {
-                UnityEngine.Object.Destroy(gameObject);
+                ProjectilePoolService.Return(this);
                 return;
             }
 
             // 타겟 방향으로 이동
-            Vector3 direction = (m_Target.transform.position + Vector3.up - transform.position).normalized;
+            Vector3 direction = (m_Target.HitPosition - transform.position).normalized;
             transform.position += direction * m_Speed * Time.deltaTime;
 
             // 도착 체크
-            if (Vector3.Distance(transform.position, m_Target.transform.position) < 0.5f)
+            if ((transform.position - m_Target.HitPosition).sqrMagnitude < 0.25f)
             {
                 OnHit();
             }
@@ -159,9 +172,9 @@ namespace InTheArena.Unit
         {
             if (m_Skill != null && m_Owner != null && m_Target != null && !m_Target.IsDead)
             {
-                m_Skill.Execute(m_Owner, m_Target);
+                m_Skill.OnProjectileHit(m_Owner, m_Target);
             }
-            UnityEngine.Object.Destroy(gameObject);
+            ProjectilePoolService.Return(this);
         }
     }
 }

@@ -128,8 +128,9 @@ namespace InTheArena.Unit
             }
 
             // 타겟이 너무 멀어지면 다시 탐색
-            float distance = Vector3.Distance(m_Owner.transform.position, m_CurrentTarget.transform.position);
-            if (distance > m_MaxSearchDistance && m_MaxSearchDistance > 0f)
+            Vector3 offset = m_Owner.GroundPosition - m_CurrentTarget.GroundPosition;
+            offset.y = 0f;
+            if (m_MaxSearchDistance > 0f && offset.sqrMagnitude > m_MaxSearchDistance * m_MaxSearchDistance)
             {
                 SetState(AIState.SearchTarget);
                 return;
@@ -137,11 +138,8 @@ namespace InTheArena.Unit
 
             // 이동
             FaceTarget();
-            if (!m_Owner.IsMoving)
-            {
-                float stopDistance = m_Owner.CurrentAttackRange * m_AttackStopDistanceRatio;
-                m_Owner.MoveTo(m_CurrentTarget.transform.position, stopDistance);
-            }
+            float stopDistance = m_Owner.CurrentAttackRange * m_AttackStopDistanceRatio;
+            m_Owner.MoveTo(m_CurrentTarget.GroundPosition, stopDistance);
         }
 
         private void UpdateAttack()
@@ -162,11 +160,15 @@ namespace InTheArena.Unit
             FaceTarget();
             m_Owner.StopMovement();
 
+            if (m_Owner.TryUseSkill(m_CurrentTarget))
+            {
+                return;
+            }
+
             // 공격 쿨타임 체크
-            if (Time.time >= m_NextAttackTime)
+            if (m_Owner.CanAttack)
             {
                 m_Owner.Attack(m_CurrentTarget);
-                m_NextAttackTime = Time.time + m_Owner.CurrentStat.AttackInterval;
             }
         }
 

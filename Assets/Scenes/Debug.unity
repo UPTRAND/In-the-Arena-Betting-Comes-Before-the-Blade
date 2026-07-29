@@ -180,7 +180,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.CombatPhase
   m_CombatTimeout: 60
-  m_UnitSpawnInterval: 0.1
   m_TeamASpawnRoot: {fileID: 32410856}
   m_TeamBSpawnRoot: {fileID: 309867658}
   m_NormalSpeed: 1

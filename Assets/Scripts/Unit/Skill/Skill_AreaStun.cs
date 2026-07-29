@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace InTheArena.Unit
@@ -21,12 +22,18 @@ namespace InTheArena.Unit
             if (owner == null) return;
 
             // 범위 내 적 탐색
-            Collider[] hits = Physics.OverlapSphere(position, SkillRange, LayerMask.GetMask("Enemy"));
-            foreach (var hit in hits)
+            position.y = owner.GroundPosition.y;
+            IReadOnlyList<Unit> enemies = owner.Team == 0 ? UnitRegistry.BlueTeam : UnitRegistry.RedTeam;
+            float rangeSqr = SkillRange * SkillRange;
+            for (int i = 0; i < enemies.Count; i++)
             {
-                Unit unit = hit.GetComponent<Unit>();
-                if (unit != null && !unit.IsDead && unit.Team != owner.Team)
+                Unit unit = enemies[i];
+                if (unit != null && !unit.IsDead)
                 {
+                    Vector3 offset = unit.GroundPosition - position;
+                    offset.y = 0f;
+                    if (offset.sqrMagnitude > rangeSqr) continue;
+
                     // 데미지 적용
                     float damage = CalculateDamage(owner, unit);
                     unit.ApplyDamage(damage, owner, false, true);
@@ -38,9 +45,7 @@ namespace InTheArena.Unit
                         var stunEffect = Resources.Load<Debuff_Stun>("Debuff_Stun");
                         if (stunEffect != null)
                         {
-                            var instance = stunEffect.Clone();
-                            instance.Initialize(unit, owner, StunDuration);
-                            unit.ApplyStatusEffect(instance, owner, StunDuration);
+                            unit.ApplyStatusEffect(stunEffect, owner, StunDuration);
                         }
                     }
                 }

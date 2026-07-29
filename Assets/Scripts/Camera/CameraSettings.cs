@@ -50,6 +50,19 @@ namespace InTheArena.Camera
         [Tooltip("전투 영역 크기 (7x3 그리드 기준)")]
         [SerializeField] private Vector3 m_CombatAreaSize = new Vector3(28f, 0f, 12f);
 
+        [Header("모바일 안전 프레이밍")]
+        [Tooltip("화면 좌우 안전 여백 비율")]
+        [SerializeField] [Range(0f, 0.25f)] private float m_SafeMarginHorizontal = 0.05f;
+
+        [Tooltip("화면 상하 안전 여백 비율")]
+        [SerializeField] [Range(0f, 0.3f)] private float m_SafeMarginVertical = 0.12f;
+
+        [Tooltip("생존 유닛 Bounds를 다시 계산하는 주기")]
+        [SerializeField] [Range(0.05f, 0.5f)] private float m_BoundsRefreshInterval = 0.1f;
+
+        [Tooltip("카메라 프레이밍에 사용하는 기본 유닛 시각 반경")]
+        [SerializeField] [Range(0.1f, 2f)] private float m_DefaultVisualRadius = 0.65f;
+
         [Header("줌/이동 제한")]
         [Tooltip("최소 줌 거리")]
         [SerializeField] [Range(5f, 20f)] private float m_MinZoom = 8f;
@@ -85,6 +98,9 @@ namespace InTheArena.Camera
 
         [Tooltip("기본 쉐이크 지속 시간")]
         [SerializeField] [Range(0.1f, 1f)] private float m_DefaultShakeDuration = 0.3f;
+
+        [Tooltip("쉐이크가 다시 발생할 수 있는 최소 간격")]
+        [SerializeField] [Range(0f, 1f)] private float m_ShakeCooldown = 0.15f;
 
         /// <summary> Perspective 모드 사용 여부 </summary>
         public bool UsePerspective
@@ -125,6 +141,10 @@ namespace InTheArena.Camera
 
         /// <summary> 전투 영역 크기 </summary>
         public Vector3 CombatAreaSize => m_CombatAreaSize;
+        public float SafeMarginHorizontal => m_SafeMarginHorizontal;
+        public float SafeMarginVertical => m_SafeMarginVertical;
+        public float BoundsRefreshInterval => m_BoundsRefreshInterval;
+        public float DefaultVisualRadius => m_DefaultVisualRadius;
 
         /// <summary> 최소 줌 </summary>
         public float MinZoom => m_MinZoom;
@@ -158,6 +178,7 @@ namespace InTheArena.Camera
 
         /// <summary> 기본 쉐이크 지속 시간 </summary>
         public float DefaultShakeDuration => m_DefaultShakeDuration;
+        public float ShakeCooldown => m_ShakeCooldown;
 
         /// <summary>
         /// Perspective 모드용 카메라 Transform 계산

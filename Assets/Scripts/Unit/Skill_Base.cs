@@ -98,6 +98,13 @@ namespace InTheArena.Unit
         /// <param name="position">대상 위치</param>
         public virtual void Execute(Unit owner, Vector3 position) { }
 
+        /// <summary>풀링 투사체가 실제 타겟에 도착했을 때 호출됩니다.</summary>
+        public virtual void OnProjectileHit(Unit owner, Unit target)
+        {
+            if (owner == null || target == null || target.IsDead) return;
+            target.ApplyDamage(CalculateDamage(owner, target), owner, false, true);
+        }
+
         /// <summary>
         /// 패시브 스킬 트리거 체크 및 실행
         /// </summary>

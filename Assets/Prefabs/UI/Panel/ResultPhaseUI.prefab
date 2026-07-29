@@ -150,6 +150,7 @@ GameObject:
   - component: {fileID: 8864917965621903810}
   - component: {fileID: 5673504260960825857}
   - component: {fileID: 2553990319163555295}
+  - component: {fileID: 7176526958263241457}
   m_Layer: 5
   m_Name: ResultPhaseUI
   m_TagString: Untagged
@@ -199,6 +200,24 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &7176526958263241457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1675557142508966191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72f22b82987a1274ab74ab5742fc46f6, type: 3}
+  m_Name: UI_ResultPhase
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_ResultPhase
+  m_HasControl: 0
+  m_CanCloseControlWithBackButton: 1
+  m_BIsPlayerUI: 0
+  m_ResultText: {fileID: 8659682498034722918}
+  m_RewardText: {fileID: 4578339329497745891}
+  m_ContinueButton: {fileID: 8744007244538111723}
 --- !u!1 &2585834289209382348
 GameObject:
   m_ObjectHideFlags: 0

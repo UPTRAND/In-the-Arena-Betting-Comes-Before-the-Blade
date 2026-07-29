@@ -24,6 +24,10 @@ MonoBehaviour:
   m_OrthoAspect: 1.7777778
   m_CombatAreaCenter: {x: 0, y: 0, z: 0}
   m_CombatAreaSize: {x: 28, y: 0, z: 12}
+  m_SafeMarginHorizontal: 0.05
+  m_SafeMarginVertical: 0.12
+  m_BoundsRefreshInterval: 0.1
+  m_DefaultVisualRadius: 0.65
   m_MinZoom: 8
   m_MaxZoom: 30
   m_MinHeight: 8
@@ -35,3 +39,4 @@ MonoBehaviour:
   m_DeadZoneRadius: 0.1
   m_DefaultShakeIntensity: 0.5
   m_DefaultShakeDuration: 0.3
+  m_ShakeCooldown: 0.15

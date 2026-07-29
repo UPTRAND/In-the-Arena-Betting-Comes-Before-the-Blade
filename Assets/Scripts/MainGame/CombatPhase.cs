@@ -5,6 +5,7 @@ using System.Threading;
 using UnityEngine;
 using DG.Tweening;
 using InTheArena.Unit;
+using InTheArena.UI;
 using UnitType = InTheArena.Unit.Unit;
 
 namespace InTheArena.MainGame
@@ -26,13 +27,13 @@ namespace InTheArena.MainGame
 
         [Header("Combat Settings")]
         [SerializeField] [Min(1f)] private float m_CombatTimeout = 30f;
-        [SerializeField] private float m_UnitSpawnInterval = 0.1f; // 유닛 소환 간격
         [SerializeField] private Transform m_TeamASpawnRoot;
         [SerializeField] private Transform m_TeamBSpawnRoot;
 
         [Header("Speed Control")]
         [SerializeField] private float m_NormalSpeed = 1f;
         [SerializeField] private float m_FastSpeed = 2f;
+        [SerializeField] private UI_CombatHUD m_CombatHud;
         private float m_CurrentSpeed = 1f;
 
         private CancellationTokenSource m_CombatCts;
@@ -51,6 +52,7 @@ namespace InTheArena.MainGame
             await ActivateUnitsAsync(m_CombatCts.Token);
             if (m_CombatCts.IsCancellationRequested) return;
 
+            m_CombatHud?.BindAndShow(this);
             await RunCombatLoopAsync(m_CombatCts.Token);
         }
 
@@ -77,11 +79,33 @@ namespace InTheArena.MainGame
             Context.TeamAUnits.Clear();
             Context.TeamBUnits.Clear();
 
+            PrewarmTeam(Context.TeamADeployments);
+            PrewarmTeam(Context.TeamBDeployments);
+
             // BettingPhase에서 확정한 셀별 편성을 그대로 사용한다.
             SpawnTeamUnits(Context.TeamADeployments, Context.TeamAUnits, Team.Red, m_TeamASpawnRoot);
             SpawnTeamUnits(Context.TeamBDeployments, Context.TeamBUnits, Team.Blue, m_TeamBSpawnRoot);
 
             Debug.Log($"[CombatPhase] 런타임 유닛 생성 완료 - Red: {Context.TeamAUnits.Count}, Blue: {Context.TeamBUnits.Count}");
+        }
+
+        private static void PrewarmTeam(List<TeamUnitDeployment> deployments)
+        {
+            if (deployments == null) return;
+            var counts = new Dictionary<UnitData, int>();
+            foreach (var deployment in deployments)
+            {
+                if (deployment?.Units == null) continue;
+                foreach (var data in deployment.Units)
+                {
+                    if (data == null) continue;
+                    counts.TryGetValue(data, out int count);
+                    counts[data] = count + 1;
+                }
+            }
+
+            foreach (var pair in counts)
+                UnitPoolService.Prewarm(pair.Key, pair.Value);
         }
 
         private void SpawnTeamUnits(List<TeamUnitDeployment> deployments, List<UnitType> runtimeUnits, Team team, Transform spawnRoot)
@@ -102,7 +126,17 @@ namespace InTheArena.MainGame
                 {
                     if (unitData == null) continue;
 
-                    var unit = unitData.CreateUnit(spawnRoot, (int)team);
+                    var finalPos = spawnPos + new Vector3(
+                        UnityEngine.Random.Range(-0.3f, 0.3f),
+                        0f,
+                        UnityEngine.Random.Range(-0.3f, 0.3f)
+                    );
+                    var unit = UnitPoolService.Spawn(
+                        unitData,
+                        spawnRoot,
+                        (int)team,
+                        finalPos,
+                        false);
                     if (unit != null)
                     {
                         if (unit.AI == null)
@@ -110,15 +144,7 @@ namespace InTheArena.MainGame
                             Debug.LogError($"[CombatPhase] {unitData.UnitName}에 런타임 AI가 없어 전투 행동을 할 수 없습니다.");
                         }
 
-                        // 칸 내부에서 약간 랜덤한 오프셋 적용 (겹침 방지)
-                        var finalPos = spawnPos + new Vector3(
-                            UnityEngine.Random.Range(-0.3f, 0.3f),
-                            0f,
-                            UnityEngine.Random.Range(-0.3f, 0.3f)
-                        );
-                        unit.transform.position = finalPos;
                         unit.SetAIActive(false);
-                        unit.gameObject.SetActive(false);
                         runtimeUnits.Add(unit);
                         RegisterUnitSlot(unit, team, deployment.CellIndex);
                     }
@@ -184,28 +210,28 @@ namespace InTheArena.MainGame
 
         private async Awaitable ActivateUnitsAsync(CancellationToken token)
         {
-            // 모든 유닛을 0.1초 간격으로 스폰
-            var allUnits = new List<UnitType>();
-            allUnits.AddRange(Context.TeamAUnits);
-            allUnits.AddRange(Context.TeamBUnits);
-
-            foreach (var unit in allUnits)
+            // 풀에서 준비된 유닛은 한 프레임에 활성화하고, 모두 배치된 후 동시에 AI를 시작합니다.
+            foreach (var unit in Context.TeamAUnits)
             {
                 if (token.IsCancellationRequested) break;
-
-                unit.gameObject.SetActive(true);
-                await Awaitable.WaitForSecondsAsync(m_UnitSpawnInterval);
+                if (unit != null) unit.gameObject.SetActive(true);
             }
-
+            foreach (var unit in Context.TeamBUnits)
+            {
+                if (token.IsCancellationRequested) break;
+                if (unit != null) unit.gameObject.SetActive(true);
+            }
+            await Awaitable.NextFrameAsync();
             if (token.IsCancellationRequested) return;
 
             // 모든 유닛이 배치된 뒤 동시에 AI 전투를 시작한다.
-            foreach (var unit in allUnits)
+            foreach (var unit in Context.TeamAUnits)
             {
-                if (unit != null && !unit.IsDead)
-                {
-                    unit.SetAIActive(true);
-                }
+                if (unit != null && !unit.IsDead) unit.SetAIActive(true);
+            }
+            foreach (var unit in Context.TeamBUnits)
+            {
+                if (unit != null && !unit.IsDead) unit.SetAIActive(true);
             }
         }
 
@@ -256,8 +282,26 @@ namespace InTheArena.MainGame
 
         private static bool HasLivingUnit(List<UnitType> units)
         {
-            return units != null &&
-                   units.Exists(unit => unit != null && !unit.IsDead && unit.gameObject.activeInHierarchy);
+            if (units == null) return false;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitType unit = units[i];
+                if (unit != null && !unit.IsDead) return true;
+            }
+            return false;
+        }
+
+        private static int CountLivingUnits(List<UnitType> units)
+        {
+            if (units == null) return 0;
+
+            int count = 0;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitType unit = units[i];
+                if (unit != null && !unit.IsDead) count++;
+            }
+            return count;
         }
 
         private void CompleteCombat(Team winner)
@@ -328,6 +372,7 @@ namespace InTheArena.MainGame
         {
             m_CurrentSpeed = (m_CurrentSpeed == m_NormalSpeed) ? m_FastSpeed : m_NormalSpeed;
             Time.timeScale = m_CurrentSpeed;
+            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(m_CurrentSpeed > m_NormalSpeed);
             Debug.Log($"[CombatPhase] 전투 속도 변경: {m_CurrentSpeed}x");
         }
 
@@ -337,10 +382,14 @@ namespace InTheArena.MainGame
         public float CurrentSpeed => m_CurrentSpeed;
         public float RemainingCombatTime => m_RemainingCombatTime;
         public float CombatTimeout => m_CombatTimeout;
+        public int RedAliveCount => CountLivingUnits(Context?.TeamAUnits);
+        public int BlueAliveCount => CountLivingUnits(Context?.TeamBUnits);
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             Time.timeScale = 1f;
+            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(false);
+            m_CombatHud?.UnbindAndHide();
 
             if (m_CombatCts != null)
             {
@@ -361,14 +410,14 @@ namespace InTheArena.MainGame
             {
                 if (unit != null && unit.gameObject != null)
                 {
-                    UnityEngine.Object.Destroy(unit.gameObject);
+                    UnitPoolService.Return(unit);
                 }
             }
             foreach (var unit in Context.TeamBUnits)
             {
                 if (unit != null && unit.gameObject != null)
                 {
-                    UnityEngine.Object.Destroy(unit.gameObject);
+                    UnitPoolService.Return(unit);
                 }
             }
 
