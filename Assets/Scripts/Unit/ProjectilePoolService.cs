@@ -12,6 +12,8 @@ namespace InTheArena.Unit
         private readonly Dictionary<GameObject, PoolPolicy> m_Policies =
             new Dictionary<GameObject, PoolPolicy>();
         private readonly List<Projectile> m_Active = new List<Projectile>(DefaultMaxCapacity);
+        private readonly Dictionary<Projectile, ProjectileData> m_RuntimeData =
+            new Dictionary<Projectile, ProjectileData>(DefaultMaxCapacity);
 
         internal ProjectilePoolService(ObjectPoolingFactory<Projectile> factory) => m_Factory = factory;
 
@@ -45,7 +47,7 @@ namespace InTheArena.Unit
             GameObject prefab,
             Vector3 position,
             UnitHandle target,
-            in SkillImpactPayload payload,
+            in ProjectileImpactPayload payload,
             float speed,
             float lifetime,
             out Projectile projectile)
@@ -55,10 +57,26 @@ namespace InTheArena.Unit
             return true;
         }
 
+        public bool TrySpawn(
+            ProjectileData data,
+            Vector3 position,
+            UnitHandle target,
+            in ProjectileImpactPayload payload,
+            out Projectile projectile)
+        {
+            projectile = null;
+            if (data == null || data.Prefab == null) return false;
+            if (!TrySpawn(data.Prefab, position, out projectile)) return false;
+            m_RuntimeData[projectile] = data;
+            projectile.Initialize(target, payload, data);
+            return true;
+        }
+
         public bool Return(Projectile projectile)
         {
             if (projectile == null) return false;
             m_Active.Remove(projectile);
+            m_RuntimeData.Remove(projectile);
             return m_Factory.Return(projectile);
         }
 
@@ -67,8 +85,11 @@ namespace InTheArena.Unit
             for (int i = m_Active.Count - 1; i >= 0; i--)
             {
                 Projectile projectile = m_Active[i];
-                if (projectile != null && projectile.SimulationFrame(deltaTime)) continue;
+                ProjectileData data = null;
+                if (projectile != null) m_RuntimeData.TryGetValue(projectile, out data);
+                if (projectile != null && projectile.SimulationFrame(deltaTime, data)) continue;
                 m_Active.RemoveAt(i);
+                if (projectile != null) m_RuntimeData.Remove(projectile);
                 if (projectile != null) m_Factory.Return(projectile);
             }
         }
@@ -81,6 +102,7 @@ namespace InTheArena.Unit
                 if (projectile != null) m_Factory.Return(projectile);
             }
             m_Active.Clear();
+            m_RuntimeData.Clear();
         }
 
         public void ClearStage()

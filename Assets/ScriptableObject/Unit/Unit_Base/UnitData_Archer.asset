@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Archer
   m_AttackType: 1
+  m_BasicAttackData: {fileID: 11400000, guid: f62262f4b576e6e4db9aebdb82003682, type: 2}
   m_BaseStat:
     maxHp: 150
     attackPower: 15

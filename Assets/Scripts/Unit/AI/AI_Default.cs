@@ -168,7 +168,7 @@ namespace InTheArena.Unit
             // 공격 쿨타임 체크
             if (m_Owner.CanAttack)
             {
-                m_Owner.Attack(m_CurrentTarget);
+                m_Owner.TryAttack(m_CurrentTarget);
             }
         }
 

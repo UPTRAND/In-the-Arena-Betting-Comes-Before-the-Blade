@@ -32,6 +32,7 @@ namespace InTheArena.MainGame
                 m_ResultUi = FindFirstObjectByType<UI_ResultPhase>(FindObjectsInactive.Include);
             }
 
+            UnsubscribeEvents();
             SubscribeEvents();
 
             if (m_ResultUi != null)
@@ -39,7 +40,12 @@ namespace InTheArena.MainGame
                 m_ResultUi.Configure(Context.CombatResult, Context.Settlement, Context.CurrentCall);
                 if (!m_ResultUi.BIsOpened) m_ResultUi.Open();
                 m_ResultUi.Enable();
-                if (m_ResultUi.CanvasGroup != null) m_ResultUi.CanvasGroup.alpha = 0f;
+                if (m_ResultUi.CanvasGroup != null)
+                {
+                    m_ResultUi.CanvasGroup.alpha = 0f;
+                    m_ResultUi.CanvasGroup.blocksRaycasts = true;
+                    m_ResultUi.CanvasGroup.interactable = true;
+                }
 
                 await Awaitable.WaitForSecondsAsync(m_ResultDelay);
                 token.ThrowIfCancellationRequested();

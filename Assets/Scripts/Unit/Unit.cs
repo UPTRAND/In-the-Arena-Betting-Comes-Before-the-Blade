@@ -76,6 +76,7 @@ namespace InTheArena.Unit
         private Vector3 m_MoveTargetPosition;
         private float m_MoveStopDistance;
         private bool m_IsMoving;
+        private Vector3 m_FacingDirection;
 
         private readonly List<StatusEffectRuntime> m_ActiveDataEffects = new List<StatusEffectRuntime>(8);
         private readonly List<SkillRuntime> m_RuntimeSkills = new List<SkillRuntime>(8);
@@ -112,6 +113,8 @@ namespace InTheArena.Unit
         public bool IsCastingSkill => m_IsCastingSkill;
         public bool IsAttacking => m_IsAttacking;
         public bool IsMoving => m_IsMoving;
+        /// <summary>현재 유닛이 바라보는 월드 방향 벡터 (y=0).</summary>
+        public Vector3 FacingDirection => m_FacingDirection;
         internal bool IsDeathPresentationHeld => m_HoldDeathPresentation;
         public bool CanAttack => m_IsInitialized && !IsDead && !m_IsStunned &&
                                  !m_IsCastingSkill && !m_IsAttacking && m_AttackCooldown <= 0f;
@@ -180,6 +183,7 @@ namespace InTheArena.Unit
             m_IsCastingSkill = false;
             m_IsAttacking = false;
             m_IsMoving = false;
+            m_FacingDirection = transform.forward;
             m_HoldDeathPresentation = false;
             m_CastingSkill = null;
             m_CastingTargets.Clear();
@@ -296,6 +300,7 @@ namespace InTheArena.Unit
         {
             if (!m_IsInitialized || IsDead) return;
             UpdateMovement(deltaTime);
+            UpdateFacingDirection();
 
             if (m_HitFlashRemaining > 0f)
             {
@@ -314,9 +319,21 @@ namespace InTheArena.Unit
             {
                 m_BillboardSpriteRenderer.sprite = m_SourceSpriteRenderer.sprite;
                 m_BillboardSpriteRenderer.color = m_SourceSpriteRenderer.color;
-                m_BillboardSpriteRenderer.flipX = m_SourceSpriteRenderer.flipX;
                 m_BillboardSpriteRenderer.flipY = m_SourceSpriteRenderer.flipY;
                 m_BillboardSpriteRenderer.enabled = m_SourceSpriteRenderer.gameObject.activeInHierarchy;
+
+                // 카메라 기준으로 facing 방향의 좌/우를 판단하여 flipX 적용
+                Vector3 cameraRight = cameraRotation * Vector3.right;
+                bool facingLeft = Vector3.Dot(m_FacingDirection, cameraRight) < 0f;
+                // 소스 스프라이트의 원본 flipX를 기본값으로 사용하고, facingLeft이면 반전
+                m_BillboardSpriteRenderer.flipX = m_SourceSpriteRenderer.flipX ^ facingLeft;
+            }
+            else if (m_BillboardSpriteRenderer != null)
+            {
+                // 소스가 없고 빌보드만 있는 경우에도 플립 적용
+                Vector3 cameraRight = cameraRotation * Vector3.right;
+                bool facingLeft = Vector3.Dot(m_FacingDirection, cameraRight) < 0f;
+                m_BillboardSpriteRenderer.flipX = facingLeft;
             }
         }
 
@@ -452,28 +469,37 @@ namespace InTheArena.Unit
             if (IsDead && gameObject.activeSelf) gameObject.SetActive(false);
         }
 
-        public void Attack(Unit target)
+        public void Attack(Unit target) => TryAttack(target);
+
+        public bool TryAttack(Unit target)
         {
-            if (!CanAttack || target == null || target.IsDead || target.Team == Team) return;
+            if (!CanAttack || target == null || target.IsDead || target.Team == Team) return false;
+
+            BasicAttackData attackData = m_UnitData != null ? m_UnitData.BasicAttackData : null;
+            if (attackData == null || !attackData.TryExecute(this, target))
+            {
+                m_AttackCooldown = attackData != null
+                    ? attackData.FailureRetryDelay
+                    : 0.25f;
+                return false;
+            }
+
             m_IsAttacking = true;
             m_AttackCooldown = AttackInterval;
             m_AttackLockRemaining = AttackAnimationLock;
             m_Animator?.SetTrigger("Attack");
             PlayClip(m_AttackSound);
             OnAttack?.Invoke(target);
+            return true;
+        }
 
-            float damage = m_CurrentStat.attackPower;
-            bool critical = UnityEngine.Random.value < 0.05f;
-            var context = new DamageContext
-            {
-                Source = new UnitHandle(this),
-                Target = target,
-                Amount = damage,
-                IsCritical = critical,
-                IsSkill = false,
-                IsReaction = false
-            };
-            float actualDamage = target.ApplyDamage(in context);
+        internal void NotifyBasicAttackHit(
+            Unit target,
+            float actualDamage,
+            bool critical,
+            bool isReaction)
+        {
+            if (target == null || actualDamage <= 0f) return;
             EnqueueSkillEvent(
                 SkillTriggerType.OnAttack,
                 this,
@@ -482,7 +508,7 @@ namespace InTheArena.Unit
                 actualDamage,
                 false,
                 critical,
-                false);
+                isReaction);
         }
 
         public bool TryUseSkill(Unit target = null)
@@ -694,7 +720,10 @@ namespace InTheArena.Unit
             transform.position = current + direction * Mathf.Max(0f, distance);
 
             if (direction.sqrMagnitude > 0.0001f)
+            {
                 transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+                m_FacingDirection = direction;
+            }
         }
 
         private void UpdateDataStatusEffects(float deltaTime)
@@ -920,6 +949,37 @@ namespace InTheArena.Unit
                 m_MaterialPropertyBlock.SetFloat(Shader.PropertyToID("_FlashAmount"), 0f);
                 renderer.SetPropertyBlock(m_MaterialPropertyBlock);
             }
+        }
+
+        /// <summary>
+        /// 유닛의 이동/타겟 방향에 따라 facing 방향을 갱신합니다.
+        /// </summary>
+        private void UpdateFacingDirection()
+        {
+            if (m_IsMoving)
+            {
+                // 이동 중이면 이동 방향으로 facing (UpdateMovement에서 이미 갱신됨)
+                return;
+            }
+
+            // 정지 중에는 AI의 현재 타겟 방향 또는 transform.forward를 사용
+            Unit target = m_RuntimeAI?.CurrentTarget;
+            if (target != null && !target.IsDead && target.gameObject.activeInHierarchy)
+            {
+                Vector3 toTarget = target.transform.position - transform.position;
+                toTarget.y = 0f;
+                if (toTarget.sqrMagnitude > 0.0001f)
+                {
+                    m_FacingDirection = toTarget.normalized;
+                    return;
+                }
+            }
+
+            // 기본값: transform.forward 사용
+            Vector3 fwd = transform.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude > 0.0001f)
+                m_FacingDirection = fwd.normalized;
         }
 
         private void PlayClip(AudioClip clip)

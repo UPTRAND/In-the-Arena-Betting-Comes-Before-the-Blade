@@ -19,6 +19,10 @@ namespace InTheArena.Unit
         [Tooltip("유닛 공격 타입 (근거리/원거리)")]
         [SerializeField] private UnitAttackType m_AttackType;
 
+        [Header("기본 공격")]
+        [Tooltip("기본 공격의 전달 방식과 적중 효과")]
+        [SerializeField] private BasicAttackData m_BasicAttackData;
+
         [Header("스탯")]
         [Tooltip("유닛 기본 스탯")]
         [SerializeField] private UnitStat m_BaseStat;
@@ -47,6 +51,8 @@ namespace InTheArena.Unit
 
         /// <summary> 공격 타입 </summary>
         public UnitAttackType AttackType => m_AttackType;
+
+        public BasicAttackData BasicAttackData => m_BasicAttackData;
 
         /// <summary> 기본 스탯 </summary>
         public UnitStat BaseStat => m_BaseStat;
@@ -113,6 +119,25 @@ namespace InTheArena.Unit
             if (!m_BaseStat.IsValid())
             {
                 Debug.LogError($"[UnitData] {name}: 스탯이 유효하지 않습니다.");
+                isValid = false;
+            }
+
+            if (m_BasicAttackData == null)
+            {
+                Debug.LogError($"[UnitData] {name}: 기본 공격 데이터가 없습니다.", this);
+                isValid = false;
+            }
+            else if (!m_BasicAttackData.IsValid())
+            {
+                isValid = false;
+            }
+
+            if (m_AttackType == UnitAttackType.Ranged &&
+                !(m_BasicAttackData?.Delivery is HomingProjectileAttackDelivery))
+            {
+                Debug.LogError(
+                    $"[UnitData] {name}: 원거리 유닛은 HomingProjectileAttackDelivery가 필요합니다.",
+                    this);
                 isValid = false;
             }
 

@@ -170,7 +170,7 @@ namespace InTheArena.Unit
     }
 
     [Serializable]
-    public sealed class SpawnProjectileSkillEffect : SkillEffectDefinition
+    public sealed class SpawnProjectileSkillEffect : SkillEffectDefinition, IProjectileImpactResolver
     {
         [SerializeField] private GameObject m_ProjectilePrefab;
         [SerializeField, Min(0.1f)] private float m_Speed = 20f;
@@ -187,14 +187,14 @@ namespace InTheArena.Unit
             if (m_ProjectilePrefab == null || target == null || target.IsDead)
                 return SkillExecutionResult.InvalidTarget;
 
-            var payload = new SkillImpactPayload(
+            var payload = new ProjectileImpactPayload(
                 new UnitHandle(context.Owner),
                 context.Owner.Team,
                 m_BaseDamage + context.Owner.CurrentAttackPower * m_AttackPowerRatio,
-                m_ExplosionRadius,
-                m_CriticalChance,
-                m_ImpactStatus,
-                context.IsReaction);
+                UnityEngine.Random.value < m_CriticalChance,
+                true,
+                context.IsReaction,
+                this);
 
             if (!PoolManager.Require().Projectiles.TrySpawn(
                     m_ProjectilePrefab,
@@ -207,6 +207,55 @@ namespace InTheArena.Unit
                 return SkillExecutionResult.PoolExhausted;
 
             return SkillExecutionResult.Success;
+        }
+
+        public bool ApplyImpact(
+            in ProjectileImpactPayload payload,
+            Unit primaryTarget,
+            Vector3 impactPosition)
+        {
+            if (primaryTarget == null || primaryTarget.IsDead) return false;
+            if (m_ExplosionRadius <= 0f)
+                return ApplyTo(in payload, primaryTarget, 1f);
+
+            bool applied = false;
+            IReadOnlyList<Unit> enemies = payload.SourceTeam == 0
+                ? UnitRegistry.BlueTeam
+                : UnitRegistry.RedTeam;
+            float radiusSqr = m_ExplosionRadius * m_ExplosionRadius;
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                Unit candidate = enemies[i];
+                if (candidate == null || candidate.IsDead) continue;
+                Vector3 delta = candidate.GroundPosition - impactPosition;
+                delta.y = 0f;
+                float distanceSqr = delta.sqrMagnitude;
+                if (distanceSqr > radiusSqr) continue;
+                float multiplier = 1f -
+                                   Mathf.Sqrt(distanceSqr) / m_ExplosionRadius * 0.5f;
+                applied |= ApplyTo(in payload, candidate, multiplier);
+            }
+            return applied;
+        }
+
+        private bool ApplyTo(
+            in ProjectileImpactPayload payload,
+            Unit target,
+            float multiplier)
+        {
+            var damage = new DamageContext
+            {
+                Source = payload.Source,
+                Target = target,
+                Amount = payload.Damage * multiplier,
+                IsCritical = payload.IsCritical,
+                IsSkill = true,
+                IsReaction = payload.IsReaction
+            };
+            bool applied = target.ApplyDamage(in damage) > 0f;
+            if (m_ImpactStatus != null && !target.IsDead)
+                applied |= target.ApplyStatusEffect(m_ImpactStatus, payload.Source.Unit) != null;
+            return applied;
         }
 
         public override void CollectProjectilePrefabs(List<GameObject> output)

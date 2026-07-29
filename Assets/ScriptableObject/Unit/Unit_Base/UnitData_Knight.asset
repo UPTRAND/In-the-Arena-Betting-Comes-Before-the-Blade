@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Knight
   m_AttackType: 0
+  m_BasicAttackData: {fileID: 11400000, guid: ae140d131e4b3724c9c94559d5833491, type: 2}
   m_BaseStat:
     maxHp: 200
     attackPower: 15

@@ -85,6 +85,8 @@ public static class ScreenFaderTransition
         CanvasGroupField.SetValue(fader, canvasGroup);
         FadeImageField.SetValue(fader, image);
         canvasGroup.alpha = 0f;
+        canvasGroup.blocksRaycasts = false;
+        canvasGroup.interactable = false;
         return fader;
     }
 }

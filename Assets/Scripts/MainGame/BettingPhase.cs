@@ -135,6 +135,10 @@ namespace InTheArena.MainGame
             UnitData unitData,
             int unitCount)
         {
+            projectilePrefabs.Clear();
+            unitData?.BasicAttackData?.CollectProjectilePrefabs(projectilePrefabs);
+            AddProjectileCounts(counts, projectilePrefabs, unitCount);
+
             IReadOnlyList<SkillData> skills = unitData?.SkillDatas;
             if (skills == null) return;
 
@@ -144,12 +148,21 @@ namespace InTheArena.MainGame
                 if (skill == null) continue;
                 projectilePrefabs.Clear();
                 skill.CollectProjectilePrefabs(projectilePrefabs);
-                for (int j = 0; j < projectilePrefabs.Count; j++)
-                {
-                    GameObject prefab = projectilePrefabs[j];
-                    counts.TryGetValue(prefab, out int current);
-                    counts[prefab] = current + unitCount;
-                }
+                AddProjectileCounts(counts, projectilePrefabs, unitCount);
+            }
+        }
+
+        private static void AddProjectileCounts(
+            Dictionary<GameObject, int> counts,
+            List<GameObject> projectilePrefabs,
+            int unitCount)
+        {
+            for (int i = 0; i < projectilePrefabs.Count; i++)
+            {
+                GameObject prefab = projectilePrefabs[i];
+                if (prefab == null) continue;
+                counts.TryGetValue(prefab, out int current);
+                counts[prefab] = current + unitCount;
             }
         }
 

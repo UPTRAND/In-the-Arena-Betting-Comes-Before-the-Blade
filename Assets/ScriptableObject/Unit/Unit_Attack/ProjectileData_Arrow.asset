@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42d0bbecc41361a42820382ce480158b, type: 3}
+  m_Name: ProjectileData_Arrow
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.ProjectileData
+  m_Prefab: {fileID: 614600644479178426, guid: 4be7a978d1d6e9049b45fcd211e1369b, type: 3}
+  m_Speed: 12
+  m_Lifetime: 5
+  m_HitDistance: 0.2
+  m_OrientationMode: 0
+  m_FlightStateName: 
+  m_ImpactStateName: 
+  m_ImpactPresentationDuration: 0

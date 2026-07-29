@@ -60,7 +60,15 @@ public class ScreenFader : MonoBehaviour
         {
             if (m_FadingState == value) return;
             m_FadingState = value;
-            OnChangeFadeState?.Invoke(m_FadingState != EFadingState.None);
+
+            bool isFading = m_FadingState != EFadingState.None;
+            if (m_CanvasGroup != null)
+            {
+                m_CanvasGroup.blocksRaycasts = isFading;
+                m_CanvasGroup.interactable = isFading;
+            }
+
+            OnChangeFadeState?.Invoke(isFading);
         }
     }
 
@@ -79,7 +87,7 @@ public class ScreenFader : MonoBehaviour
     {
         if (!ReferenceEquals(Instance, null) && Instance != null && Instance != this)
         {
-            Debug.LogWarning("[ScreenFader] Áßº¹ ÀÎ½ºÅÏ½º°¡ ¹ß°ßµÇ¾î ÆÄ±«ÇÕ´Ï´Ù.");
+            Debug.LogWarning("[ScreenFader] ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ê°€ ë°œê²¬ë˜ì–´ íŒŒê´´í•©ë‹ˆë‹¤.");
             Destroy(gameObject);
             return;
         }
@@ -89,12 +97,14 @@ public class ScreenFader : MonoBehaviour
         if (m_CanvasGroup != null)
         {
             m_CanvasGroup.alpha = 0f;
+            m_CanvasGroup.blocksRaycasts = false;
+            m_CanvasGroup.interactable = false;
         }
 
         FadingState = EFadingState.None;
 
         Application.logMessageReceived += OnLogMessageReceived;
-        // TODO: ÃßÈÄ SaveManager ±¸Çö ½Ã Ãß°¡
+        // TODO: ì¶”í›„ SaveManager êµ¬í˜„ ì‹œ ì¶”ê°€
         // SaveManager.OnSaveBegin += ShowSaveScreen;
         // SaveManager.OnSaveEnd += HideSaveScreen;
 
@@ -125,7 +135,7 @@ public class ScreenFader : MonoBehaviour
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[ScreenFader] Ä¿¸Çµå ¶óÀÎ ÀÎÀÚ ÆÄ½Ì ½ÇÆĞ: {ex.Message}");
+            Debug.LogError($"[ScreenFader] ì»¤ë§¨ë“œ ë¼ì¸ ì¸ì íŒŒì‹± ì‹¤íŒ¨: {ex.Message}");
         }
     }
 
@@ -220,7 +230,7 @@ public class ScreenFader : MonoBehaviour
                         m_FadeScreenImage.color = m_DefaultFadeScreenColor;
                     }
 
-                    // ÆäÀÌµå ¿Ï°á ½Ã UIManager¿¡ È­¸é ÀüÈ¯ ¿Ï·á Åëº¸
+                    // í˜ì´ë“œ ì™„ê²° ì‹œ UIManagerì— í™”ë©´ ì „í™˜ ì™„ë£Œ í†µë³´
                     OnClosed?.Invoke();
                 }
                 break;
@@ -228,13 +238,13 @@ public class ScreenFader : MonoBehaviour
     }
 
     /// <summary>
-    /// ÆäÀÌµå ¾Æ¿ô(È­¸é ¾ÏÀü)À» ½ÃÀÛÇÕ´Ï´Ù.
+    /// í˜ì´ë“œ ì•„ì›ƒ(í™”ë©´ ì•”ì „)ì„ ì‹œì‘í•©ë‹ˆë‹¤.
     /// </summary>
     public void FadeOut(Action fadeInAction, bool autoFadeIn = true, float waitTime = 1f, float fadingSpeed = 1f, float warmUpTime = 0f)
     {
         if (FadingState != EFadingState.None)
         {
-            Debug.LogWarning("[ScreenFader] ÀÌ¹Ì ÆäÀÌµå Ã³¸®°¡ ÁøÇà ÁßÀÔ´Ï´Ù.");
+            Debug.LogWarning("[ScreenFader] ì´ë¯¸ í˜ì´ë“œ ì²˜ë¦¬ê°€ ì§„í–‰ ì¤‘ì…ë‹ˆë‹¤.");
             return;
         }
 
@@ -251,7 +261,7 @@ public class ScreenFader : MonoBehaviour
         m_FadeSpeed = fadingSpeed;
         m_SmoothColorChange = false;
 
-        // UIManager¿¡ ÆäÀÌµå ½ÃÀÛ Åëº¸ (UI ÅÍÄ¡ ÀÔ·Â ÀÏ½ÃÁ¤Áö)
+        // UIManagerì— í˜ì´ë“œ ì‹œì‘ í†µë³´ (UI í„°ì¹˜ ì…ë ¥ ì¼ì‹œì •ì§€)
         OnOpened?.Invoke();
     }
 
@@ -301,11 +311,11 @@ public class ScreenFader : MonoBehaviour
     private void OnDestroy()
     {
         Application.logMessageReceived -= OnLogMessageReceived;
-        // TODO: ÃßÈÄ SaveManager ±¸Çö ½Ã Ãß°¡
+        // TODO: ì¶”í›„ SaveManager êµ¬í˜„ ì‹œ ì¶”ê°€
         // SaveManager.OnSaveBegin -= ShowSaveScreen;
         // SaveManager.OnSaveEnd -= HideSaveScreen;
 
-        // [High Safety] DOTween: UI ¹× Fader ÆÄ±« ½Ã ÀÜ·ù Æ®À© ¾ÈÀü Á¦°Å
+        // [High Safety] DOTween: UI ë° Fader íŒŒê´´ ì‹œ ì”ë¥˜ íŠ¸ìœˆ ì•ˆì „ ì œê±°
         transform.DOKill();
         if (m_CanvasGroup != null) m_CanvasGroup.DOKill();
 

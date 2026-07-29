@@ -33,6 +33,11 @@ namespace InTheArena.UI
             m_CombatResult = combatResult;
             m_Settlement = settlement;
             m_CurrentCall = currentCall;
+
+            if (m_ContinueButton != null)
+            {
+                m_ContinueButton.interactable = true;
+            }
         }
 
         public void Refresh()

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 584264125abff5b4783ffeb890702786, type: 3}
+  m_Name: BasicAttackData_Archer
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.BasicAttackData
+  m_AttackPowerMultiplier: 1
+  m_CriticalChance: 0.05
+  m_FailureRetryDelay: 0.25
+  m_Delivery:
+    rid: 8871563067095777650
+  m_ImpactEffects:
+  - rid: 8871563067095777651
+  references:
+    version: 2
+    RefIds:
+    - rid: 8871563067095777650
+      type: {class: HomingProjectileAttackDelivery, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_ProjectileData: {fileID: 11400000, guid: 0f184ff830535bd49bc6e3c34dc823cb, type: 2}
+    - rid: 8871563067095777651
+      type: {class: PrimaryDamageAttackEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_DamageMultiplier: 1
