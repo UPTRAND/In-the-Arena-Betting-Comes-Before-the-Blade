@@ -156,7 +156,7 @@ namespace InTheArena.MainGame.Editor
 
         private static void BindScene(string scenePath, GameObject resultPrefab)
         {
-            Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             BettingPhase bettingPhase = Object.FindAnyObjectByType<BettingPhase>(FindObjectsInactive.Include);
             GameObject bettingUi = GameObject.Find("BettingPhaseUI");
             if (bettingPhase != null && bettingUi != null)

@@ -224,10 +224,12 @@ namespace InTheArena.MainGame
                 // 게임 클리어/오버 체크
                 if (CheckStageClear())
                 {
+                    SaveManager.Instance?.GrantStageClearReward(m_CurrentStageData.StageNum);
                     Debug.Log("[StageManager] STAGE CLEAR!");
                     await ShowResultPanelAsync(true, token);
                     break;
                 }
+
 
                 if (CheckGameOver())
                 {

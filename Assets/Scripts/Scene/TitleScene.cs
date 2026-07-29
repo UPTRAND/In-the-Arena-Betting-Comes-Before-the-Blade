@@ -5,103 +5,105 @@ using UnityEngine.EventSystems;
 using TMPro;
 using DG.Tweening;
 
-[DisallowMultipleComponent]
-public class TitleScene : MonoBehaviour, IPointerClickHandler
+namespace InTheArena.Scene
 {
-    [Header("UI References")]
-    [SerializeField] private TextMeshProUGUI m_StartText;
-    [SerializeField] private CanvasGroup m_TextCanvasGroup;
-
-    [Header("Animation Settings")]
-    [Tooltip("±ôºıÀÓ 1È¸ ÁÖ±â¿¡ °É¸®´Â ½Ã°£(ÃÊ)")]
-    [SerializeField] private float m_BlinkDuration = 1.2f;
-
-    [Tooltip("ÃÖÀú Åõ¸íµµ ¸ñÇ¥°ª (0.0 ~ 1.0)")]
-    [SerializeField] private float m_MinAlpha = 0.2f;
-
-    [Header("Scene Settings")]
-    [Tooltip("ÅÍÄ¡ ½Ã ÀÌµ¿ÇÒ ¸ñÀûÁö ¾À ÀÌ¸§")]
-    [SerializeField] private string m_TargetSceneName = "Lobby";
-
-    private bool m_IsTransitioning;
-    private Tween m_BlinkTween;
-
-    private void Awake()
+    [DisallowMultipleComponent]
+    public class TitleScene : MonoBehaviour, IPointerClickHandler
     {
-        // [High Safety] CanvasGroup ÄÄÆ÷³ÍÆ® ÀÚµ¿ ÇÒ´ç ¹× ¹æ¾î ÄÚµå
-        if (m_TextCanvasGroup == null && m_StartText != null)
+        [Header("UI References")]
+        [SerializeField] private TextMeshProUGUI m_StartText;
+        [SerializeField] private CanvasGroup m_TextCanvasGroup;
+
+        [Header("Animation Settings")]
+        [Tooltip("ê¹œë¹¡ì„ 1íšŒ ì£¼ê¸°ì— ê±¸ë¦¬ëŠ” ì‹œê°„(ì´ˆ)")]
+        [SerializeField] private float m_BlinkDuration = 1.2f;
+
+        [Tooltip("ê¹œë¹¡ì„ ìµœì†Œ ì•ŒíŒŒ ê°’ (0.0 ~ 1.0)")]
+        [SerializeField] private float m_MinAlpha = 0.2f;
+
+        [Header("Scene Settings")]
+        [Tooltip("í„°ì¹˜ ì‹œ ì´ë™í•  ì”¬ ì´ë¦„")]
+        [SerializeField] private string m_TargetSceneName = "Lobby";
+
+        private bool m_IsTransitioning;
+        private Tween m_BlinkTween;
+
+        private void Awake()
         {
-            if (!m_StartText.TryGetComponent<CanvasGroup>(out m_TextCanvasGroup))
+            EnsureTextCanvasGroup();
+        }
+
+        private void Start()
+        {
+            EnsureTextCanvasGroup();
+            StartTextBlinking();
+        }
+
+        private void EnsureTextCanvasGroup()
+        {
+            if (m_StartText != null)
             {
-                m_TextCanvasGroup = m_StartText.gameObject.AddComponent<CanvasGroup>();
+                // CanvasGroupì´ ì—†ê±°ë‚˜ StartTextì™€ ë‹¤ë¥¸ ê²Œì„ì˜¤ë¸Œì íŠ¸(ì˜ˆ: TouchPanel)ë¥¼ ê°€ë¦¬í‚¤ê³  ìˆëŠ” ê²½ìš° StartTextì „ìš© CanvasGroup ì§€ì •
+                if (m_TextCanvasGroup == null || m_TextCanvasGroup.gameObject != m_StartText.gameObject)
+                {
+                    if (!m_StartText.TryGetComponent<CanvasGroup>(out m_TextCanvasGroup))
+                    {
+                        m_TextCanvasGroup = m_StartText.gameObject.AddComponent<CanvasGroup>();
+                    }
+                }
             }
         }
-    }
 
-    private void Start()
-    {
-        StartTextBlinking();
-    }
-
-    /// <summary>
-    /// DOTweenÀ» ÀÌ¿ëÇÑ ÅØ½ºÆ® ±ôºıÀÓ(Yoyo Loop) ¿¬Ãâ ½ÃÀÛ
-    /// </summary>
-    private void StartTextBlinking()
-    {
-        if (m_TextCanvasGroup == null) return;
-
-        m_TextCanvasGroup.alpha = 1.0f;
-
-        // CanvasGroup Alpha¸¦ ÀÌ¿ëÇÑ °¡º±°í ºÎµå·¯¿î UI ¾ËÆÄ Æ®À§´×
-        m_BlinkTween = m_TextCanvasGroup.DOFade(m_MinAlpha, m_BlinkDuration)
-            .SetLoops(-1, LoopType.Yoyo)
-            .SetEase(Ease.InOutSine);
-    }
-
-    /// <summary>
-    /// È­¸é ÀüÃ¼ ÅÍÄ¡ ÀÔ·Â ÀÌº¥Æ® °¨Áö (uGUI IPointerClickHandler)
-    /// </summary>
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        OnTitleTouched();
-    }
-
-    private void OnTitleTouched()
-    {
-        // Áßº¹ ÅÍÄ¡ ¹× ¿¬Å¸·Î ÀÎÇÑ ¾À Áßº¹ ÀüÈ¯ ¹æÁö
-        if (m_IsTransitioning) return;
-        m_IsTransitioning = true;
-
-        // ±ôºıÀÓ Æ®À© Á¤Áö ¹× °­Á¶ °íÁ¤ ¿¬Ãâ
-        if (m_BlinkTween != null && m_BlinkTween.IsActive())
+        /// <summary>
+        /// DOTweenì„ ì´ìš©í•´ StartTextë§Œ ì•ŒíŒŒ ê¹œë¹¡ì„(Yoyo Loop) ìˆ˜í–‰
+        /// </summary>
+        private void StartTextBlinking()
         {
-            m_BlinkTween.Kill();
-        }
+            if (m_TextCanvasGroup == null) return;
 
-        if (m_TextCanvasGroup != null)
-        {
-            m_TextCanvasGroup.DOKill();
             m_TextCanvasGroup.alpha = 1.0f;
+
+            m_BlinkTween = m_TextCanvasGroup.DOFade(m_MinAlpha, m_BlinkDuration)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetEase(Ease.InOutSine);
         }
 
-        // ±Û·Î¹ú ºñµ¿±â ¾À ·Î´õ¸¦ ÅëÇØ "Stage" ¾ÀÀ¸·Î ÀÌµ¿
-        AsyncSceneLoader.LoadScene(m_TargetSceneName);
-    }
-
-    private void OnDestroy()
-    {
-        // [High Safety] DOTween: ÄÄÆ÷³ÍÆ® ÆÄ±« ¹× ¾À ÀüÈ¯ ½Ã Æ®À© ÀÎ½ºÅÏ½º ¾ÈÀü Á¤Áö
-        if (m_BlinkTween != null && m_BlinkTween.IsActive())
+        /// <summary>
+        /// í™”ë©´(TouchArea) í´ë¦­ ì‹œ ì”¬ ì „í™˜ ì²˜ë¦¬
+        /// </summary>
+        public void OnPointerClick(PointerEventData eventData)
         {
-            m_BlinkTween.Kill();
+            if (m_IsTransitioning) return;
+
+            m_IsTransitioning = true;
+            StopTextBlinking();
+
+            if (!string.IsNullOrEmpty(m_TargetSceneName))
+            {
+                AsyncSceneLoader.LoadScene(m_TargetSceneName);
+            }
         }
 
-        if (m_TextCanvasGroup != null)
+        private void StopTextBlinking()
         {
-            m_TextCanvasGroup.DOKill();
+            if (m_BlinkTween != null && m_BlinkTween.IsActive())
+            {
+                m_BlinkTween.Kill();
+                m_BlinkTween = null;
+            }
+
+            if (m_TextCanvasGroup != null)
+            {
+                m_TextCanvasGroup.DOKill();
+                m_TextCanvasGroup.alpha = 1.0f;
+            }
         }
 
-        transform.DOKill();
+        private void OnDestroy()
+        {
+            StopTextBlinking();
+            transform.DOKill();
+        }
     }
 }
 #endif
