@@ -27,6 +27,13 @@ namespace InTheArena.MainGame
         {
             InitializeResult();
 
+            if (m_ResultUi == null)
+            {
+                m_ResultUi = FindFirstObjectByType<UI_ResultPhase>(FindObjectsInactive.Include);
+            }
+
+            SubscribeEvents();
+
             if (m_ResultUi != null)
             {
                 m_ResultUi.Configure(Context.CombatResult, Context.Settlement, Context.CurrentCall);
@@ -43,13 +50,20 @@ namespace InTheArena.MainGame
                     : null;
                 await AwaitTweenAsync(tween, token);
             }
+            else
+            {
+                Debug.LogWarning("[ResultPhase] UI_ResultPhase 참조가 없어 자동으로 페이즈를 완료합니다.");
+                await Awaitable.WaitForSecondsAsync(m_ResultDelay);
+                CompletePhase();
+                return;
+            }
 
-            SubscribeEvents();
             m_PhaseCompletionSource = new AwaitableCompletionSource();
             using (token.Register(() => m_PhaseCompletionSource?.TrySetResult()))
             {
                 await m_PhaseCompletionSource.Awaitable;
             }
+            token.ThrowIfCancellationRequested();
         }
 
         private void InitializeResult()

@@ -63,12 +63,17 @@ namespace InTheArena.UI
             if (m_SpeedText != null)
                 m_SpeedText.text = $"Speed\nx{m_CombatPhase.CurrentSpeed:0}";
             if (m_SpeedToggleButton != null)
-                m_SpeedToggleButton.interactable = !m_CombatPhase.IsPhaseCompleted;
+                m_SpeedToggleButton.interactable =
+                    !m_CombatPhase.IsPhaseCompleted &&
+                    !m_CombatPhase.IsFinalEliminationPlaying;
         }
 
         private void OnSpeedToggleClicked()
         {
-            if (m_CombatPhase == null || m_CombatPhase.IsPhaseCompleted) return;
+            if (m_CombatPhase == null ||
+                m_CombatPhase.IsPhaseCompleted ||
+                m_CombatPhase.IsFinalEliminationPlaying)
+                return;
 
             m_CombatPhase.ToggleCombatSpeed();
             Refresh();

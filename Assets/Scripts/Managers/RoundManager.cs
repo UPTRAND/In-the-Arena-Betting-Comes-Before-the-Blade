@@ -105,6 +105,10 @@ namespace InTheArena.MainGame
 
                             token.ThrowIfCancellationRequested();
 
+                            // Betting -> Combat: total 2-second fade-out/fade-in transition.
+                            await ScreenFaderTransition.PlayAsync(2f, m_RoundCts.Token);
+                            token.ThrowIfCancellationRequested();
+
                             // 3. Combat Phase
                             Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
                             m_CombatPhase.InitializePhase(m_Context);
@@ -134,6 +138,7 @@ namespace InTheArena.MainGame
             finally
             {
                 m_IsRoundRunning = false;
+                PoolManager.Instance?.ClearRound();
                 
                 if (m_RoundCts != null)
                 {

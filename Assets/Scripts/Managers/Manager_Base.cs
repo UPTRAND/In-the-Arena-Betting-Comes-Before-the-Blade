@@ -1,15 +1,15 @@
-
+ï»¿
 using System;
 using UnityEngine;
 
 #nullable disable
 public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
 {
-    [Tooltip("¸Å´ÏÀú ÃÊ±âÈ­ ¼ø¼­ (³·À»¼ö·Ï ¸ÕÀú ÃÊ±âÈ­µË´Ï´Ù)")]
+    [Tooltip("ë§¤ë‹ˆì € ì´ˆê¸°í™” ìˆœì„œ (ë‚®ì„ìˆ˜ë¡ ë¨¼ì € ì´ˆê¸°í™”ë©ë‹ˆë‹¤)")]
     public virtual ushort InitializationOrder { get; protected set; }
 
     /// <summary>
-    /// ¸Å´ÏÀúÀÇ ÃÊ±âÈ­ ¿Ï·á »óÅÂ¸¦ ÃßÀûÇÏ¿© Áßº¹ ÃÊ±âÈ­¸¦ ¹æÁöÇÕ´Ï´Ù.
+    /// ë§¤ë‹ˆì €ì˜ ì´ˆê¸°í™” ì™„ë£Œ ìƒíƒœë¥¼ ì¶”ì í•˜ì—¬ ì¤‘ë³µ ì´ˆê¸°í™”ë¥¼ ë°©ì§€í•©ë‹ˆë‹¤.
     /// </summary>
     public bool IsInitialized { get; private set; }
 
@@ -18,7 +18,7 @@ public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
     protected abstract bool Init();
 
     /// <summary>
-    /// ¿ÜºÎ¿¡¼­ È£ÃâÇÒ ¶§ »ç¿ëÇÏ´Â ¾ÈÀüÇÑ ÃÊ±âÈ­ ·¡ÆÛ
+    /// ì™¸ë¶€ì—ì„œ í˜¸ì¶œí•  ë•Œ ì‚¬ìš©í•˜ëŠ” ì•ˆì „í•œ ì´ˆê¸°í™” ë˜í¼
     /// </summary>
     public bool TryInitialize()
     {
@@ -39,8 +39,11 @@ public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
         IsInitialized = false;
     }
 
+    public virtual void OnApplicationPauseChanged(bool paused) { }
+    public virtual void OnApplicationFocusChanged(bool hasFocus) { }
+
     /// <summary>
-    /// MonoBehaviour ÆÄ±« ½Ã ¾ÈÀü¼º º¸Àå
+    /// MonoBehaviour íŒŒê´´ ì‹œ ì•ˆì „ì„± ë³´ì¥
     /// </summary>
     protected virtual void OnDestroy()
     {
@@ -52,19 +55,19 @@ public abstract class Manager_Base : MonoBehaviour, IComparable<Manager_Base>
 
     public int CompareTo(Manager_Base other)
     {
-        // ·¹ÆÛ·±½º ºñ±³
+        // ë ˆí¼ëŸ°ìŠ¤ ë¹„êµ
         if (object.ReferenceEquals(this, other))
         {
             return 0;
         }
 
-        // ºñ±³ ´ë»óÀÌ nullÀÏ °æ¿ì
+        // ë¹„êµ ëŒ€ìƒì´ nullì¼ ê²½ìš°
         if (object.ReferenceEquals(other, null))
         {
-            return 1; // nullº¸´Ù other°¡ ´õ µÚ·Î °¡µµ·Ï ¼³Á¤
+            return 1; // nullë³´ë‹¤ otherê°€ ë” ë’¤ë¡œ ê°€ë„ë¡ ì„¤ì •
         }
 
-        // ÃÊ±âÈ­ ¼ø¼­ ºñ±³
+        // ì´ˆê¸°í™” ìˆœì„œ ë¹„êµ
         int orderCompare = InitializationOrder.CompareTo(other.InitializationOrder);
         if (orderCompare != 0)
         {

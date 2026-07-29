@@ -1,8 +1,8 @@
-#if UNITY_EDITOR
-using System.Collections;
+癤�#if UNITY_EDITOR
+using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 public class ManagersAndroidLifecycleTests
 {
@@ -16,15 +16,21 @@ public class ManagersAndroidLifecycleTests
         _managers = _managersGo.AddComponent<Managers>();
     }
 
-    [UnityTest]
-    public IEnumerator Managers_OnApplicationPause_Triggers_Release_Safely()
+    [Test]
+    public void Managers_OnApplicationPause_KeepsManagersInitialized()
     {
-        // OnApplicationPause 메시지를 강제로 전송하여 안드로이드 백그라운드 진입 시뮬레이션
-        _managersGo.SendMessage("OnApplicationPause", true);
+        var child = new GameObject("LifecycleManager");
+        child.transform.SetParent(_managersGo.transform, false);
+        var manager = child.AddComponent<LifecycleTestManager>();
+        Assert.IsTrue(manager.TryInitialize());
 
-        // 함수가 예외 없이 통과했는지 확인
-        Assert.IsFalse(_managers.IsInitialized);
-        yield return null;
+        FieldInfo field = typeof(Managers).GetField("_allManagers", BindingFlags.Instance | BindingFlags.NonPublic);
+        field.SetValue(_managers, new List<Manager_Base> { manager });
+        MethodInfo pause = typeof(Managers).GetMethod("OnApplicationPause", BindingFlags.Instance | BindingFlags.NonPublic);
+        pause.Invoke(_managers, new object[] { true });
+
+        Assert.IsTrue(manager.IsInitialized);
+        Assert.AreEqual(1, manager.PauseCount);
     }
 
     [TearDown]
@@ -33,6 +39,16 @@ public class ManagersAndroidLifecycleTests
         if (_managersGo != null)
         {
             Object.DestroyImmediate(_managersGo);
+        }
+    }
+
+    private sealed class LifecycleTestManager : Manager_Base
+    {
+        public int PauseCount { get; private set; }
+        protected override bool Init() => true;
+        public override void OnApplicationPauseChanged(bool paused)
+        {
+            if (paused) PauseCount++;
         }
     }
 }

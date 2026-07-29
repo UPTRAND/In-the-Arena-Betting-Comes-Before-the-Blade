@@ -49,9 +49,6 @@ namespace InTheArena.Camera
         [SerializeField] private UnityCamera m_MainCamera;
         [Header("State")]
         [SerializeField] private CameraPhase m_CurrentPhase = CameraPhase.Betting;
-        [Header("Combat Framing")]
-        [SerializeField] private float m_FramingPadding = 3f;
-        [SerializeField] private float m_CombatPadding = 5f;
         [Header("Shake")]
         [SerializeField] private float m_ShakeStrength = 0.5f;
         [SerializeField] private float m_ShakeDuration = 0.3f;
@@ -60,6 +57,7 @@ namespace InTheArena.Camera
         private CameraPose m_TargetPose;
         private bool m_IsBoosted;
         private bool m_IsTransitioning;
+        private bool m_IsCinematicFocus;
         private float m_NextBoundsRefreshTime;
         private float m_ShakeTimer;
         private float m_ShakeIntensity;
@@ -70,6 +68,7 @@ namespace InTheArena.Camera
         public UnityCamera MainCamera => m_MainCamera;
         public CameraPhase CurrentPhase => m_CurrentPhase;
         public bool IsBoosted => m_IsBoosted;
+        public bool IsCinematicFocus => m_IsCinematicFocus;
 
         private void Awake()
         {
@@ -96,6 +95,7 @@ namespace InTheArena.Camera
             if (m_MainCamera == null || m_CameraSettings == null || m_IsTransitioning) return;
 
             if (m_CurrentPhase == CameraPhase.Combat &&
+                !m_IsCinematicFocus &&
                 Time.unscaledTime >= m_NextBoundsRefreshTime)
             {
                 RefreshCombatTarget();
@@ -105,9 +105,22 @@ namespace InTheArena.Camera
             float followSpeed = m_IsBoosted
                 ? m_CameraSettings.BoostFollowSpeed
                 : m_CameraSettings.FollowLerpSpeed;
-            float zoomSpeed = m_IsBoosted
-                ? m_CameraSettings.BoostZoomSpeed
-                : m_CameraSettings.ZoomLerpSpeed;
+            float zoomSpeed;
+            if (m_CurrentPhase == CameraPhase.Combat && !m_IsCinematicFocus)
+            {
+                float currentDistance = GetPoseDistance(CapturePose());
+                float targetDistance = GetPoseDistance(m_TargetPose);
+                zoomSpeed = targetDistance > currentDistance
+                    ? m_CameraSettings.AutoZoomOutSpeed
+                    : m_CameraSettings.AutoZoomInSpeed;
+                if (m_IsBoosted) zoomSpeed = Mathf.Max(zoomSpeed, m_CameraSettings.BoostZoomSpeed);
+            }
+            else
+            {
+                zoomSpeed = m_IsBoosted
+                    ? m_CameraSettings.BoostZoomSpeed
+                    : m_CameraSettings.ZoomLerpSpeed;
+            }
             float positionT = 1f - Mathf.Exp(-followSpeed * Time.unscaledDeltaTime);
             float zoomT = 1f - Mathf.Exp(-zoomSpeed * Time.unscaledDeltaTime);
 
@@ -124,19 +137,27 @@ namespace InTheArena.Camera
 
         public async Awaitable SetPhaseAsync(CameraPhase newPhase, CancellationToken token = default)
         {
-            if (m_CurrentPhase == newPhase && !m_IsTransitioning) return;
+            if (m_CurrentPhase == newPhase && !m_IsTransitioning && !m_IsCinematicFocus) return;
 
+            m_IsCinematicFocus = false;
             m_IsTransitioning = true;
             CameraPose target = GetPhasePose(newPhase);
-            await MoveCameraAsync(target, 0.5f, token);
-            m_CurrentPhase = newPhase;
-            m_TargetPose = target;
-            m_IsTransitioning = false;
-            m_NextBoundsRefreshTime = 0f;
+            try
+            {
+                await MoveCameraAsync(target, 0.5f, token);
+                m_CurrentPhase = newPhase;
+                m_TargetPose = target;
+                m_NextBoundsRefreshTime = 0f;
+            }
+            finally
+            {
+                m_IsTransitioning = false;
+            }
         }
 
         public void SetPhase(CameraPhase newPhase)
         {
+            m_IsCinematicFocus = false;
             m_CurrentPhase = newPhase;
             m_TargetPose = GetPhasePose(newPhase);
             m_NextBoundsRefreshTime = 0f;
@@ -147,8 +168,59 @@ namespace InTheArena.Camera
             m_IsBoosted = boosted;
         }
 
+        public async Awaitable FocusFinalEliminationAsync(
+            Bounds focusBounds,
+            CancellationToken token = default)
+        {
+            if (m_MainCamera == null || m_CameraSettings == null) return;
+
+            m_IsCinematicFocus = true;
+            m_ShakeTimer = 0f;
+            m_ShakeOffset = Vector3.zero;
+
+            CameraPose targetPose = CameraFramingCalculator.CalculateFinalEliminationPose(
+                focusBounds,
+                m_CameraSettings);
+
+            m_TargetPose = targetPose;
+            m_IsTransitioning = true;
+            try
+            {
+                await MoveCameraAsync(
+                    targetPose,
+                    m_CameraSettings.FinalEliminationFocusDuration,
+                    token);
+            }
+            finally
+            {
+                m_IsTransitioning = false;
+            }
+        }
+
+        public void HoldCurrentPoseForFinalElimination()
+        {
+            m_IsCinematicFocus = true;
+            m_IsTransitioning = false;
+            m_ShakeTimer = 0f;
+            CameraPose pose = CapturePose();
+            pose.Position -= m_ShakeOffset;
+            m_ShakeOffset = Vector3.zero;
+            m_TargetPose = pose;
+            ApplyPose(pose);
+        }
+
+        public void EndFinalEliminationFocus()
+        {
+            m_IsCinematicFocus = false;
+            m_IsTransitioning = false;
+            m_ShakeTimer = 0f;
+            m_ShakeOffset = Vector3.zero;
+            m_NextBoundsRefreshTime = 0f;
+        }
+
         public void ShakeCamera(float intensity = -1f, float duration = -1f)
         {
+            if (m_IsCinematicFocus) return;
             if (Time.unscaledTime < m_NextShakeAllowedTime) return;
             float cooldown = m_CameraSettings != null ? m_CameraSettings.ShakeCooldown : 0.15f;
             m_NextShakeAllowedTime = Time.unscaledTime + cooldown;
@@ -220,7 +292,7 @@ namespace InTheArena.Camera
                     resultBounds,
                     m_MainCamera,
                     m_CameraSettings,
-                    m_FramingPadding);
+                    m_CameraSettings.FramingPadding);
             }
 
             return m_DefaultPose;
@@ -235,12 +307,32 @@ namespace InTheArena.Camera
                 return;
             }
 
-            bounds.Expand(m_CombatPadding * 2f);
-            m_TargetPose = CameraFramingCalculator.CalculatePose(
+            CameraPose candidate = CameraFramingCalculator.CalculatePose(
                 bounds,
                 m_MainCamera,
                 m_CameraSettings,
-                m_FramingPadding);
+                m_CameraSettings.FramingPadding);
+
+            Vector3 previousCenter = GetGroundTarget(m_TargetPose);
+            Vector3 candidateCenter = GetGroundTarget(candidate);
+            float previousDistance = GetPoseDistance(m_TargetPose);
+            float candidateDistance = GetPoseDistance(candidate);
+
+            if ((candidateCenter - previousCenter).sqrMagnitude <
+                m_CameraSettings.CenterDeadZone * m_CameraSettings.CenterDeadZone)
+            {
+                candidateCenter = previousCenter;
+            }
+
+            if (Mathf.Abs(candidateDistance - previousDistance) <
+                m_CameraSettings.DistanceDeadZone)
+            {
+                candidateDistance = previousDistance;
+            }
+
+            candidate.Position = candidateCenter -
+                                 candidate.Rotation * Vector3.forward * candidateDistance;
+            m_TargetPose = candidate;
         }
 
         private CameraPose BuildDefaultPose()
@@ -304,8 +396,30 @@ namespace InTheArena.Camera
 
         private float GetDistance(CameraPose pose)
         {
-            Vector3 center = m_CameraSettings != null ? m_CameraSettings.CombatAreaCenter : Vector3.zero;
-            return Vector3.Distance(pose.Position, center);
+            return GetPoseDistance(pose);
+        }
+
+        private static Vector3 GetGroundTarget(CameraPose pose)
+        {
+            Vector3 forward = pose.Rotation * Vector3.forward;
+            if (Mathf.Abs(forward.y) < 0.0001f)
+            {
+                Vector3 fallback = pose.Position + forward * 10f;
+                fallback.y = 0f;
+                return fallback;
+            }
+
+            float distance = -pose.Position.y / forward.y;
+            Vector3 target = pose.Position + forward * Mathf.Max(0f, distance);
+            target.y = 0f;
+            return target;
+        }
+
+        private static float GetPoseDistance(CameraPose pose)
+        {
+            Vector3 forward = pose.Rotation * Vector3.forward;
+            if (Mathf.Abs(forward.y) < 0.0001f) return 0f;
+            return Mathf.Max(0f, -pose.Position.y / forward.y);
         }
 
         private void UpdateShake()
@@ -349,6 +463,27 @@ namespace InTheArena.Camera
 
     public static class CameraFramingCalculator
     {
+        public static CameraPose CalculateFinalEliminationPose(
+            Bounds focusBounds,
+            CameraSettings settings)
+        {
+            Vector3 center = focusBounds.center;
+            center.y = 0f;
+            Quaternion rotation = Quaternion.Euler(
+                settings.CameraAngleX,
+                settings.CameraAngleY,
+                0f);
+            float distance = Mathf.Min(
+                settings.FinalEliminationDistance,
+                settings.MinFramingDistance - 0.01f);
+
+            return new CameraPose(
+                center - rotation * Vector3.forward * Mathf.Max(0.1f, distance),
+                rotation,
+                settings.FieldOfView,
+                settings.MinOrthographicSize);
+        }
+
         public static CameraPose CalculatePose(
             Bounds unitBounds,
             UnityCamera camera,
@@ -357,26 +492,57 @@ namespace InTheArena.Camera
         {
             Vector3 center = unitBounds.center;
             center.y = 0f;
-            Vector3 size = unitBounds.size + new Vector3(padding * 2f, padding, padding * 2f);
             float safeWidth = Mathf.Max(0.1f, 1f - settings.SafeMarginHorizontal * 2f);
             float safeHeight = Mathf.Max(0.1f, 1f - settings.SafeMarginVertical * 2f);
             float aspect = Mathf.Max(0.1f, camera.aspect);
             Quaternion rotation = Quaternion.Euler(settings.CameraAngleX, settings.CameraAngleY, 0f);
+            Quaternion inverseRotation = Quaternion.Inverse(rotation);
+            float tanVertical = Mathf.Tan(settings.FieldOfView * Mathf.Deg2Rad * 0.5f) * safeHeight;
+            float tanHorizontal = tanVertical * aspect * safeWidth / safeHeight;
 
-            float verticalFov = settings.FieldOfView * Mathf.Deg2Rad;
-            float horizontalFov = 2f * Mathf.Atan(Mathf.Tan(verticalFov * 0.5f) * aspect);
-            float distanceByWidth = size.x / (2f * Mathf.Tan(horizontalFov * 0.5f) * safeWidth);
-            float distanceByDepth = size.z / (2f * Mathf.Tan(verticalFov * 0.5f) * safeHeight);
+            Vector3 min = unitBounds.min - new Vector3(padding, padding * 0.5f, padding);
+            Vector3 max = unitBounds.max + new Vector3(padding, padding * 0.5f, padding);
+            float requiredDistance = 0f;
+            float requiredOrthoSize = 0f;
+
+            for (int x = 0; x < 2; x++)
+            {
+                for (int y = 0; y < 2; y++)
+                {
+                    for (int z = 0; z < 2; z++)
+                    {
+                        Vector3 corner = new Vector3(
+                            x == 0 ? min.x : max.x,
+                            y == 0 ? min.y : max.y,
+                            z == 0 ? min.z : max.z);
+                        Vector3 local = inverseRotation * (corner - center);
+
+                        float horizontalDistance =
+                            Mathf.Abs(local.x) / Mathf.Max(0.0001f, tanHorizontal) - local.z;
+                        float verticalDistance =
+                            Mathf.Abs(local.y) / Mathf.Max(0.0001f, tanVertical) - local.z;
+                        requiredDistance = Mathf.Max(
+                            requiredDistance,
+                            Mathf.Max(horizontalDistance, verticalDistance));
+
+                        float horizontalOrtho =
+                            Mathf.Abs(local.x) / Mathf.Max(0.0001f, aspect * safeWidth);
+                        float verticalOrtho = Mathf.Abs(local.y) / safeHeight;
+                        requiredOrthoSize = Mathf.Max(
+                            requiredOrthoSize,
+                            Mathf.Max(horizontalOrtho, verticalOrtho));
+                    }
+                }
+            }
+
             float distance = Mathf.Clamp(
-                Mathf.Max(distanceByWidth, distanceByDepth),
-                settings.MinZoom,
-                settings.MaxZoom);
-
-            float orthoSize = CalculateOrthoSize(
-                unitBounds,
-                padding,
-                aspect * safeWidth / safeHeight);
-            orthoSize = Mathf.Clamp(orthoSize, settings.MinZoom, settings.MaxZoom);
+                requiredDistance,
+                settings.MinFramingDistance,
+                settings.MaxFramingDistance);
+            float orthoSize = Mathf.Clamp(
+                requiredOrthoSize,
+                settings.MinOrthographicSize,
+                settings.MaxOrthographicSize);
             Vector3 position = center - rotation * Vector3.forward * distance;
 
             return new CameraPose(position, rotation, settings.FieldOfView, orthoSize);

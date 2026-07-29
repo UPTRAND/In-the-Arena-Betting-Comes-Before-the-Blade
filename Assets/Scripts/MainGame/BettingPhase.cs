@@ -63,6 +63,12 @@ namespace InTheArena.MainGame
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
+            var cameraController = InTheArena.Camera.CameraController.Instance;
+            if (cameraController != null)
+                await cameraController.SetPhaseAsync(
+                    InTheArena.Camera.CameraPhase.Betting,
+                    token);
+
             InitializePhaseData();
             SetupUI();
             SubscribeEvents();
@@ -87,9 +93,64 @@ namespace InTheArena.MainGame
         {
             IsPhaseCompleted = false;
             Context.AssignUnitsForBetting();
+            PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
             m_DraftTicket = new RoundBetTicket();
             m_DraftTicket.SetWager(Mathf.Max(1, Context.CurrentCall));
             m_SelectedSurvivingSlots.Clear();
+        }
+
+        private static void PrewarmConfirmedPools(List<UnitData> red, List<UnitData> blue)
+        {
+            var counts = new Dictionary<UnitData, int>();
+            CountUnits(red, counts);
+            CountUnits(blue, counts);
+
+            PoolManager manager = PoolManager.Require();
+            var projectileCounts = new Dictionary<GameObject, int>();
+            var projectilePrefabs = new List<GameObject>(4);
+            foreach (KeyValuePair<UnitData, int> pair in counts)
+            {
+                manager.Units.Prewarm(pair.Key, pair.Value);
+                CountProjectiles(projectileCounts, projectilePrefabs, pair.Key, pair.Value);
+            }
+            foreach (KeyValuePair<GameObject, int> pair in projectileCounts)
+                manager.Projectiles.Prewarm(pair.Key, Mathf.Clamp(pair.Value * 2, 16, 128));
+        }
+
+        private static void CountUnits(List<UnitData> units, Dictionary<UnitData, int> counts)
+        {
+            if (units == null) return;
+            for (int i = 0; i < units.Count; i++)
+            {
+                UnitData data = units[i];
+                if (data == null) continue;
+                counts.TryGetValue(data, out int count);
+                counts[data] = count + 1;
+            }
+        }
+
+        private static void CountProjectiles(
+            Dictionary<GameObject, int> counts,
+            List<GameObject> projectilePrefabs,
+            UnitData unitData,
+            int unitCount)
+        {
+            IReadOnlyList<SkillData> skills = unitData?.SkillDatas;
+            if (skills == null) return;
+
+            for (int i = 0; i < skills.Count; i++)
+            {
+                SkillData skill = skills[i];
+                if (skill == null) continue;
+                projectilePrefabs.Clear();
+                skill.CollectProjectilePrefabs(projectilePrefabs);
+                for (int j = 0; j < projectilePrefabs.Count; j++)
+                {
+                    GameObject prefab = projectilePrefabs[j];
+                    counts.TryGetValue(prefab, out int current);
+                    counts[prefab] = current + unitCount;
+                }
+            }
         }
 
         private void SetupUI()

@@ -188,6 +188,8 @@ namespace InTheArena.Unit
         private const int InitialCapacity = 108;
         private static UnitSimulationSystem s_Instance;
         private readonly List<Unit> m_Units = new List<Unit>(InitialCapacity);
+        private readonly SkillTriggerContext[] m_EventQueue = new SkillTriggerContext[256];
+        private int m_EventCount;
         private float m_Accumulator;
 
         public static UnitSimulationSystem EnsureExists()
@@ -210,6 +212,17 @@ namespace InTheArena.Unit
         {
             if (s_Instance != null) s_Instance.m_Units.Remove(unit);
             UnitRegistry.Unregister(unit);
+        }
+
+        public static void EnqueueSkillEvent(in SkillTriggerContext context)
+        {
+            UnitSimulationSystem system = EnsureExists();
+            if (system.m_EventCount >= system.m_EventQueue.Length)
+            {
+                Debug.LogWarning("[UnitSimulationSystem] 스킬 이벤트 큐가 가득 차 이벤트를 폐기했습니다.");
+                return;
+            }
+            system.m_EventQueue[system.m_EventCount++] = context;
         }
 
         private void Awake()
@@ -243,6 +256,7 @@ namespace InTheArena.Unit
 
                     if (unit.gameObject.activeInHierarchy) unit.SimulationTick(SimulationStep);
                 }
+                DrainSkillEvents();
                 m_Accumulator -= SimulationStep;
             }
 
@@ -252,6 +266,21 @@ namespace InTheArena.Unit
                 if (unit != null && unit.gameObject.activeInHierarchy)
                     unit.SimulationFrame(deltaTime);
             }
+
+            PoolManager.Instance?.Projectiles?.SimulationFrame(deltaTime);
+        }
+
+        private void DrainSkillEvents()
+        {
+            int index = 0;
+            while (index < m_EventCount)
+            {
+                SkillTriggerContext context = m_EventQueue[index];
+                m_EventQueue[index++] = default;
+                Unit receiver = context.Receiver.Unit;
+                receiver?.DispatchSkillTrigger(context);
+            }
+            m_EventCount = 0;
         }
 
         private void LateUpdate()
@@ -275,9 +304,9 @@ namespace InTheArena.Unit
             if (s_Instance == this)
             {
                 s_Instance = null;
+                m_EventCount = 0;
                 UnitRegistry.Clear();
-                UnitPoolService.Clear();
-                ProjectilePoolService.Clear();
+                PoolManager.Instance?.ClearStage();
             }
         }
     }

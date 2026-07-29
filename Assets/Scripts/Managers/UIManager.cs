@@ -248,20 +248,8 @@ public class UIManager : Manager_Base
 
     private void InitializePoolsIfNeeded()
     {
-        if (!m_CreatePool) return;
-
-        GameObject[] poolablePrefabs1 = Resources.LoadAll<GameObject>("UI");
-        m_Pool = new UIObjectPoolingFactory();
-        m_Pool.Initialize(this, poolablePrefabs1);
-
-        GameObject[] poolablePrefabs2 = Resources.LoadAll<GameObject>("UI_FX_HUD");
-        var hudRoot = GetRootFromType(EUIObjectPoolingParent.HUD);
-        if (hudRoot != null)
-        {
-            // FX ���� �߰� �� ����
-            //m_PoolHud = new ObjectPoolingFactory<UI_FX>();
-            //m_PoolHud.Initialize(hudRoot.transform, poolablePrefabs2, string.Empty);
-        }
+        m_Pool = PoolManager.Require().UI;
+        m_Pool.BindManager(this);
     }
 
     public UI_Root GetRootFromType(EUIObjectPoolingParent parent)
@@ -463,7 +451,7 @@ public class UIManager : Manager_Base
 
         if (m_Pool != null)
         {
-            m_Pool.Clear();
+            m_Pool.BindManager(null);
             m_Pool = null;
         }
 

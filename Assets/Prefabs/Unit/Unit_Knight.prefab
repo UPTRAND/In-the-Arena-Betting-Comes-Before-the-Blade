@@ -138,6 +138,7 @@ GameObject:
   - component: {fileID: 2643748903058006654}
   - component: {fileID: 3733895093702037321}
   - component: {fileID: 453584524544759064}
+  - component: {fileID: 261010819116085216}
   m_Layer: 0
   m_Name: Unit_Knight
   m_TagString: Untagged
@@ -304,7 +305,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d6a11ba3d33b494ba94f6873389d802, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.Unit
   m_Animator: {fileID: 293012097988100823}
   m_Rigidbody: {fileID: 3733895093702037321}
@@ -320,3 +321,15 @@ MonoBehaviour:
   m_HitSound: {fileID: 0}
   m_DeathSound: {fileID: 0}
   m_AttackSound: {fileID: 0}
+--- !u!114 &261010819116085216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3164494858236416527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bc46e24457b8834fa066e2be2683131, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PoolMember

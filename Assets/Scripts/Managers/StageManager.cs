@@ -20,7 +20,7 @@ namespace InTheArena.MainGame
         /// <summary>
         /// 싱글톤 인스턴스 (씬 전환 시에도 유지)
         /// </summary>
-        public new static StageManager Instance
+        public static StageManager Instance
         {
             get
             {
@@ -45,8 +45,6 @@ namespace InTheArena.MainGame
         [SerializeField] private ushort m_InitializationOrder = 10;
         public override ushort InitializationOrder => m_InitializationOrder;
         
-        public new bool IsInitialized { get; private set; }
-
         private RoundContext m_Context;
         private CancellationTokenSource m_StageCts;
         private bool m_IsStageRunning = false;
@@ -67,7 +65,8 @@ namespace InTheArena.MainGame
             }
 
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            // StageManager는 DontDestroyOnLoad된 Managers 루트의 자식이다.
+            // 자식 GameObject에 별도로 DontDestroyOnLoad를 호출하면 Unity가 오류를 낸다.
             m_Context = new RoundContext();
         }
 
@@ -75,28 +74,13 @@ namespace InTheArena.MainGame
 
         protected override bool Init()
         {
-            IsInitialized = true;
             return true;
-        }
-
-        public new bool TryInitialize()
-        {
-            if (IsInitialized) return true;
-
-            if (!Setup())
-            {
-                Debug.LogError($"[{gameObject.name}] StageManager Setup Failed.");
-                return false;
-            }
-
-            IsInitialized = Init();
-            return IsInitialized;
         }
 
         public override void Release()
         {
-            IsInitialized = false;
             Cleanup();
+            base.Release();
         }
 
         protected override void OnDestroy()
@@ -254,9 +238,9 @@ namespace InTheArena.MainGame
 
                 // 다음 라운드로
                 m_CurrentRoundIndex++;
-                
-                // 라운드 간 짧은 대기
-                await Awaitable.WaitForSecondsAsync(1f);
+
+                // Result -> next Betting: total 2-second fade-out/fade-in transition.
+                await ScreenFaderTransition.PlayAsync(2f, token);
             }
 
             // 로비로 돌아가기
@@ -292,8 +276,15 @@ namespace InTheArena.MainGame
             m_CurrentStageData = null;
             m_Context?.Clear();
             
+            if (m_StageCts != null && m_StageCts.IsCancellationRequested)
+                return;
+
             // Lobby 씬으로 이동
-            await SceneManager.LoadSceneAsync(m_LobbySceneName, LoadSceneMode.Single).ToAwaitable();
+            var op = SceneManager.LoadSceneAsync(m_LobbySceneName, LoadSceneMode.Single);
+            if (op != null)
+            {
+                await op.ToAwaitable();
+            }
         }
 
         /// <summary>
@@ -307,12 +298,14 @@ namespace InTheArena.MainGame
         private void Cleanup()
         {
             m_IsStageRunning = false;
+            PoolManager.Instance?.ClearStage();
             
             if (m_StageCts != null)
             {
-                m_StageCts.Cancel();
-                m_StageCts.Dispose();
+                CancellationTokenSource cts = m_StageCts;
                 m_StageCts = null;
+                cts.Cancel();
+                cts.Dispose();
             }
 
             m_Context?.Clear();

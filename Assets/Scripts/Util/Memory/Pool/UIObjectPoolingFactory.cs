@@ -2,155 +2,96 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using DG.Tweening;
 
-public class UIObjectPoolingFactory
+/// <summary>Í≥µÌÜµ FactoryÏóê UI Root ÏÑ†ÌÉùÍ≥º Open/Close Í∑úÏπôÎßå ÎçîÌïòÎäî Ïñ¥ÎåëÌÑ∞ÏûÖÎãàÎã§.</summary>
+public sealed class UIObjectPoolingFactory
 {
-    private readonly Dictionary<Type, List<UI_Poolable>> m_PooledGameObjects = new Dictionary<Type, List<UI_Poolable>>();
-    private readonly Dictionary<Type, int> m_PoolCountByObject = new Dictionary<Type, int>();
+    private ObjectPoolingFactory<UI_Poolable> m_Factory;
+    private UIManager m_Manager;
+    private readonly Dictionary<Type, List<GameObject>> m_PrefabsByType =
+        new Dictionary<Type, List<GameObject>>();
+    private readonly Dictionary<GameObject, PoolPolicy> m_Policies =
+        new Dictionary<GameObject, PoolPolicy>();
 
-    /// <summary>
-    /// UIManagerø° µÓ∑œµ» UI_Root ¡§∫∏∏¶ πŸ≈¡¿∏∑Œ UI «Æ ª˝º∫
-    /// </summary>
+    public UIObjectPoolingFactory()
+    {
+        PoolManager pools = PoolManager.Require();
+        m_Factory = pools.UIFactory;
+    }
+
+    internal UIObjectPoolingFactory(ObjectPoolingFactory<UI_Poolable> factory)
+    {
+        m_Factory = factory;
+    }
+
+    public void BindManager(UIManager manager) => m_Manager = manager;
+
+    public bool Register(GameObject prefab, PoolPolicy policy)
+    {
+        if (prefab == null || !prefab.TryGetComponent<UI_Poolable>(out UI_Poolable sample))
+            return false;
+        PoolPolicy normalized = policy.Normalized();
+        if (!m_Factory.Register(prefab, normalized)) return false;
+        m_Policies[prefab] = normalized;
+
+        Type type = sample.GetType();
+        if (!m_PrefabsByType.TryGetValue(type, out List<GameObject> prefabs))
+        {
+            prefabs = new List<GameObject>();
+            m_PrefabsByType.Add(type, prefabs);
+        }
+        if (!prefabs.Contains(prefab)) prefabs.Add(prefab);
+        return true;
+    }
+
     public void Initialize(UIManager manager, IEnumerable<GameObject> poolablePrefabs)
     {
-        Clear();
-
-        if (manager == null || poolablePrefabs == null) return;
-
-        foreach (var prefab in poolablePrefabs)
+        BindManager(manager);
+        if (poolablePrefabs == null) return;
+        foreach (GameObject prefab in poolablePrefabs)
         {
-            if (prefab == null) continue;
-
-            if (prefab.TryGetComponent<UI_Poolable>(out var component))
-            {
-                var parentRoot = manager.GetRootFromType(component.GetParent());
-                MakePool(parentRoot, component);
-            }
-            else
-            {
-                Debug.LogError($"[UIObjectPoolingFactory] «¡∏Æ∆’ [{prefab.name}]ø° UI_Poolable ƒƒ∆˜≥Õ∆Æ∞° æ¯Ω¿¥œ¥Ÿ.");
-            }
+            if (prefab == null || !prefab.TryGetComponent<UI_Poolable>(out UI_Poolable sample))
+                continue;
+            int initial = Mathf.Max(1, sample.poolSize);
+            Register(prefab, new PoolPolicy(initial, Mathf.Max(initial, 16), PoolScope.Scene));
         }
     }
 
-    /// <summary>
-    /// «Æ ≥ª ∏µÁ UI ø¿∫Í¡ß∆Æ ∆ƒ±´ π◊ ∆Æ¿© ¡§¡ˆ
-    /// </summary>
-    public void Clear()
+    public T Spawn<T>(Vector3 position) where T : UI_Poolable
     {
-        foreach (var pair in m_PooledGameObjects)
-        {
-            List<UI_Poolable> list = pair.Value;
-            if (list == null) continue;
-
-            for (int i = 0; i < list.Count; i++)
-            {
-                UI_Poolable item = list[i];
-                if (item != null && item.gameObject != null)
-                {
-                    item.CachedTransform.DOKill();
-                    UnityEngine.Object.Destroy(item.gameObject);
-                }
-            }
-        }
-
-        m_PooledGameObjects.Clear();
-        m_PoolCountByObject.Clear();
-    }
-
-    /// <summary>
-    /// C# ≈∏¿‘ ±‚π› UI Ω∫∆˘ (≈∏¿‘ æ»¡§º∫ ¡¶∞¯)
-    /// </summary>
-    public T Spawn<T>(Vector3 pos) where T : UI_Poolable
-    {
-        Type typeKey = typeof(T);
-
-        if (!m_PooledGameObjects.TryGetValue(typeKey, out var list) || list == null || list.Count == 0)
-        {
-            Debug.LogError($"[UIObjectPoolingFactory] µÓ∑œµ«¡ˆ æ ¿∫ UI «Æ ≈∏¿‘¿‘¥œ¥Ÿ: {typeKey.Name}");
+        if (!m_PrefabsByType.TryGetValue(typeof(T), out List<GameObject> prefabs) || prefabs.Count == 0)
             return null;
-        }
-
-        int currentIndex = m_PoolCountByObject[typeKey];
-        int searchCount = 0;
-
-        // »∞º∫»≠µ» UI ≈Ωªˆ (∞°µÊ ¬˘ ∞ÊøÏ º¯»Ø ∂ÛøÓµÂ ∑Œ∫Û πÊΩƒ¿∏∑Œ ∞°¿Â ø¿∑°µ» UI ∞≠¡¶ ¿Á»∞øÎ)
-        while (list[currentIndex] != null && list[currentIndex].gameObject.activeSelf)
-        {
-            currentIndex = (currentIndex + 1) % list.Count;
-            if (++searchCount >= list.Count)
-            {
-                Debug.LogWarning($"[UIObjectPoolingFactory] {typeKey.Name} «Æ ºˆ∑Æ¿Ã ∫Œ¡∑«œø© ∞°¿Â ø¿∑°µ» UI ø¿∫Í¡ß∆Æ∏¶ ¿Á»∞øÎ«’¥œ¥Ÿ.");
-                break;
-            }
-        }
-
-        UI_Poolable element = list[currentIndex];
-        if (element == null) return null;
-
-        // ¿ÃπÃ »∞º∫»≠µ» ªÛ≈¬∂Û∏È ∞≠¡¶ Despawn »ƒ ¿ÁªÁøÎ (DOTween ≈≥ π◊ OnDespawn æ»¿¸ Ω««‡)
-        if (element.gameObject.activeSelf)
-        {
-            element.Despawn();
-        }
-
-        element.CachedTransform.position = pos;
-        element.GameObjectSetActive(true);
-
-        try
-        {
-            element.Open();
-            element.OnSpawn();
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[{typeKey.Name}] UI Spawn/Open Ω««‡ ¡ﬂ øπø‹ πﬂª˝: {ex.Message}");
-            Debug.LogException(ex);
-        }
-
-        m_PoolCountByObject[typeKey] = (currentIndex + 1) % list.Count;
-
-        return element as T;
+        return Spawn<T>(prefabs[0], position);
     }
 
-    /// <summary>
-    /// UI ø¿∫Í¡ß∆Æ ºˆµø π›»Ø
-    /// </summary>
+    public T Spawn<T>(GameObject prefab, Vector3 position) where T : UI_Poolable
+    {
+        if (prefab == null || !prefab.TryGetComponent<UI_Poolable>(out UI_Poolable metadata))
+            return null;
+        if (!m_Factory.IsRegistered(prefab))
+        {
+            if (!m_Policies.TryGetValue(prefab, out PoolPolicy policy) ||
+                !m_Factory.Register(prefab, policy))
+                return null;
+        }
+        UI_Root root = m_Manager != null ? m_Manager.GetRootFromType(metadata.GetParent()) : null;
+        var context = new PoolSpawnContext(root != null ? root.transform : null, position, Quaternion.identity);
+        if (!m_Factory.TryRent(prefab, context, out UI_Poolable item)) return null;
+        item.SetRoot(root);
+        item.Open();
+        return item as T;
+    }
+
     public void Despawn(UI_Poolable pooled)
     {
-        if (pooled == null) return;
-        pooled.Despawn();
+        if (pooled != null) m_Factory.Return(pooled);
     }
 
-    /// <summary>
-    /// ∞≥∫∞ UI ≈∏¿‘∫∞ «Æ ª˝º∫ π◊ Root ¿⁄Ωƒ»≠
-    /// </summary>
-    private void MakePool(UI_Root baseParent, UI_Poolable metadata)
+    public void Clear()
     {
-        if (metadata == null) return;
-
-        Type typeKey = metadata.GetType();
-        if (m_PooledGameObjects.ContainsKey(typeKey))
-        {
-            Debug.LogWarning($"[UIObjectPoolingFactory] ¿ÃπÃ µÓ∑œµ» UI ≈∏¿‘¿‘¥œ¥Ÿ: {typeKey.Name}");
-            return;
-        }
-
-        int size = Mathf.Max(1, metadata.poolSize);
-        var list = new List<UI_Poolable>(size);
-        m_PooledGameObjects.Add(typeKey, list);
-        m_PoolCountByObject.Add(typeKey, 0);
-
-        Transform parentTransform = baseParent != null ? baseParent.transform : null;
-
-        for (int i = 0; i < size; i++)
-        {
-            UI_Poolable instance = UnityEngine.Object.Instantiate(metadata, Vector3.zero, Quaternion.identity, parentTransform);
-            instance.gameObject.SetActive(false);
-            instance.SetRoot(baseParent);
-            list.Add(instance);
-        }
+        m_Factory.ClearScope(PoolScope.Scene, true);
+        m_PrefabsByType.Clear();
+        m_Policies.Clear();
     }
 }
 #endif

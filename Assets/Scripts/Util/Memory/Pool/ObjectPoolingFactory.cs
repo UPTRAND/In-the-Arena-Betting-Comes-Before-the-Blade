@@ -3,169 +3,302 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ObjectPoolingFactory<T> where T : Poolable
+public sealed class ObjectPoolingFactory<T> : IPoolOwner where T : Component
 {
-    private readonly Dictionary<GameObject, List<T>> m_PooledGameObjects = new Dictionary<GameObject, List<T>>();
-    private readonly Dictionary<GameObject, int> m_PoolCountByObject = new Dictionary<GameObject, int>();
-    private readonly Dictionary<string, GameObject> m_PrefabsByName = new Dictionary<string, GameObject>();
-
-    /// <summary>
-    /// Ç® ÃÊ±âÈ­ ¹× ÇÁ¸®ÆÕ »ı¼º
-    /// </summary>
-    public void Initialize(Transform parent, IEnumerable<GameObject> poolablePrefabs, string defaultKey = "")
+    private sealed class Bucket
     {
-        Clear();
-
-        if (poolablePrefabs == null) return;
-
-        foreach (var prefab in poolablePrefabs)
-        {
-            if (prefab == null) continue;
-            MakePool(parent, prefab);
-        }
+        public readonly Stack<T> Available = new Stack<T>();
+        public readonly Stack<T> Scratch = new Stack<T>();
+        public readonly HashSet<T> InUse = new HashSet<T>();
+        public readonly List<T> All = new List<T>();
+        public PoolPolicy Policy;
+        public Transform Root;
+        public int PeakInUse;
+        public int FailedRentCount;
     }
 
-    /// <summary>
-    /// ¸ğµç Ç®¸µµÈ °ÔÀÓ ¿ÀºêÁ§Æ® ÆÄ±« ¹× »çÀü ÃÊ±âÈ­
-    /// </summary>
-    public void Clear()
-    {
-        foreach (var pair in m_PooledGameObjects)
-        {
-            List<T> list = pair.Value;
-            if (list == null) continue;
+    private readonly Dictionary<PoolKey, Bucket> m_Buckets = new Dictionary<PoolKey, Bucket>();
+    private readonly Dictionary<string, PoolKey> m_LegacyKeys = new Dictionary<string, PoolKey>();
+    private readonly Transform m_Root;
 
-            for (int i = 0; i < list.Count; i++)
-            {
-                T obj = list[i];
-                if (obj != null && obj.gameObject != null)
-                {
-                    UnityEngine.Object.Destroy(obj.gameObject);
-                }
-            }
+    public ObjectPoolingFactory(Transform root) => m_Root = root;
+    public int RegisteredPoolCount => m_Buckets.Count;
+
+    public bool Register(GameObject prefab, PoolPolicy policy)
+    {
+        if (prefab == null || !prefab.TryGetComponent<T>(out _))
+        {
+            Debug.LogError($"[ObjectPoolingFactory<{typeof(T).Name}>] ìœ íš¨í•˜ì§€ ì•Šì€ í”„ë¦¬íŒ¹ì…ë‹ˆë‹¤.");
+            return false;
         }
 
-        m_PooledGameObjects.Clear();
-        m_PoolCountByObject.Clear();
-        m_PrefabsByName.Clear();
+        PoolKey key = new PoolKey(prefab, typeof(T));
+        PoolPolicy normalized = policy.Normalized();
+        if (m_Buckets.TryGetValue(key, out Bucket existing))
+        {
+            existing.Policy = new PoolPolicy(
+                Mathf.Max(existing.Policy.InitialCapacity, normalized.InitialCapacity),
+                Mathf.Max(existing.Policy.MaxCapacity, normalized.MaxCapacity),
+                existing.Policy.Scope,
+                existing.Policy.ResetTransformOnReturn || normalized.ResetTransformOnReturn);
+            return true;
+        }
+
+        Transform root = new GameObject(prefab.name + "_" + typeof(T).Name + "_Pool").transform;
+        root.SetParent(m_Root, false);
+        var bucket = new Bucket { Policy = normalized, Root = root };
+        m_Buckets.Add(key, bucket);
+        if (!m_LegacyKeys.ContainsKey(prefab.name)) m_LegacyKeys.Add(prefab.name, key);
+        else m_LegacyKeys.Remove(prefab.name);
+        return Prewarm(key, normalized.InitialCapacity);
     }
 
-    /// <summary>
-    /// ÇÁ¸®ÆÕ ÀÌ¸§(Key) ±â¹İ ½ºÆù
-    /// </summary>
-    public T Spawn(string key, Vector3 pos, GameObject owner = null)
+    public bool IsRegistered(GameObject prefab)
+        => prefab != null && m_Buckets.ContainsKey(new PoolKey(prefab, typeof(T)));
+
+    public bool Prewarm(GameObject prefab, int count)
+        => prefab != null && Prewarm(new PoolKey(prefab, typeof(T)), count);
+
+    public bool Prewarm(PoolKey key, int count)
     {
-        if (string.IsNullOrEmpty(key)) return null;
-
-        if (m_PrefabsByName.TryGetValue(key, out var prefab))
+        if (!m_Buckets.TryGetValue(key, out Bucket bucket)) return false;
+        PruneDestroyed(bucket);
+        int target = Mathf.Clamp(count, 0, bucket.Policy.MaxCapacity);
+        while (bucket.All.Count < target)
         {
-            return Spawn(prefab, pos, owner);
+            T item = Create(key, bucket);
+            if (item == null) return false;
+            bucket.Available.Push(item);
         }
-
-        Debug.LogWarning($"[ObjectPoolingFactory] Key¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù: {key}");
-        return null;
+        return bucket.All.Count >= target;
     }
 
-    /// <summary>
-    /// ÇÁ¸®ÆÕ(GameObject) ±â¹İ ½ºÆù (¸µ ¹öÆÛ ¼øÈ¯ ±¸Á¶)
-    /// </summary>
-    public T Spawn(GameObject key, Vector3 pos, GameObject owner = null)
+    public bool TryRent(GameObject prefab, in PoolSpawnContext context, out T instance)
     {
-        if (key == null) return null;
+        instance = null;
+        return prefab != null && TryRent(new PoolKey(prefab, typeof(T)), context, out instance);
+    }
 
-        if (!m_PooledGameObjects.TryGetValue(key, out var list) || list == null || list.Count == 0)
+    public bool TryRent(PoolKey key, in PoolSpawnContext context, out T instance)
+    {
+        instance = null;
+        if (!m_Buckets.TryGetValue(key, out Bucket bucket)) return false;
+        PruneDestroyed(bucket);
+        while (bucket.Available.Count > 0 && instance == null) instance = bucket.Available.Pop();
+        if (instance == null && bucket.All.Count < bucket.Policy.MaxCapacity) instance = Create(key, bucket);
+        if (instance == null)
         {
-            Debug.LogWarning($"[ObjectPoolingFactory] µî·ÏµÇÁö ¾ÊÀº ÇÁ¸®ÆÕ Å°ÀÔ´Ï´Ù: {key.name}");
-            return null;
+            bucket.FailedRentCount++;
+            return false;
         }
 
-        int currentIndex = m_PoolCountByObject[key];
-        int searchCount = 0;
-
-        // ºñÈ°¼ºÈ­µÈ ¿ÀºêÁ§Æ® Å½»ö (¸ğµÎ »ç¿ë ÁßÀÌ¸é ¼øÈ¯ Ä¿¼­ À§Ä¡ÀÇ ¿À·¡µÈ °³Ã¼ °­Á¦ ÀçÈ°¿ë)
-        while (list[currentIndex] != null && list[currentIndex].gameObject.activeSelf)
+        PoolMember member = instance.GetComponent<PoolMember>();
+        if (member == null || !member.BeginRent())
         {
-            currentIndex = (currentIndex + 1) % list.Count;
-            if (++searchCount >= list.Count)
-            {
-                break; // ¸ğµç Ç®ÀÌ »ç¿ë ÁßÀÎ °æ¿ì ¶ó¿îµå ·Îºó¿¡ ÀÇÇØ °­Á¦ ÀçÈ°¿ë ÁøÇà
-            }
+            bucket.FailedRentCount++;
+            instance = null;
+            return false;
         }
 
-        T obj = list[currentIndex];
-        if (obj == null) return null;
-
-        // ÀÌ¹Ì È°¼ºÈ­µÈ °´Ã¼¶ó¸é °­Á¦ Despawn ÈÄ Àç»ç¿ë (DOTween Å³ ¹× OnDespawn ¾ÈÀü ½ÇÇà)
-        if (obj.gameObject.activeSelf)
-        {
-            obj.Despawn();
-        }
-
-        // Æ®·£½ºÆû À§Ä¡ ¼³Á¤ ¹× È°¼ºÈ­ (ObjectPoolableÀÇ CachedTransform »ç¿ë)
-        obj.CachedTransform.position = pos;
-        obj.GameObjectSetActive(true);
-
+        bucket.InUse.Add(instance);
+        bucket.PeakInUse = Mathf.Max(bucket.PeakInUse, bucket.InUse.Count);
+        Transform cached = instance.transform;
+        cached.SetParent(context.Parent, true);
+        cached.SetPositionAndRotation(context.Position, context.Rotation);
         try
         {
-            obj.OnSpawn();
+            member.InvokeRent(context);
+            instance.gameObject.SetActive(context.Activate);
+            return true;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Debug.LogError($"[{obj.name}] OnSpawn ½ÇÇà Áß ¿¹¿Ü ¹ß»ı: {ex.Message}");
-            Debug.LogException(ex);
+            Debug.LogException(exception);
+            // OnPoolRent ë„ì¤‘ ì¼ë¶€ ìƒíƒœë§Œ ë³€ê²½ë˜ì—ˆì„ ìˆ˜ ìˆìœ¼ë¯€ë¡œ ë°˜í™˜ ì½œë°±ê¹Œì§€ ì‹¤í–‰í•´ ë¡¤ë°±í•œë‹¤.
+            ReturnInternal(instance, member, bucket, true);
+            instance = null;
+            return false;
         }
-
-        // ´ÙÀ½ ½ºÆùÀ» À§ÇØ ¼øÈ¯ ÀÎ½ºÅÏ½º Ä¿¼­ ÀÌµ¿
-        m_PoolCountByObject[key] = (currentIndex + 1) % list.Count;
-
-        return obj;
     }
 
-    /// <summary>
-    /// Ç® ¿ÀºêÁ§Æ® ¼öµ¿ ¹İÈ¯ ·¡ÆÛ
-    /// </summary>
-    public void Despawn(T pooled)
+    public bool Return(T instance)
     {
-        if (pooled == null) return;
-        pooled.Despawn();
+        if (instance == null) return false;
+        PoolMember member = instance.GetComponent<PoolMember>();
+        return member != null && Return(member);
     }
 
-    /// <summary>
-    /// °³º° ÇÁ¸®ÆÕ Ç® »ı¼º
-    /// </summary>
-    private void MakePool(Transform parent, GameObject prefab)
+    bool IPoolOwner.Return(PoolMember member) => Return(member);
+
+    private bool Return(PoolMember member)
     {
-        if (m_PooledGameObjects.ContainsKey(prefab))
+        if (member == null || !member.IsRented || !m_Buckets.TryGetValue(member.Key, out Bucket bucket))
+            return false;
+        T instance = member.GetComponent<T>();
+        if (instance == null || !bucket.InUse.Contains(instance)) return false;
+        ReturnInternal(instance, member, bucket, true);
+        return true;
+    }
+
+    public PoolStats GetStats(GameObject prefab)
+        => prefab != null ? GetStats(new PoolKey(prefab, typeof(T))) : default;
+
+    public PoolStats GetStats(PoolKey key)
+    {
+        if (!m_Buckets.TryGetValue(key, out Bucket bucket)) return default;
+        return new PoolStats(bucket.All.Count, bucket.InUse.Count, bucket.Available.Count,
+            bucket.PeakInUse, bucket.FailedRentCount);
+    }
+
+    public void Trim(PoolScope scope)
+    {
+        foreach (KeyValuePair<PoolKey, Bucket> pair in m_Buckets)
         {
-            Debug.LogWarning($"[ObjectPoolingFactory] ÀÌ¹Ì µî·ÏµÈ ÇÁ¸®ÆÕÀÔ´Ï´Ù: {prefab.name}");
-            return;
-        }
-
-        if (!prefab.TryGetComponent<T>(out var sampleComponent))
-        {
-            Debug.LogError($"[ObjectPoolingFactory] ÇÁ¸®ÆÕ [{prefab.name}]¿¡ {typeof(T).Name} ÄÄÆ÷³ÍÆ®°¡ ¾ø½À´Ï´Ù.");
-            return;
-        }
-
-        if (!m_PrefabsByName.ContainsKey(prefab.name))
-        {
-            m_PrefabsByName.Add(prefab.name, prefab);
-        }
-
-        int size = Mathf.Max(1, sampleComponent.poolSize);
-        var list = new List<T>(size);
-        m_PooledGameObjects.Add(prefab, list);
-        m_PoolCountByObject.Add(prefab, 0);
-
-        for (int i = 0; i < size; i++)
-        {
-            GameObject instance = UnityEngine.Object.Instantiate(prefab, Vector3.zero, Quaternion.identity, parent);
-            instance.SetActive(false);
-
-            if (instance.TryGetComponent<T>(out var poolable))
+            Bucket bucket = pair.Value;
+            if (bucket.Policy.Scope != scope) continue;
+            int keep = Mathf.Max(0, bucket.Policy.InitialCapacity - bucket.InUse.Count);
+            while (bucket.Available.Count > keep)
             {
-                list.Add(poolable);
+                T item = bucket.Available.Pop();
+                bucket.All.Remove(item);
+                DestroyObject(item != null ? item.gameObject : null);
             }
+        }
+    }
+
+    public void ClearScope(PoolScope scope, bool returnActive)
+    {
+        var keys = new List<PoolKey>();
+        foreach (KeyValuePair<PoolKey, Bucket> pair in m_Buckets)
+            if (pair.Value.Policy.Scope == scope) keys.Add(pair.Key);
+        for (int i = 0; i < keys.Count; i++) ClearBucket(keys[i], returnActive);
+    }
+
+    public void Clear()
+    {
+        var keys = new List<PoolKey>(m_Buckets.Keys);
+        for (int i = 0; i < keys.Count; i++) ClearBucket(keys[i], true);
+        m_LegacyKeys.Clear();
+    }
+
+    public void Initialize(Transform parent, IEnumerable<GameObject> prefabs, string defaultKey = "")
+    {
+        Clear();
+        if (prefabs == null) return;
+        foreach (GameObject prefab in prefabs)
+        {
+            if (prefab == null || !prefab.TryGetComponent<T>(out T sample)) continue;
+            int size = sample is Poolable poolable ? poolable.poolSize : 10;
+            Register(prefab, new PoolPolicy(size, Mathf.Max(size, 32), PoolScope.Scene));
+        }
+    }
+
+    public T Spawn(GameObject prefab, Vector3 position, GameObject owner = null)
+        => TryRent(prefab, PoolSpawnContext.At(position), out T item) ? item : null;
+
+    public T Spawn(string key, Vector3 position, GameObject owner = null)
+        => !string.IsNullOrEmpty(key) && m_LegacyKeys.TryGetValue(key, out PoolKey poolKey) &&
+           TryRent(poolKey, PoolSpawnContext.At(position), out T item) ? item : null;
+
+    public void Despawn(T pooled) => Return(pooled);
+
+    private T Create(PoolKey key, Bucket bucket)
+    {
+        GameObject created = UnityEngine.Object.Instantiate(key.Prefab, bucket.Root);
+        if (!created.TryGetComponent<T>(out T instance))
+        {
+            DestroyObject(created);
+            return null;
+        }
+        PoolMember member = created.GetComponent<PoolMember>();
+        if (member == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                $"[ObjectPoolingFactory<{typeof(T).Name}>] {key.Prefab.name} í”„ë¦¬íŒ¹ì— PoolMemberê°€ ì—†ì–´ ëŸ°íƒ€ì„ ë³µì œë³¸ì— ìë™ ì¶”ê°€í–ˆìŠµë‹ˆë‹¤.",
+                key.Prefab);
+#endif
+            member = created.AddComponent<PoolMember>();
+        }
+        member.Configure(this, key);
+        created.SetActive(false);
+        bucket.All.Add(instance);
+        return instance;
+    }
+
+    private static void ReturnInternal(T instance, PoolMember member, Bucket bucket, bool invokeCallback)
+    {
+        if (invokeCallback)
+        {
+            try { member.InvokeReturn(); }
+            catch (Exception exception) { Debug.LogException(exception); }
+        }
+        instance.gameObject.SetActive(false);
+        bucket.InUse.Remove(instance);
+        Transform cached = instance.transform;
+        cached.SetParent(bucket.Root, false);
+        if (bucket.Policy.ResetTransformOnReturn)
+        {
+            cached.localPosition = Vector3.zero;
+            cached.localRotation = Quaternion.identity;
+            cached.localScale = Vector3.one;
+        }
+        member.CompleteReturn();
+        bucket.Available.Push(instance);
+    }
+
+    private void ClearBucket(PoolKey key, bool returnActive)
+    {
+        if (!m_Buckets.TryGetValue(key, out Bucket bucket)) return;
+        if (returnActive)
+        {
+            var active = new List<T>(bucket.InUse);
+            for (int i = 0; i < active.Count; i++) Return(active[i]);
+        }
+        if (bucket.InUse.Count > 0) return;
+        for (int i = 0; i < bucket.All.Count; i++)
+            if (bucket.All[i] != null) DestroyObject(bucket.All[i].gameObject);
+        DestroyObject(bucket.Root != null ? bucket.Root.gameObject : null);
+        m_Buckets.Remove(key);
+        RemoveLegacyKey(key);
+    }
+
+    private void RemoveLegacyKey(PoolKey key)
+    {
+        string removeName = null;
+        foreach (KeyValuePair<string, PoolKey> pair in m_LegacyKeys)
+        {
+            if (pair.Value.Equals(key))
+            {
+                removeName = pair.Key;
+                break;
+            }
+        }
+        if (removeName != null) m_LegacyKeys.Remove(removeName);
+    }
+
+    private static void DestroyObject(UnityEngine.Object target)
+    {
+        if (target == null) return;
+        if (Application.isPlaying) UnityEngine.Object.Destroy(target);
+        else UnityEngine.Object.DestroyImmediate(target);
+    }
+
+    private static void PruneDestroyed(Bucket bucket)
+    {
+        while (bucket.Available.Count > 0)
+        {
+            T available = bucket.Available.Pop();
+            if (available != null) bucket.Scratch.Push(available);
+        }
+        while (bucket.Scratch.Count > 0) bucket.Available.Push(bucket.Scratch.Pop());
+
+        for (int i = bucket.All.Count - 1; i >= 0; i--)
+        {
+            T item = bucket.All[i];
+            if (item != null) continue;
+            bucket.InUse.Remove(item);
+            bucket.All.RemoveAt(i);
         }
     }
 }

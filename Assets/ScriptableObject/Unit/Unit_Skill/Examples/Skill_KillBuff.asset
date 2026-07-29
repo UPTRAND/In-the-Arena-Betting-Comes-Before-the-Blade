@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
+  m_Name: Skill_KillBuff
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
+  m_SkillName: KillBuff
+  m_Description: 
+  m_SkillType: 1
+  m_Range: 0
+  m_Cooldown: 0
+  m_CastTime: 0
+  m_FailureRetryDelay: 0.25
+  m_ExecutionMode: 2
+  m_Targeting:
+    rid: 8871563067095777443
+  m_Effects: []
+  m_Behavior:
+    rid: 8871563067095777444
+  references:
+    version: 2
+    RefIds:
+    - rid: 8871563067095777443
+      type: {class: SelfSkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data: 
+    - rid: 8871563067095777444
+      type: {class: KillBuffSkillBehavior, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_Buff: {fileID: 11400000, guid: 06eb596dd9a333b4e9db64991d6017bd, type: 2}
+        m_DurationOverride: -1

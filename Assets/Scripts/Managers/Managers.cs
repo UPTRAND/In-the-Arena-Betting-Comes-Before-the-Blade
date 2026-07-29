@@ -1,4 +1,4 @@
-#if UNITY_6000_0_OR_NEWER
+ï»¿#if UNITY_6000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -18,13 +18,14 @@ public class Managers : MonoBehaviour
     [SerializeField] private int _vSyncCount = 0;
 
     private CancellationTokenSource _startupCts;
+    private bool _released;
     public bool IsInitialized { get; private set; }
 
     private void Awake()
     {
         if (!ReferenceEquals(_instance, null) && _instance != null && _instance != this)
         {
-            Debug.LogWarning("[Managers] Áßº¹µÈ ¸Å´ÏÀú ÀÎ½ºÅÏ½º°¡ ¹ß°ßµÇ¾î ÆÄ±«ÇÕ´Ï´Ù.");
+            Debug.LogWarning("[Managers] ì¤‘ë³µëœ ë§¤ë‹ˆì € ì¸ìŠ¤í„´ìŠ¤ê°€ ë°œê²¬ë˜ì–´ íŒŒê´´í•©ë‹ˆë‹¤.");
             Destroy(gameObject);
             return;
         }
@@ -43,32 +44,33 @@ public class Managers : MonoBehaviour
     }
 
     /// <summary>
-    /// Áú¹® ´äº¯: OnApplicationFocus´Â ¸ğ¹ÙÀÏ¿¡¼­ ¹İµå½Ã ÇÊ¿äÇÕ´Ï´Ù.
-    /// ¾Èµå·ÎÀÌµå ½Ã½ºÅÛ ±ÇÇÑ ÆË¾÷, »ó´Ü ¹Ù ³»·Á¿È, ÀÎ¾Û °áÁ¦ Ã¢ µî 'Æ÷Ä¿½º¸¸ ÀÒ°í ¾ÛÀº ¿ÏÀüÈ÷ ÀÏ½ÃÁ¤ÁöµÇÁö ¾ÊÀº »óÅÂ'¸¦ °¨ÁöÇÕ´Ï´Ù.
+    /// ì§ˆë¬¸ ë‹µë³€: OnApplicationFocusëŠ” ëª¨ë°”ì¼ì—ì„œ ë°˜ë“œì‹œ í•„ìš”í•©ë‹ˆë‹¤.
+    /// ì•ˆë“œë¡œì´ë“œ ì‹œìŠ¤í…œ ê¶Œí•œ íŒì—…, ìƒë‹¨ ë°” ë‚´ë ¤ì˜´, ì¸ì•± ê²°ì œ ì°½ ë“± 'í¬ì»¤ìŠ¤ë§Œ ìƒê³  ì•±ì€ ì™„ì „íˆ ì¼ì‹œì •ì§€ë˜ì§€ ì•Šì€ ìƒíƒœ'ë¥¼ ê°ì§€í•©ë‹ˆë‹¤.
     /// </summary>
     private void OnApplicationFocus(bool hasFocus)
     {
+        NotifyFocusChanged(hasFocus);
         if (hasFocus)
         {
             ApplyPerformanceSettings();
         }
         else
         {
-            // ¿À¹ö·¹ÀÌ°¡ ÄÑÁ³À» ¶§ »ç¿îµå ÀÏ½ÃÁ¤Áö ¶Ç´Â °ÔÀÓ ³» Å¸ÀÌ¸Ó Á¤Áö µîÀÇ Ã³¸®°¡ ÇÊ¿äÇÕ´Ï´Ù.
+            // ì˜¤ë²„ë ˆì´ê°€ ì¼œì¡Œì„ ë•Œ ì‚¬ìš´ë“œ ì¼ì‹œì •ì§€ ë˜ëŠ” ê²Œì„ ë‚´ íƒ€ì´ë¨¸ ì •ì§€ ë“±ì˜ ì²˜ë¦¬ê°€ í•„ìš”í•©ë‹ˆë‹¤.
         }
     }
 
     /// <summary>
-    /// ¾Èµå·ÎÀÌµå ÇÊ¼ö Ãß°¡: È¨ ¹öÆ°À» ´©¸£°Å³ª ÀÛ¾÷ ÀüÈ¯±â·Î ÀÌµ¿ÇÒ ¶§ È£ÃâµË´Ï´Ù.
-    /// ¾Èµå·ÎÀÌµå´Â À¯Àú°¡ ¾ÛÀ» ¹Ğ¾î¼­ Á¾·á(Swipe-Kill)ÇÏ¸é Quitting ÀÌº¥Æ®°¡ ¿ÀÁö ¾Ê°í ÇÁ·Î¼¼½º°¡ Áï½Ã »ìÇØµÇ¹Ç·Î,
-    /// ¹İµå½Ã Pause(true) ½ÃÁ¡¿¡ Áß¿ä µ¥ÀÌÅÍ¸¦ ÀúÀåÇØ¾ß ÇÕ´Ï´Ù.
+    /// ì•ˆë“œë¡œì´ë“œ í•„ìˆ˜ ì¶”ê°€: í™ˆ ë²„íŠ¼ì„ ëˆ„ë¥´ê±°ë‚˜ ì‘ì—… ì „í™˜ê¸°ë¡œ ì´ë™í•  ë•Œ í˜¸ì¶œë©ë‹ˆë‹¤.
+    /// ì•ˆë“œë¡œì´ë“œëŠ” ìœ ì €ê°€ ì•±ì„ ë°€ì–´ì„œ ì¢…ë£Œ(Swipe-Kill)í•˜ë©´ Quitting ì´ë²¤íŠ¸ê°€ ì˜¤ì§€ ì•Šê³  í”„ë¡œì„¸ìŠ¤ê°€ ì¦‰ì‹œ ì‚´í•´ë˜ë¯€ë¡œ,
+    /// ë°˜ë“œì‹œ Pause(true) ì‹œì ì— ì¤‘ìš” ë°ì´í„°ë¥¼ ì €ì¥í•´ì•¼ í•©ë‹ˆë‹¤.
     /// </summary>
     private void OnApplicationPause(bool pauseStatus)
     {
+        NotifyPauseChanged(pauseStatus);
         if (pauseStatus)
         {
-            Debug.Log("[Managers] ¾Èµå·ÎÀÌµå ¹é±×¶ó¿îµå ÀüÈ¯: µ¥ÀÌÅÍ¸¦ Á¶±â ÀúÀåÇÕ´Ï´Ù.");
-            SaveAllManagersData();
+            Debug.Log("[Managers] ì•ˆë“œë¡œì´ë“œ ë°±ê·¸ë¼ìš´ë“œ ì „í™˜: Managerì™€ Pool ìƒíƒœë¥¼ ìœ ì§€í•©ë‹ˆë‹¤.");
         }
         else
         {
@@ -102,21 +104,21 @@ public class Managers : MonoBehaviour
 
                 if (!manager.TryInitialize())
                 {
-                    Debug.LogError($"[Managers] {manager.gameObject.name} ÃÊ±âÈ­ ½ÇÆĞ.");
+                    Debug.LogError($"[Managers] {manager.gameObject.name} ì´ˆê¸°í™” ì‹¤íŒ¨.");
                     return;
                 }
 
-                // ¸Å´ÏÀú°¡ ¸¹À» °æ¿ì ¸Å ÇÁ·¹ÀÓ ´ë±âÇÏ¸é ÃÊ±âÈ­(·Îµù)°¡ °úµµÇÏ°Ô ±æ¾îÁü
-                // ¾À ·Îµù¹Ù ´Ü°è¿¡¼­ ¼øÂ÷ Ã³¸®°¡ ÇÊ¿äÇÏ´Ù¸é À¯ÁöÇÏµÇ, ¹«Á¶°ÇÀûÀÎ NextFrame ´ë±â´Â ¿ÀÈ÷·Á ÇÁ·¹ÀÓ µå¶øÀ» À¯¹ß
+                // ë§¤ë‹ˆì €ê°€ ë§ì„ ê²½ìš° ë§¤ í”„ë ˆì„ ëŒ€ê¸°í•˜ë©´ ì´ˆê¸°í™”(ë¡œë”©)ê°€ ê³¼ë„í•˜ê²Œ ê¸¸ì–´ì§
+                // ì”¬ ë¡œë”©ë°” ë‹¨ê³„ì—ì„œ ìˆœì°¨ ì²˜ë¦¬ê°€ í•„ìš”í•˜ë‹¤ë©´ ìœ ì§€í•˜ë˜, ë¬´ì¡°ê±´ì ì¸ NextFrame ëŒ€ê¸°ëŠ” ì˜¤íˆë ¤ í”„ë ˆì„ ë“œëì„ ìœ ë°œ
                 await Awaitable.NextFrameAsync(token);
             }
 
             IsInitialized = true;
-            Debug.Log("[Managers] ¸ğµç ¸Å´ÏÀú ÃÊ±âÈ­ ¿Ï·á.");
+            Debug.Log("[Managers] ëª¨ë“  ë§¤ë‹ˆì € ì´ˆê¸°í™” ì™„ë£Œ.");
         }
         catch (OperationCanceledException)
         {
-            Debug.Log("[Managers] ÃÊ±âÈ­ Ãë¼ÒµÊ.");
+            Debug.Log("[Managers] ì´ˆê¸°í™” ì·¨ì†Œë¨.");
         }
         catch (Exception ex)
         {
@@ -124,30 +126,49 @@ public class Managers : MonoBehaviour
         }
     }
 
-    private void SaveAllManagersData()
+    private void NotifyPauseChanged(bool paused)
     {
+        for (int i = 0; i < _allManagers.Count; i++)
+        {
+            var manager = _allManagers[i];
+            if (ReferenceEquals(manager, null) || manager == null) continue;
+            try
+            {
+                manager.OnApplicationPauseChanged(paused);
+            }
+            catch (Exception ex) { Debug.LogException(ex); }
+        }
+    }
+
+    private void NotifyFocusChanged(bool hasFocus)
+    {
+        for (int i = 0; i < _allManagers.Count; i++)
+        {
+            var manager = _allManagers[i];
+            if (ReferenceEquals(manager, null) || manager == null) continue;
+            try { manager.OnApplicationFocusChanged(hasFocus); }
+            catch (Exception ex) { Debug.LogException(ex); }
+        }
+    }
+
+    private void ReleaseAllManagers()
+    {
+        if (_released) return;
+        _released = true;
         for (int i = _allManagers.Count - 1; i >= 0; i--)
         {
             var manager = _allManagers[i];
-            if (!ReferenceEquals(manager, null) && manager != null)
-            {
-                try
-                {
-                    // °¢ ¸Å´ÏÀú ÇÏÀ§ÀÇ µ¥ÀÌÅÍ ÀúÀå ·ÎÁ÷ ¾ÈÀü È£Ãâ (¿¹: ¼¼ÀÌºê ÆÄÀÏ ¾²±â)
-                    manager.Release();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogException(ex);
-                }
-            }
+            if (ReferenceEquals(manager, null) || manager == null) continue;
+            try { manager.Release(); }
+            catch (Exception ex) { Debug.LogException(ex); }
         }
+        IsInitialized = false;
     }
 
     private void OnApplicationQuitting()
     {
         Debug.Log("[Managers] Application Quitting...");
-        SaveAllManagersData();
+        ReleaseAllManagers();
     }
 
     private void OnDestroy()
@@ -160,6 +181,9 @@ public class Managers : MonoBehaviour
             _startupCts.Dispose();
             _startupCts = null;
         }
+
+        ReleaseAllManagers();
+        if (_instance == this) _instance = null;
     }
 }
 #endif

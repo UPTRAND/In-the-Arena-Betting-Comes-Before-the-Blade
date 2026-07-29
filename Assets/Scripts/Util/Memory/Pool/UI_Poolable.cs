@@ -1,4 +1,4 @@
-#if UNITY_6000_0_OR_NEWER
+﻿#if UNITY_6000_0_OR_NEWER
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -29,6 +29,18 @@ public abstract class UI_Poolable : Poolable, IUIBase
     public virtual void Close()
     {
         Despawn();
+    }
+
+    public override void OnPoolRent(in PoolSpawnContext context)
+    {
+        ParentRoot = context.Parent != null ? context.Parent.GetComponent<UI_Root>() : null;
+        base.OnPoolRent(context);
+    }
+
+    public override void OnPoolReturn()
+    {
+        base.OnPoolReturn();
+        ParentRoot = null;
     }
 }
 #endif

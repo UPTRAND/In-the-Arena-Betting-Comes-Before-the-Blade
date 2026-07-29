@@ -36,12 +36,18 @@ namespace InTheArena.MainGame
         [SerializeField] private UI_CombatHUD m_CombatHud;
         private float m_CurrentSpeed = 1f;
 
+        [Header("Final Elimination")]
+        [SerializeField] [Range(0.01f, 1f)] private float m_FinalEliminationTimeScale = 0.25f;
+        [SerializeField] [Min(0f)] private float m_FinalEliminationDuration = 1.5f;
+
         private CancellationTokenSource m_CombatCts;
         private bool m_IsCombatEnded = false;
         private float m_RemainingCombatTime;
         private readonly Dictionary<UnitType, UnitSlotKey> m_UnitSlots = new Dictionary<UnitType, UnitSlotKey>();
         private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
+        private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
         private int m_FirstEliminatedSlot = -1;
+        private bool m_IsFinalEliminationPlaying;
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
@@ -68,7 +74,9 @@ namespace InTheArena.MainGame
             Context.CombatResult = null;
             m_UnitSlots.Clear();
             m_DeathHandlers.Clear();
+            m_FinalDeathPresentationUnits.Clear();
             m_FirstEliminatedSlot = -1;
+            m_IsFinalEliminationPlaying = false;
 
             // 컨텍스트에서 유닛 데이터로 런타임 유닛 생성
             CreateRuntimeUnitsFromData();
@@ -79,33 +87,11 @@ namespace InTheArena.MainGame
             Context.TeamAUnits.Clear();
             Context.TeamBUnits.Clear();
 
-            PrewarmTeam(Context.TeamADeployments);
-            PrewarmTeam(Context.TeamBDeployments);
-
             // BettingPhase에서 확정한 셀별 편성을 그대로 사용한다.
             SpawnTeamUnits(Context.TeamADeployments, Context.TeamAUnits, Team.Red, m_TeamASpawnRoot);
             SpawnTeamUnits(Context.TeamBDeployments, Context.TeamBUnits, Team.Blue, m_TeamBSpawnRoot);
 
             Debug.Log($"[CombatPhase] 런타임 유닛 생성 완료 - Red: {Context.TeamAUnits.Count}, Blue: {Context.TeamBUnits.Count}");
-        }
-
-        private static void PrewarmTeam(List<TeamUnitDeployment> deployments)
-        {
-            if (deployments == null) return;
-            var counts = new Dictionary<UnitData, int>();
-            foreach (var deployment in deployments)
-            {
-                if (deployment?.Units == null) continue;
-                foreach (var data in deployment.Units)
-                {
-                    if (data == null) continue;
-                    counts.TryGetValue(data, out int count);
-                    counts[data] = count + 1;
-                }
-            }
-
-            foreach (var pair in counts)
-                UnitPoolService.Prewarm(pair.Key, pair.Value);
         }
 
         private void SpawnTeamUnits(List<TeamUnitDeployment> deployments, List<UnitType> runtimeUnits, Team team, Transform spawnRoot)
@@ -131,7 +117,7 @@ namespace InTheArena.MainGame
                         0f,
                         UnityEngine.Random.Range(-0.3f, 0.3f)
                     );
-                    var unit = UnitPoolService.Spawn(
+                    var unit = PoolManager.Require().Units.Spawn(
                         unitData,
                         spawnRoot,
                         (int)team,
@@ -163,21 +149,34 @@ namespace InTheArena.MainGame
 
         private void OnUnitDied(UnitType deadUnit, UnitSlotKey key)
         {
-            if (m_FirstEliminatedSlot > 0 || deadUnit == null) return;
+            if (deadUnit == null) return;
 
-            foreach (var pair in m_UnitSlots)
+            if (m_FirstEliminatedSlot <= 0)
             {
-                if (pair.Value.Team == key.Team &&
-                    pair.Value.CellIndex == key.CellIndex &&
-                    pair.Key != null &&
-                    !pair.Key.IsDead)
+                bool slotHasLivingUnit = false;
+                foreach (var pair in m_UnitSlots)
                 {
-                    return;
+                    if (pair.Value.Team == key.Team &&
+                        pair.Value.CellIndex == key.CellIndex &&
+                        pair.Key != null &&
+                        !pair.Key.IsDead)
+                    {
+                        slotHasLivingUnit = true;
+                        break;
+                    }
                 }
+
+                if (!slotHasLivingUnit)
+                    m_FirstEliminatedSlot = key.CellIndex + 1;
             }
 
-            // Red/Blue의 같은 인덱스는 공통 슬롯 번호 1~6으로 판정한다.
-            m_FirstEliminatedSlot = key.CellIndex + 1;
+            bool teamEliminated = key.Team == Team.Red
+                ? UnitRegistry.RedAliveCount == 0
+                : UnitRegistry.BlueAliveCount == 0;
+            if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
+
+            deadUnit.HoldDeathPresentation();
+            m_FinalDeathPresentationUnits.Add(deadUnit);
         }
 
         private RoundData GetCurrentRoundData()
@@ -224,14 +223,25 @@ namespace InTheArena.MainGame
             await Awaitable.NextFrameAsync();
             if (token.IsCancellationRequested) return;
 
+            var cameraController = InTheArena.Camera.CameraController.Instance;
+            if (cameraController != null)
+                await cameraController.SetPhaseAsync(
+                    InTheArena.Camera.CameraPhase.Combat,
+                    token);
+            if (token.IsCancellationRequested) return;
+
             // 모든 유닛이 배치된 뒤 동시에 AI 전투를 시작한다.
             foreach (var unit in Context.TeamAUnits)
             {
-                if (unit != null && !unit.IsDead) unit.SetAIActive(true);
+                if (unit == null || unit.IsDead) continue;
+                unit.NotifyBattleStarted();
+                unit.SetAIActive(true);
             }
             foreach (var unit in Context.TeamBUnits)
             {
-                if (unit != null && !unit.IsDead) unit.SetAIActive(true);
+                if (unit == null || unit.IsDead) continue;
+                unit.NotifyBattleStarted();
+                unit.SetAIActive(true);
             }
         }
 
@@ -241,7 +251,11 @@ namespace InTheArena.MainGame
 
             while (!m_IsCombatEnded && !token.IsCancellationRequested)
             {
-                if (TryResolveElimination()) break;
+                if (TryGetEliminationWinner(out Team eliminationWinner))
+                {
+                    await CompleteEliminationAsync(eliminationWinner, token);
+                    break;
+                }
 
                 if (m_RemainingCombatTime <= 0f)
                 {
@@ -259,25 +273,29 @@ namespace InTheArena.MainGame
             }
         }
 
-        private bool TryResolveElimination()
+        private bool TryGetEliminationWinner(out Team winner)
         {
             bool redAlive = HasLivingUnit(Context.TeamAUnits);
             bool blueAlive = HasLivingUnit(Context.TeamBUnits);
 
             if (!redAlive && !blueAlive)
             {
-                CompleteCombat(Team.None);
+                winner = Team.None;
+                return true;
             }
-            else if (!redAlive)
+            if (!redAlive)
             {
-                CompleteCombat(Team.Blue);
+                winner = Team.Blue;
+                return true;
             }
-            else if (!blueAlive)
+            if (!blueAlive)
             {
-                CompleteCombat(Team.Red);
+                winner = Team.Red;
+                return true;
             }
 
-            return m_IsCombatEnded;
+            winner = Team.None;
+            return false;
         }
 
         private static bool HasLivingUnit(List<UnitType> units)
@@ -308,26 +326,135 @@ namespace InTheArena.MainGame
         {
             if (m_IsCombatEnded) return;
 
+            FreezeCombatOutcome(winner);
             m_IsCombatEnded = true;
             Time.timeScale = 1f;
+            InTheArena.Camera.CameraController.Instance?.SetPhase(
+                InTheArena.Camera.CameraPhase.Result);
+            CompletePhase();
+        }
 
+        private async Awaitable CompleteEliminationAsync(Team winner, CancellationToken token)
+        {
+            if (m_IsCombatEnded) return;
+
+            FreezeCombatOutcome(winner);
+            Context.CombatWinner = winner;
+            m_IsFinalEliminationPlaying = true;
+            float cinematicStartedAt = Time.unscaledTime;
+            var cameraController = InTheArena.Camera.CameraController.Instance;
+
+            try
+            {
+                Time.timeScale = m_FinalEliminationTimeScale;
+
+                if (winner == Team.None)
+                {
+                    cameraController?.HoldCurrentPoseForFinalElimination();
+                }
+                else if (cameraController != null &&
+                         TryBuildFinalDeathBounds(winner, out Bounds focusBounds))
+                {
+                    await cameraController.FocusFinalEliminationAsync(focusBounds, token);
+                }
+                else
+                {
+                    cameraController?.HoldCurrentPoseForFinalElimination();
+                }
+
+                float remainingDuration = m_FinalEliminationDuration -
+                                          (Time.unscaledTime - cinematicStartedAt);
+                await WaitForUnscaledSecondsAsync(remainingDuration, token);
+            }
+            finally
+            {
+                Time.timeScale = 1f;
+                CompleteFinalDeathPresentations();
+                if (cameraController != null)
+                {
+                    cameraController.EndFinalEliminationFocus();
+                    if (!token.IsCancellationRequested)
+                        cameraController.SetPhase(InTheArena.Camera.CameraPhase.Result);
+                }
+                m_IsFinalEliminationPlaying = false;
+            }
+
+            token.ThrowIfCancellationRequested();
+            CompletePhase();
+        }
+
+        private void FreezeCombatOutcome(Team winner)
+        {
+            m_IsCombatEnded = true;
             Context.CombatWinner = winner;
             Context.IsRoundCompleted = true;
             Context.CombatResult = BuildCombatResult(winner);
 
-            // 생존 유닛 정리
             foreach (var unit in Context.TeamAUnits)
             {
-                if (unit != null) unit.SetAIActive(false);
+                if (unit == null) continue;
+                unit.NotifyBattleEnded();
+                unit.SetAIActive(false);
             }
             foreach (var unit in Context.TeamBUnits)
             {
-                if (unit != null) unit.SetAIActive(false);
+                if (unit == null) continue;
+                unit.NotifyBattleEnded();
+                unit.SetAIActive(false);
             }
 
             string result = winner == Team.None ? "Draw" : $"{winner} Win";
             Debug.Log($"[CombatPhase] 전투 종료 - {result}, 남은 시간: {m_RemainingCombatTime:0.00}초");
-            CompletePhase();
+        }
+
+        private bool TryBuildFinalDeathBounds(Team winner, out Bounds bounds)
+        {
+            bounds = default;
+            bool initialized = false;
+            int losingTeam = winner == Team.Red ? (int)Team.Blue : (int)Team.Red;
+
+            for (int i = 0; i < m_FinalDeathPresentationUnits.Count; i++)
+            {
+                UnitType unit = m_FinalDeathPresentationUnits[i];
+                if (unit == null || unit.Team != losingTeam || !unit.gameObject.activeSelf) continue;
+
+                Bounds unitBounds = new Bounds(unit.GroundPosition, Vector3.one * 0.2f);
+                unitBounds.Encapsulate(unit.HitPosition);
+                if (!initialized)
+                {
+                    bounds = unitBounds;
+                    initialized = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(unitBounds);
+                }
+            }
+
+            return initialized;
+        }
+
+        private static async Awaitable WaitForUnscaledSecondsAsync(
+            float duration,
+            CancellationToken token)
+        {
+            float remaining = Mathf.Max(0f, duration);
+            while (remaining > 0f)
+            {
+                token.ThrowIfCancellationRequested();
+                await Awaitable.NextFrameAsync();
+                remaining -= Time.unscaledDeltaTime;
+            }
+        }
+
+        private void CompleteFinalDeathPresentations()
+        {
+            for (int i = 0; i < m_FinalDeathPresentationUnits.Count; i++)
+            {
+                UnitType unit = m_FinalDeathPresentationUnits[i];
+                if (unit != null) unit.CompleteDeathPresentation();
+            }
+            m_FinalDeathPresentationUnits.Clear();
         }
 
         private CombatResultSnapshot BuildCombatResult(Team winner)
@@ -370,6 +497,7 @@ namespace InTheArena.MainGame
         /// </summary>
         public void ToggleCombatSpeed()
         {
+            if (m_IsFinalEliminationPlaying || m_IsCombatEnded) return;
             m_CurrentSpeed = (m_CurrentSpeed == m_NormalSpeed) ? m_FastSpeed : m_NormalSpeed;
             Time.timeScale = m_CurrentSpeed;
             InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(m_CurrentSpeed > m_NormalSpeed);
@@ -380,6 +508,7 @@ namespace InTheArena.MainGame
         /// 현재 전투 속도 반환
         /// </summary>
         public float CurrentSpeed => m_CurrentSpeed;
+        public bool IsFinalEliminationPlaying => m_IsFinalEliminationPlaying;
         public float RemainingCombatTime => m_RemainingCombatTime;
         public float CombatTimeout => m_CombatTimeout;
         public int RedAliveCount => CountLivingUnits(Context?.TeamAUnits);
@@ -388,6 +517,9 @@ namespace InTheArena.MainGame
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             Time.timeScale = 1f;
+            m_IsFinalEliminationPlaying = false;
+            CompleteFinalDeathPresentations();
+            InTheArena.Camera.CameraController.Instance?.EndFinalEliminationFocus();
             InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(false);
             m_CombatHud?.UnbindAndHide();
 
@@ -410,14 +542,14 @@ namespace InTheArena.MainGame
             {
                 if (unit != null && unit.gameObject != null)
                 {
-                    UnitPoolService.Return(unit);
+                    PoolManager.Require().Units.Return(unit);
                 }
             }
             foreach (var unit in Context.TeamBUnits)
             {
                 if (unit != null && unit.gameObject != null)
                 {
-                    UnitPoolService.Return(unit);
+                    PoolManager.Require().Units.Return(unit);
                 }
             }
 
@@ -438,6 +570,9 @@ namespace InTheArena.MainGame
         private void OnDestroy()
         {
             Time.timeScale = 1f;
+            m_IsFinalEliminationPlaying = false;
+            CompleteFinalDeathPresentations();
+            InTheArena.Camera.CameraController.Instance?.EndFinalEliminationFocus();
             UnsubscribeDeathEvents();
             transform.DOKill();
         }

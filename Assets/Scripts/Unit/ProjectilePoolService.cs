@@ -4,66 +4,103 @@ using UnityEngine;
 
 namespace InTheArena.Unit
 {
-    public static class ProjectilePoolService
+    public sealed class ProjectilePoolService
     {
-        private static readonly Dictionary<GameObject, Stack<Projectile>> Pools =
-            new Dictionary<GameObject, Stack<Projectile>>();
+        private const int DefaultInitialCapacity = 16;
+        private const int DefaultMaxCapacity = 128;
+        private readonly ObjectPoolingFactory<Projectile> m_Factory;
+        private readonly Dictionary<GameObject, PoolPolicy> m_Policies =
+            new Dictionary<GameObject, PoolPolicy>();
+        private readonly List<Projectile> m_Active = new List<Projectile>(DefaultMaxCapacity);
 
-        public static Projectile Spawn(GameObject prefab, Vector3 position)
+        internal ProjectilePoolService(ObjectPoolingFactory<Projectile> factory) => m_Factory = factory;
+
+        public bool Register(GameObject prefab, PoolPolicy policy)
         {
-            if (prefab == null) return null;
-            if (!Pools.TryGetValue(prefab, out Stack<Projectile> pool))
-            {
-                pool = new Stack<Projectile>(16);
-                Pools.Add(prefab, pool);
-            }
-
-            Projectile projectile;
-            if (pool.Count > 0)
-            {
-                projectile = pool.Pop();
-            }
-            else
-            {
-                GameObject instance = Object.Instantiate(prefab);
-                projectile = instance.GetComponent<Projectile>();
-                if (projectile == null)
-                {
-                    Object.Destroy(instance);
-                    return null;
-                }
-                projectile.SetPoolSource(prefab);
-            }
-
-            projectile.transform.SetPositionAndRotation(position, Quaternion.identity);
-            projectile.gameObject.SetActive(true);
-            return projectile;
+            if (prefab == null) return false;
+            PoolPolicy normalized = policy.Normalized();
+            m_Policies[prefab] = normalized;
+            return m_Factory.Register(prefab, normalized);
         }
 
-        public static void Return(Projectile projectile)
+        public bool Prewarm(GameObject prefab, int count)
         {
-            if (projectile == null) return;
-            GameObject source = projectile.PoolSource;
-            if (source == null)
-            {
-                Object.Destroy(projectile.gameObject);
-                return;
-            }
-
-            if (!Pools.TryGetValue(source, out Stack<Projectile> pool))
-            {
-                pool = new Stack<Projectile>(16);
-                Pools.Add(source, pool);
-            }
-
-            projectile.ResetRuntime();
-            projectile.gameObject.SetActive(false);
-            pool.Push(projectile);
+            if (prefab == null) return false;
+            EnsureRegistered(prefab);
+            return m_Factory.Prewarm(prefab, count);
         }
 
-        public static void Clear()
+        public bool TrySpawn(GameObject prefab, Vector3 position, out Projectile projectile)
         {
-            Pools.Clear();
+            projectile = null;
+            if (prefab == null) return false;
+            EnsureRegistered(prefab);
+            if (!m_Factory.TryRent(prefab, PoolSpawnContext.At(position), out projectile))
+                return false;
+            m_Active.Add(projectile);
+            return true;
+        }
+
+        public bool TrySpawn(
+            GameObject prefab,
+            Vector3 position,
+            UnitHandle target,
+            in SkillImpactPayload payload,
+            float speed,
+            float lifetime,
+            out Projectile projectile)
+        {
+            if (!TrySpawn(prefab, position, out projectile)) return false;
+            projectile.Initialize(target, payload, speed, lifetime);
+            return true;
+        }
+
+        public bool Return(Projectile projectile)
+        {
+            if (projectile == null) return false;
+            m_Active.Remove(projectile);
+            return m_Factory.Return(projectile);
+        }
+
+        internal void SimulationFrame(float deltaTime)
+        {
+            for (int i = m_Active.Count - 1; i >= 0; i--)
+            {
+                Projectile projectile = m_Active[i];
+                if (projectile != null && projectile.SimulationFrame(deltaTime)) continue;
+                m_Active.RemoveAt(i);
+                if (projectile != null) m_Factory.Return(projectile);
+            }
+        }
+
+        public void ClearRound()
+        {
+            for (int i = m_Active.Count - 1; i >= 0; i--)
+            {
+                Projectile projectile = m_Active[i];
+                if (projectile != null) m_Factory.Return(projectile);
+            }
+            m_Active.Clear();
+        }
+
+        public void ClearStage()
+        {
+            ClearRound();
+            m_Factory.ClearScope(PoolScope.Stage, true);
+        }
+
+        private void EnsureRegistered(GameObject prefab)
+        {
+            if (m_Factory.IsRegistered(prefab)) return;
+            if (!m_Policies.TryGetValue(prefab, out PoolPolicy policy))
+            {
+                policy = new PoolPolicy(
+                    DefaultInitialCapacity,
+                    DefaultMaxCapacity,
+                    PoolScope.Stage);
+                m_Policies.Add(prefab, policy);
+            }
+            m_Factory.Register(prefab, policy);
         }
     }
 }

@@ -1,5 +1,6 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace InTheArena.Camera
 {
@@ -65,10 +66,15 @@ namespace InTheArena.Camera
 
         [Header("줌/이동 제한")]
         [Tooltip("최소 줌 거리")]
-        [SerializeField] [Range(5f, 20f)] private float m_MinZoom = 8f;
+        [FormerlySerializedAs("m_MinZoom")]
+        [SerializeField] [Range(5f, 30f)] private float m_MinFramingDistance = 14f;
 
         [Tooltip("최대 줌 거리")]
-        [SerializeField] [Range(20f, 50f)] private float m_MaxZoom = 30f;
+        [FormerlySerializedAs("m_MaxZoom")]
+        [SerializeField] [Range(20f, 100f)] private float m_MaxFramingDistance = 60f;
+
+        [SerializeField] [Range(1f, 30f)] private float m_MinOrthographicSize = 8f;
+        [SerializeField] [Range(5f, 60f)] private float m_MaxOrthographicSize = 30f;
 
         [Tooltip("최소 높이")]
         [SerializeField] [Range(5f, 20f)] private float m_MinHeight = 8f;
@@ -91,6 +97,17 @@ namespace InTheArena.Camera
 
         [Tooltip("데드존 반경 (이동 무시 거리)")]
         [SerializeField] [Range(0f, 2f)] private float m_DeadZoneRadius = 0.1f;
+
+        [Header("Automatic Framing")]
+        [SerializeField] [Range(0f, 5f)] private float m_FramingPadding = 1.5f;
+        [SerializeField] [Range(0f, 2f)] private float m_CenterDeadZone = 0.25f;
+        [SerializeField] [Range(0f, 5f)] private float m_DistanceDeadZone = 0.5f;
+        [SerializeField] [Range(0.1f, 20f)] private float m_AutoZoomInSpeed = 4f;
+        [SerializeField] [Range(0.1f, 30f)] private float m_AutoZoomOutSpeed = 10f;
+
+        [Header("Final Elimination")]
+        [SerializeField] [Range(2f, 20f)] private float m_FinalEliminationDistance = 8f;
+        [SerializeField] [Range(0f, 2f)] private float m_FinalEliminationFocusDuration = 0.35f;
 
         [Header("카메라 쉐이크")]
         [Tooltip("기본 쉐이크 강도")]
@@ -147,10 +164,18 @@ namespace InTheArena.Camera
         public float DefaultVisualRadius => m_DefaultVisualRadius;
 
         /// <summary> 최소 줌 </summary>
-        public float MinZoom => m_MinZoom;
+        public float MinFramingDistance => m_MinFramingDistance;
 
         /// <summary> 최대 줌 </summary>
-        public float MaxZoom => m_MaxZoom;
+        public float MaxFramingDistance => m_MaxFramingDistance;
+        public float MinOrthographicSize => m_MinOrthographicSize;
+        public float MaxOrthographicSize => m_MaxOrthographicSize;
+
+        [System.Obsolete("Use MinFramingDistance instead.")]
+        public float MinZoom => m_MinFramingDistance;
+
+        [System.Obsolete("Use MaxFramingDistance instead.")]
+        public float MaxZoom => m_MaxFramingDistance;
 
         /// <summary> 최소 높이 </summary>
         public float MinHeight => m_MinHeight;
@@ -172,6 +197,13 @@ namespace InTheArena.Camera
 
         /// <summary> 데드존 반경 </summary>
         public float DeadZoneRadius => m_DeadZoneRadius;
+        public float FramingPadding => m_FramingPadding;
+        public float CenterDeadZone => m_CenterDeadZone;
+        public float DistanceDeadZone => m_DistanceDeadZone;
+        public float AutoZoomInSpeed => m_AutoZoomInSpeed;
+        public float AutoZoomOutSpeed => m_AutoZoomOutSpeed;
+        public float FinalEliminationDistance => m_FinalEliminationDistance;
+        public float FinalEliminationFocusDuration => m_FinalEliminationFocusDuration;
 
         /// <summary> 기본 쉐이크 강도 </summary>
         public float DefaultShakeIntensity => m_DefaultShakeIntensity;
@@ -235,9 +267,21 @@ namespace InTheArena.Camera
                 isValid = false;
             }
 
-            if (m_MinZoom >= m_MaxZoom)
+            if (m_MinFramingDistance >= m_MaxFramingDistance)
             {
                 Debug.LogError($"[CameraSettings] {name}: MinZoom은 MaxZoom보다 작아야 합니다.");
+                isValid = false;
+            }
+
+            if (m_MinOrthographicSize >= m_MaxOrthographicSize)
+            {
+                Debug.LogError($"[CameraSettings] {name}: MinOrthographicSize must be smaller than MaxOrthographicSize.");
+                isValid = false;
+            }
+
+            if (m_FinalEliminationDistance >= m_MinFramingDistance)
+            {
+                Debug.LogError($"[CameraSettings] {name}: FinalEliminationDistance must be smaller than MinFramingDistance.");
                 isValid = false;
             }
 

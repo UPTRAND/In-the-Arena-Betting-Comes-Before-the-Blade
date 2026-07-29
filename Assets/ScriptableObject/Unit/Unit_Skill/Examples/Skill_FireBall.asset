@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
+  m_Name: Skill_FireBall
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
+  m_SkillName: FireBall
+  m_Description: 
+  m_SkillType: 0
+  m_Range: 8
+  m_Cooldown: 3
+  m_CastTime: 0.4
+  m_FailureRetryDelay: 0.25
+  m_ExecutionMode: 0
+  m_Targeting:
+    rid: 8871563067095777433
+  m_Effects:
+  - rid: 8871563067095777434
+  m_Behavior:
+    rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 8871563067095777433
+      type: {class: SingleUnitSkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_Relation: 0
+        m_Priority: 0
+        m_IncludeSelf: 1
+    - rid: 8871563067095777434
+      type: {class: SpawnProjectileSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_ProjectilePrefab: {fileID: 614600644479178426, guid: c9fd8e469ba93eb4cab28101bb433919, type: 3}
+        m_Speed: 18
+        m_Lifetime: 5
+        m_BaseDamage: 25
+        m_AttackPowerRatio: 0.7
+        m_ExplosionRadius: 0
+        m_CriticalChance: 0.1
+        m_ImpactStatus: {fileID: 0}

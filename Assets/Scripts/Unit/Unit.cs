@@ -11,7 +11,7 @@ namespace InTheArena.Unit
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
-    public class Unit : MonoBehaviour
+    public class Unit : MonoBehaviour, IPoolLifecycle
     {
         private const string RedTeamTag = "RedTeam";
         private const string BlueTeamTag = "BlueTeam";
@@ -23,11 +23,9 @@ namespace InTheArena.Unit
         public event Action<float, Unit, bool> OnDamaged;
         public event Action<float, Unit> OnHealed;
         public event Action<Unit> OnDied;
-        public event Action<Skill_Base> OnSkillCastStart;
-        public event Action<Skill_Base> OnSkillCastComplete;
+        public event Action<SkillRuntime> OnSkillCastStart;
+        public event Action<SkillRuntime> OnSkillCastComplete;
         public event Action<Unit> OnAttack;
-        public event Action<UnitStatusEffect> OnStatusEffectApplied;
-        public event Action<UnitStatusEffect, bool> OnStatusEffectRemoved;
         public event Action<StatusEffectRuntime> OnStatusDataApplied;
         public event Action<StatusEffectRuntime, bool> OnStatusDataRemoved;
         public event Action<float> OnShieldAbsorb;
@@ -70,22 +68,20 @@ namespace InTheArena.Unit
         private bool m_IsAttacking;
         private bool m_IsInitialized;
         private bool m_IsRegistered;
+        private bool m_HoldDeathPresentation;
         private int m_Team;
         private int m_InstanceId;
+        private int m_SpawnVersion;
 
         private Vector3 m_MoveTargetPosition;
         private float m_MoveStopDistance;
         private bool m_IsMoving;
 
-        private readonly List<UnitStatusEffect> m_ActiveStatusEffects = new List<UnitStatusEffect>(8);
-        private readonly List<UnitStatusEffect> m_PendingRemovalEffects = new List<UnitStatusEffect>(4);
         private readonly List<StatusEffectRuntime> m_ActiveDataEffects = new List<StatusEffectRuntime>(8);
-        private readonly List<Skill_Base> m_RuntimeSkills = new List<Skill_Base>(4);
-        private Skill_Base m_RuntimeSkill;
-        private Skill_Base m_CastingSkill;
-        private Unit m_CastingTarget;
-        private Vector3 m_CastingPosition;
-        private bool m_CastUsesPosition;
+        private readonly List<SkillRuntime> m_RuntimeSkills = new List<SkillRuntime>(8);
+        private readonly SkillTargetSet m_CastingTargets = new SkillTargetSet();
+        private SkillRuntime m_RuntimeSkill;
+        private SkillRuntime m_CastingSkill;
         private float m_CastRemaining;
         private UnitAI_Base m_RuntimeAI;
 
@@ -109,18 +105,19 @@ namespace InTheArena.Unit
         public float AttackInterval => m_CurrentStat.AttackInterval;
         public int Team => m_Team;
         public int InstanceId => m_InstanceId;
+        public int SpawnVersion => m_SpawnVersion;
         public bool IsDead => m_IsInitialized && m_CurrentHp <= 0f;
         public bool IsStunned => m_IsStunned;
         public bool IsSilenced => m_IsSilenced;
         public bool IsCastingSkill => m_IsCastingSkill;
         public bool IsAttacking => m_IsAttacking;
         public bool IsMoving => m_IsMoving;
+        internal bool IsDeathPresentationHeld => m_HoldDeathPresentation;
         public bool CanAttack => m_IsInitialized && !IsDead && !m_IsStunned &&
                                  !m_IsCastingSkill && !m_IsAttacking && m_AttackCooldown <= 0f;
-        public Skill_Base Skill => m_RuntimeSkill;
-        public IReadOnlyList<Skill_Base> Skills => m_RuntimeSkills;
+        public SkillRuntime Skill => m_RuntimeSkill;
+        public IReadOnlyList<SkillRuntime> Skills => m_RuntimeSkills;
         public UnitAI_Base AI => m_RuntimeAI;
-        public IReadOnlyList<UnitStatusEffect> ActiveStatusEffects => m_ActiveStatusEffects;
         public IReadOnlyList<StatusEffectRuntime> ActiveDataEffects => m_ActiveDataEffects;
         public Animator Animator => m_Animator;
         public Rigidbody Rigidbody => m_Rigidbody;
@@ -152,7 +149,6 @@ namespace InTheArena.Unit
         private void OnDestroy()
         {
             UnregisterRuntime();
-            ClearAllStatusEffects();
             ClearDataStatusEffects();
         }
 
@@ -165,10 +161,12 @@ namespace InTheArena.Unit
             }
 
             UnregisterRuntime();
-            ClearAllStatusEffects();
             ClearDataStatusEffects();
+            ResetRuntimeSkills();
 
             m_UnitData = data;
+            m_SpawnVersion++;
+            if (m_SpawnVersion == 0) m_SpawnVersion = 1;
             m_Team = team;
             m_BaseStat = data.BaseStat;
             m_CurrentStat = m_BaseStat;
@@ -182,8 +180,9 @@ namespace InTheArena.Unit
             m_IsCastingSkill = false;
             m_IsAttacking = false;
             m_IsMoving = false;
+            m_HoldDeathPresentation = false;
             m_CastingSkill = null;
-            m_RuntimeSkills.Clear();
+            m_CastingTargets.Clear();
 
             IReadOnlyList<SkillData> skillDatas = data.SkillDatas;
             if (skillDatas != null)
@@ -223,7 +222,7 @@ namespace InTheArena.Unit
         /// <summary>유닛을 풀로 반환합니다.</summary>
         public void Despawn()
         {
-            UnitPoolService.Return(this);
+            PoolManager.Require().Units.Return(this);
         }
 
         public void SetAIActive(bool active)
@@ -244,15 +243,16 @@ namespace InTheArena.Unit
         internal void PrepareForPool()
         {
             SetAIActive(false);
-            ClearAllStatusEffects();
             ClearDataStatusEffects();
+            ResetRuntimeSkills();
             StopMovement();
             m_IsInitialized = false;
             m_CurrentHp = 0f;
+            m_HoldDeathPresentation = false;
             m_RuntimeAI = null;
             m_RuntimeSkill = null;
-            m_RuntimeSkills.Clear();
             m_CastingSkill = null;
+            m_CastingTargets.Clear();
             m_HitFlashRemaining = 0f;
             ResetMaterialFlash();
 
@@ -263,14 +263,15 @@ namespace InTheArena.Unit
             OnSkillCastStart = null;
             OnSkillCastComplete = null;
             OnAttack = null;
-            OnStatusEffectApplied = null;
-            OnStatusEffectRemoved = null;
             OnStatusDataApplied = null;
             OnStatusDataRemoved = null;
             OnShieldAbsorb = null;
             OnMoveStart = null;
             OnMoveComplete = null;
         }
+
+        public void OnPoolRent(in PoolSpawnContext context) { }
+        public void OnPoolReturn() => PrepareForPool();
 
         internal void SimulationTick(float deltaTime)
         {
@@ -284,10 +285,9 @@ namespace InTheArena.Unit
             }
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
-                m_RuntimeSkills[i]?.TickCooldown(deltaTime);
+                m_RuntimeSkills[i]?.Tick(deltaTime);
 
             UpdateCasting(deltaTime);
-            UpdateStatusEffects(deltaTime);
             UpdateDataStatusEffects(deltaTime);
             m_RuntimeAI?.UpdateAI(deltaTime);
         }
@@ -322,59 +322,114 @@ namespace InTheArena.Unit
 
         public float ApplyDamage(float damage, Unit attacker = null, bool isCritical = false, bool isSkillDamage = false)
         {
-            if (IsDead || damage <= 0f) return 0f;
-
-            float finalDamage = damage;
-            for (int i = 0; i < m_ActiveStatusEffects.Count; i++)
+            var context = new DamageContext
             {
-                UnitStatusEffect effect = m_ActiveStatusEffects[i];
-                if (effect.Category == StatusEffectCategory.Shield && effect is Buff_Shield shield)
-                {
-                    finalDamage = shield.AbsorbDamage(finalDamage);
-                    if (finalDamage <= 0f) break;
-                }
-            }
+                Source = new UnitHandle(attacker),
+                Target = this,
+                Amount = damage,
+                IsCritical = isCritical,
+                IsSkill = isSkillDamage,
+                IsReaction = false
+            };
+            return ApplyDamage(in context);
+        }
 
-            if (finalDamage > 0f)
+        public float ApplyDamage(in DamageContext sourceContext)
+        {
+            DamageContext context = sourceContext;
+            if (IsDead || context.Target != this || context.Amount <= 0f) return 0f;
+
+            float previousRatio = m_CurrentHp / Mathf.Max(1f, MaxHp);
+            for (int i = 0; i < m_ActiveDataEffects.Count && context.Amount > 0f; i++)
+                m_ActiveDataEffects[i].ModifyIncomingDamage(ref context);
+
+            float finalDamage = 0f;
+            if (context.Amount > 0f)
             {
-                finalDamage = Mathf.Max(1f, finalDamage - m_CurrentStat.defense);
-                if (isCritical) finalDamage *= 1.5f;
+                finalDamage = Mathf.Max(1f, context.Amount - m_CurrentStat.defense);
+                if (context.IsCritical) finalDamage *= 1.5f;
                 m_CurrentHp = Mathf.Max(0f, m_CurrentHp - finalDamage);
             }
 
-            OnDamaged?.Invoke(finalDamage, attacker, isCritical);
-            TriggerPassiveSkills(PassiveTriggerType.OnHit, attacker);
+            Unit attacker = context.Source.Unit;
+            OnDamaged?.Invoke(finalDamage, attacker, context.IsCritical);
+            EnqueueSkillEvent(
+                SkillTriggerType.OnDamaged,
+                this,
+                attacker,
+                this,
+                finalDamage,
+                context.IsSkill,
+                context.IsCritical,
+                context.IsReaction);
             OnHpChanged?.Invoke(m_CurrentHp, MaxHp);
             PlayHitEffect();
-            UnitHpBarPresenter.NotifyDamaged(this);
+            if (Application.isPlaying) UnitHpBarPresenter.NotifyDamaged(this);
+
+            float currentRatio = m_CurrentHp / Mathf.Max(1f, MaxHp);
+            if (previousRatio > 0.25f && currentRatio <= 0.25f && m_CurrentHp > 0f)
+            {
+                EnqueueSkillEvent(
+                    SkillTriggerType.OnLowHealth,
+                    this,
+                    attacker,
+                    this,
+                    finalDamage,
+                    context.IsSkill,
+                    context.IsCritical,
+                    context.IsReaction);
+            }
 
             if (m_CurrentHp <= 0f)
             {
                 Die(attacker);
-                attacker?.TriggerPassiveSkills(PassiveTriggerType.OnKill, this);
+                if (attacker != null)
+                {
+                    EnqueueSkillEvent(
+                        SkillTriggerType.OnKill,
+                        attacker,
+                        attacker,
+                        this,
+                        finalDamage,
+                        context.IsSkill,
+                        context.IsCritical,
+                        context.IsReaction);
+                }
             }
             return finalDamage;
         }
 
         public float Heal(float amount, Unit caster = null)
         {
-            if (IsDead || amount <= 0f) return 0f;
+            var context = new HealContext
+            {
+                Source = new UnitHandle(caster),
+                Target = this,
+                Amount = amount,
+                IsSkill = false,
+                IsReaction = false
+            };
+            return Heal(in context);
+        }
+
+        public float Heal(in HealContext context)
+        {
+            if (IsDead || context.Target != this || context.Amount <= 0f) return 0f;
             float previous = m_CurrentHp;
-            m_CurrentHp = Mathf.Min(MaxHp, m_CurrentHp + amount);
+            m_CurrentHp = Mathf.Min(MaxHp, m_CurrentHp + context.Amount);
             float actual = m_CurrentHp - previous;
             if (actual <= 0f) return 0f;
 
-            OnHealed?.Invoke(actual, caster);
+            OnHealed?.Invoke(actual, context.Source.Unit);
             OnHpChanged?.Invoke(m_CurrentHp, MaxHp);
             m_Animator?.SetTrigger("Heal");
-            UnitHpBarPresenter.NotifyDamaged(this);
+            if (Application.isPlaying) UnitHpBarPresenter.NotifyDamaged(this);
             return actual;
         }
 
         private void Die(Unit killer)
         {
             if (!m_IsInitialized) return;
-            ClearAllStatusEffects();
             ClearDataStatusEffects();
             m_RuntimeAI?.Deactivate();
             StopMovement();
@@ -383,7 +438,18 @@ namespace InTheArena.Unit
             OnDied?.Invoke(killer);
             PlayClip(m_DeathSound);
             m_Animator?.SetTrigger("Die");
-            gameObject.SetActive(false);
+            if (!m_HoldDeathPresentation) gameObject.SetActive(false);
+        }
+
+        internal void HoldDeathPresentation()
+        {
+            if (IsDead) m_HoldDeathPresentation = true;
+        }
+
+        internal void CompleteDeathPresentation()
+        {
+            m_HoldDeathPresentation = false;
+            if (IsDead && gameObject.activeSelf) gameObject.SetActive(false);
         }
 
         public void Attack(Unit target)
@@ -398,51 +464,69 @@ namespace InTheArena.Unit
 
             float damage = m_CurrentStat.attackPower;
             bool critical = UnityEngine.Random.value < 0.05f;
-            float actualDamage = target.ApplyDamage(damage, this, critical, false);
-            TriggerPassiveSkills(PassiveTriggerType.OnAttack, actualDamage);
+            var context = new DamageContext
+            {
+                Source = new UnitHandle(this),
+                Target = target,
+                Amount = damage,
+                IsCritical = critical,
+                IsSkill = false,
+                IsReaction = false
+            };
+            float actualDamage = target.ApplyDamage(in context);
+            EnqueueSkillEvent(
+                SkillTriggerType.OnAttack,
+                this,
+                this,
+                target,
+                actualDamage,
+                false,
+                critical,
+                false);
         }
 
         public bool TryUseSkill(Unit target = null)
+            => TryUseSkill(new SkillUseRequest(target));
+
+        public bool TryUseSkill(Vector3 groundPosition)
+            => TryUseSkill(new SkillUseRequest(groundPosition));
+
+        public bool TryUseSkill(in SkillUseRequest request)
         {
             if (m_IsSilenced || m_IsStunned || m_IsCastingSkill || IsDead) return false;
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
             {
-                Skill_Base skill = m_RuntimeSkills[i];
-                if (skill == null || skill.SkillType != SkillType.Active || !skill.CanUse()) continue;
-                if (!IsSkillTargetValid(skill, target)) continue;
-                UseSkill(skill, target);
+                SkillRuntime skill = m_RuntimeSkills[i];
+                if (skill == null || skill.Data.SkillType != SkillType.Active || !skill.CanUse) continue;
+                if (!skill.TryResolve(request, m_CastingTargets)) continue;
+                BeginCast(skill);
                 return true;
             }
             return false;
         }
 
-        public void UseSkill(Skill_Base skill, Unit target = null)
-        {
-            if (skill == null || !skill.CanUse() || m_IsSilenced || m_IsCastingSkill || IsDead || m_IsStunned)
-                return;
-            if (!IsSkillTargetValid(skill, target)) return;
+        public bool UseSkill(SkillRuntime skill, Unit target = null)
+            => UseSkill(skill, new SkillUseRequest(target));
 
-            BeginCast(skill, target, default, false);
+        public bool UseSkill(SkillRuntime skill, Vector3 position)
+            => UseSkill(skill, new SkillUseRequest(position));
+
+        private bool UseSkill(SkillRuntime skill, in SkillUseRequest request)
+        {
+            if (skill == null || !skill.CanUse || m_IsSilenced || m_IsCastingSkill || IsDead || m_IsStunned)
+                return false;
+            if (!skill.TryResolve(request, m_CastingTargets)) return false;
+            BeginCast(skill);
+            return true;
         }
 
-        public void UseSkill(Skill_Base skill, Vector3 position)
-        {
-            if (skill == null || !skill.CanUse() || m_IsSilenced || m_IsCastingSkill || IsDead || m_IsStunned)
-                return;
-            position.y = GroundPosition.y;
-            BeginCast(skill, null, position, true);
-        }
-
-        private void BeginCast(Skill_Base skill, Unit target, Vector3 position, bool usesPosition)
+        private void BeginCast(SkillRuntime skill)
         {
             m_IsCastingSkill = true;
             m_IsAttacking = false;
             m_CastingSkill = skill;
-            m_CastingTarget = target;
-            m_CastingPosition = position;
-            m_CastUsesPosition = usesPosition;
-            m_CastRemaining = skill.CastTime;
+            m_CastRemaining = skill.Data.CastTime;
             m_Animator?.SetTrigger("CastSkill");
             OnSkillCastStart?.Invoke(skill);
             if (m_CastRemaining <= 0f) CompleteCast();
@@ -463,64 +547,27 @@ namespace InTheArena.Unit
 
         private void CompleteCast()
         {
-            Skill_Base skill = m_CastingSkill;
-            Unit target = m_CastingTarget;
-            Vector3 position = m_CastingPosition;
-            bool usesPosition = m_CastUsesPosition;
-            CancelCast();
+            SkillRuntime skill = m_CastingSkill;
+            m_IsCastingSkill = false;
+            m_CastingSkill = null;
+            m_CastRemaining = 0f;
 
-            if (usesPosition) skill.Execute(this, position);
-            else skill.Execute(this, target);
-            skill.ResetCooldown();
-            OnSkillCastComplete?.Invoke(skill);
+            SkillExecutionResult result = skill != null
+                ? skill.Execute(m_CastingTargets)
+                : SkillExecutionResult.Interrupted;
+            m_CastingTargets.Clear();
+            if (result == SkillExecutionResult.Success)
+                OnSkillCastComplete?.Invoke(skill);
         }
+
+        public void CancelCasting() => CancelCast();
 
         private void CancelCast()
         {
             m_IsCastingSkill = false;
             m_CastingSkill = null;
-            m_CastingTarget = null;
             m_CastRemaining = 0f;
-        }
-
-        private bool IsSkillTargetValid(Skill_Base skill, Unit target)
-        {
-            if (skill.TargetType == SkillTargetType.Self || skill.TargetType == SkillTargetType.Ground)
-                return true;
-            if (target == null || target.IsDead) return false;
-
-            bool requiresEnemy = skill.TargetType == SkillTargetType.Enemy ||
-                                 skill.TargetType == SkillTargetType.Enemies;
-            if (requiresEnemy && target.Team == Team) return false;
-            if (!requiresEnemy && target.Team != Team) return false;
-
-            Vector3 delta = target.GroundPosition - GroundPosition;
-            delta.y = 0f;
-            return skill.SkillRange <= 0f || delta.sqrMagnitude <= skill.SkillRange * skill.SkillRange;
-        }
-
-        public UnitStatusEffect ApplyStatusEffect(UnitStatusEffect effectData, Unit caster = null, float durationOverride = -1f)
-        {
-            if (effectData == null || IsDead) return null;
-            if (effectData is Debuff_Base debuff && UnityEngine.Random.value < debuff.CalculateResistance(this))
-                return null;
-
-            UnitStatusEffect existing = FindActiveEffect(effectData.GetType());
-            if (existing != null)
-            {
-                int stacks = existing.CurrentStacks;
-                if ((effectData.StackType == StackType.Intensity || effectData.StackType == StackType.Both) &&
-                    stacks < effectData.MaxStacks)
-                    stacks++;
-                existing.OnStackRefreshed(stacks, durationOverride > 0f ? durationOverride : effectData.BaseDuration);
-                return existing;
-            }
-
-            UnitStatusEffect runtime = effectData.Clone();
-            runtime.Initialize(this, caster, durationOverride);
-            m_ActiveStatusEffects.Add(runtime);
-            OnStatusEffectApplied?.Invoke(runtime);
-            return runtime;
+            m_CastingTargets.Clear();
         }
 
         public StatusEffectRuntime ApplyStatusEffect(StatusEffectData data, Unit caster = null, float durationOverride = -1f)
@@ -532,20 +579,17 @@ namespace InTheArena.Unit
                 StatusEffectRuntime existing = m_ActiveDataEffects[i];
                 if (existing.Data != data) continue;
                 existing.Refresh(durationOverride);
+                RefreshControlStates();
                 return existing;
             }
 
             StatusEffectRuntime runtime = StatusEffectRuntimePool.Rent();
             runtime.Initialize(data, this, caster, durationOverride);
             m_ActiveDataEffects.Add(runtime);
+            runtime.Apply();
+            RefreshControlStates();
             OnStatusDataApplied?.Invoke(runtime);
             return runtime;
-        }
-
-        public void RemoveStatusEffect(UnitStatusEffect effect, bool expired = false)
-        {
-            if (effect != null && !m_PendingRemovalEffects.Contains(effect))
-                m_PendingRemovalEffects.Add(effect);
         }
 
         public void RemoveStatusEffect(StatusEffectRuntime effect, bool expired = false)
@@ -557,57 +601,37 @@ namespace InTheArena.Unit
             OnStatusDataRemoved?.Invoke(effect, expired);
             effect.Release(expired);
             StatusEffectRuntimePool.Return(effect);
+            RefreshControlStates();
         }
 
-        public T FindActiveEffect<T>() where T : UnitStatusEffect
+        public StatusEffectRuntime FindActiveEffect(StatusEffectData data)
         {
-            for (int i = 0; i < m_ActiveStatusEffects.Count; i++)
-                if (m_ActiveStatusEffects[i] is T typed) return typed;
+            if (data == null) return null;
+            for (int i = 0; i < m_ActiveDataEffects.Count; i++)
+                if (m_ActiveDataEffects[i].Data == data) return m_ActiveDataEffects[i];
             return null;
         }
 
-        public UnitStatusEffect FindActiveEffect(Type type)
+        private void RefreshControlStates()
         {
-            for (int i = 0; i < m_ActiveStatusEffects.Count; i++)
-                if (m_ActiveStatusEffects[i].GetType() == type) return m_ActiveStatusEffects[i];
-            return null;
-        }
-
-        public List<UnitStatusEffect> FindActiveEffects(StatusEffectCategory category)
-        {
-            var result = new List<UnitStatusEffect>();
-            for (int i = 0; i < m_ActiveStatusEffects.Count; i++)
-                if (m_ActiveStatusEffects[i].Category == category) result.Add(m_ActiveStatusEffects[i]);
-            return result;
-        }
-
-        public void ClearAllStatusEffects()
-        {
-            for (int i = m_ActiveStatusEffects.Count - 1; i >= 0; i--)
+            bool stunned = false;
+            bool silenced = false;
+            for (int i = 0; i < m_ActiveDataEffects.Count; i++)
             {
-                UnitStatusEffect effect = m_ActiveStatusEffects[i];
-                if (effect == null) continue;
-                effect.Remove(false);
-                if (Application.isPlaying) Destroy(effect);
+                StatusEffectRuntime effect = m_ActiveDataEffects[i];
+                stunned |= effect.GrantsStun;
+                silenced |= effect.GrantsSilence;
             }
-            m_ActiveStatusEffects.Clear();
-            m_PendingRemovalEffects.Clear();
-        }
-
-        internal void SetStunned(bool stunned)
-        {
+            bool becameStunned = !m_IsStunned && stunned;
             m_IsStunned = stunned;
-            m_Animator?.SetBool("Stunned", stunned);
-            if (!stunned) return;
-            StopMovement();
-            m_IsAttacking = false;
-            CancelCast();
-        }
-
-        internal void SetSilenced(bool silenced)
-        {
             m_IsSilenced = silenced;
-            if (silenced) CancelCast();
+            m_Animator?.SetBool("Stunned", stunned);
+            if (becameStunned)
+            {
+                StopMovement();
+                m_IsAttacking = false;
+            }
+            if (stunned || silenced) CancelCast();
         }
 
         internal void OnShieldAbsorbCallback(float amount) => OnShieldAbsorb?.Invoke(amount);
@@ -634,6 +658,7 @@ namespace InTheArena.Unit
             m_MoveTargetPosition = targetPosition;
             m_MoveStopDistance = Mathf.Max(0f, stopDistance);
             m_IsMoving = true;
+            m_Animator?.SetBool("IsMoving", true);
             if (!wasMoving) OnMoveStart?.Invoke();
         }
 
@@ -641,6 +666,7 @@ namespace InTheArena.Unit
         {
             if (!m_IsMoving) return;
             m_IsMoving = false;
+            m_Animator?.SetBool("IsMoving", false);
             if (m_Rigidbody != null) m_Rigidbody.linearVelocity = Vector3.zero;
             OnMoveComplete?.Invoke();
         }
@@ -671,24 +697,9 @@ namespace InTheArena.Unit
                 transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
         }
 
-        private void UpdateStatusEffects(float deltaTime)
-        {
-            for (int i = m_ActiveStatusEffects.Count - 1; i >= 0; i--)
-            {
-                UnitStatusEffect effect = m_ActiveStatusEffects[i];
-                bool forced = m_PendingRemovalEffects.Contains(effect);
-                if (!forced && effect.Tick(deltaTime)) continue;
-
-                effect.Remove(!forced);
-                m_ActiveStatusEffects.RemoveAt(i);
-                OnStatusEffectRemoved?.Invoke(effect, !forced);
-                Destroy(effect);
-            }
-            m_PendingRemovalEffects.Clear();
-        }
-
         private void UpdateDataStatusEffects(float deltaTime)
         {
+            bool removed = false;
             for (int i = m_ActiveDataEffects.Count - 1; i >= 0; i--)
             {
                 StatusEffectRuntime effect = m_ActiveDataEffects[i];
@@ -698,7 +709,9 @@ namespace InTheArena.Unit
                 OnStatusDataRemoved?.Invoke(effect, true);
                 effect.Release(true);
                 StatusEffectRuntimePool.Return(effect);
+                removed = true;
             }
+            if (removed) RefreshControlStates();
         }
 
         private void ClearDataStatusEffects()
@@ -710,6 +723,7 @@ namespace InTheArena.Unit
                 StatusEffectRuntimePool.Return(effect);
             }
             m_ActiveDataEffects.Clear();
+            RefreshControlStates();
         }
 
         private void RecalculateStats()
@@ -727,21 +741,69 @@ namespace InTheArena.Unit
 
         private void AddRuntimeSkill(SkillData skillData)
         {
-            if (skillData == null || skillData.SkillLogic == null) return;
-            Skill_Base runtime = skillData.SkillLogic.Clone();
-            runtime.SetData(skillData);
-            runtime.Initialize(this);
-            m_RuntimeSkills.Add(runtime);
+            if (skillData == null) return;
+            m_RuntimeSkills.Add(skillData.CreateRuntime(this));
         }
 
-        private void TriggerPassiveSkills(PassiveTriggerType triggerType, object parameter)
+        private void ResetRuntimeSkills()
         {
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
+                m_RuntimeSkills[i]?.Reset();
+            m_RuntimeSkills.Clear();
+        }
+
+        internal void DispatchSkillTrigger(in SkillTriggerContext context)
+        {
+            if (!context.Receiver.IsValid || context.Receiver.Unit != this) return;
+            for (int i = 0; i < m_RuntimeSkills.Count; i++)
+                m_RuntimeSkills[i]?.HandleTrigger(context);
+        }
+
+        public void NotifyBattleStarted()
+            => EnqueueSkillEvent(
+                SkillTriggerType.OnBattleStart,
+                this,
+                this,
+                this,
+                0f,
+                false,
+                false,
+                false);
+
+        public void NotifyBattleEnded()
+            => EnqueueSkillEvent(
+                SkillTriggerType.OnBattleEnd,
+                this,
+                this,
+                this,
+                0f,
+                false,
+                false,
+                false);
+
+        private static void EnqueueSkillEvent(
+            SkillTriggerType trigger,
+            Unit receiver,
+            Unit source,
+            Unit target,
+            float amount,
+            bool isSkill,
+            bool isCritical,
+            bool isReaction)
+        {
+            var context = new SkillTriggerContext
             {
-                Skill_Base skill = m_RuntimeSkills[i];
-                if (skill != null && skill.SkillType == SkillType.Passive)
-                    skill.OnTrigger(this, triggerType, parameter);
-            }
+                Trigger = trigger,
+                Receiver = new UnitHandle(receiver),
+                Source = new UnitHandle(source),
+                Target = new UnitHandle(target),
+                Amount = amount,
+                Position = target != null ? target.GroundPosition : default,
+                Flags = (isSkill ? SkillEventFlags.Skill : SkillEventFlags.None) |
+                        (isCritical ? SkillEventFlags.Critical : SkillEventFlags.None) |
+                        (isReaction ? SkillEventFlags.Reaction : SkillEventFlags.None)
+            };
+            UnitSimulationSystem.EnqueueSkillEvent(in context);
         }
 
         private void SetupComponents()

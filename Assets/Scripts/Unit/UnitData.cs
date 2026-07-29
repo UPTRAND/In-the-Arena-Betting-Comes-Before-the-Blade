@@ -27,10 +27,6 @@ namespace InTheArena.Unit
         [Tooltip("유닛 프리팹 (씬에 생성될 오브젝트)")]
         [SerializeField] private GameObject m_UnitPrefab;
 
-        [Tooltip("기존 단일 스킬 데이터. 마이그레이션 호환성을 위해 유지됩니다.")]
-        [FormerlySerializedAs("m_Skill")]
-        [SerializeField, HideInInspector] private SkillData m_SkillData;
-
         [Tooltip("AI가 앞에서부터 사용 가능 여부를 검사하는 스킬 목록")]
         [SerializeField] private List<SkillData> m_SkillDatas = new List<SkillData>();
 
@@ -61,7 +57,7 @@ namespace InTheArena.Unit
         /// <summary> 스킬 데이터 </summary>
         public SkillData SkillData => m_SkillDatas != null && m_SkillDatas.Count > 0
             ? m_SkillDatas[0]
-            : m_SkillData;
+            : null;
 
         public IReadOnlyList<SkillData> SkillDatas => m_SkillDatas;
 
@@ -120,18 +116,12 @@ namespace InTheArena.Unit
                 isValid = false;
             }
 
-            SkillData primarySkill = SkillData;
-            if (primarySkill != null)
-            {
-                if (!primarySkill.IsValid())
-                {
-                    Debug.LogError($"[UnitData] {name}: 스킬 데이터가 유효하지 않습니다.");
-                    isValid = false;
-                }
-            }
-
             if (m_SkillDatas != null)
             {
+                if (m_SkillDatas.Count > 8)
+                    Debug.LogWarning(
+                        $"[UnitData] {name}: 권장 스킬 수 8개를 초과했습니다. Android 프로파일링이 필요합니다.",
+                        this);
                 for (int i = 0; i < m_SkillDatas.Count; i++)
                 {
                     if (m_SkillDatas[i] != null && !m_SkillDatas[i].IsValid()) isValid = false;
@@ -169,7 +159,7 @@ namespace InTheArena.Unit
                 return null;
             }
 
-            return UnitPoolService.Spawn(this, parent, team, Vector3.zero);
+            return PoolManager.Require().Units.Spawn(this, parent, team, Vector3.zero);
         }
 
 #if UNITY_EDITOR
@@ -178,10 +168,6 @@ namespace InTheArena.Unit
         /// </summary>
         private void OnValidate()
         {
-            if (m_SkillData != null && m_SkillDatas != null && !m_SkillDatas.Contains(m_SkillData))
-            {
-                m_SkillDatas.Insert(0, m_SkillData);
-            }
             m_VisualRadius = Mathf.Max(0.1f, m_VisualRadius);
             IsValid();
         }

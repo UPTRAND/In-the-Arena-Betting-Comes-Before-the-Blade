@@ -18,7 +18,7 @@ namespace InTheArena.MainGame
         {
             var awaitable = new AwaitableCompletionSource();
             
-            if (operation.isDone)
+            if (operation == null || operation.isDone)
             {
                 awaitable.TrySetResult();
                 return awaitable.Awaitable;
