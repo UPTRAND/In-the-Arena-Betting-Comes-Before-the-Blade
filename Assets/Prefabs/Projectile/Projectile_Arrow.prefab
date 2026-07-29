@@ -10,11 +10,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4498070997446554754}
   - component: {fileID: -7630496945919648289}
-  - component: {fileID: -5144432217408263385}
   - component: {fileID: 3082395348453298397}
   - component: {fileID: 2221624298611272249}
   m_Layer: 0
-  m_Name: Projectile_FireBall
+  m_Name: Projectile_Arrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -84,7 +83,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -873912733, guid: cb0d89231e1947b499aa77346f4eb95e, type: 3}
+  m_Sprite: {fileID: -1395790343, guid: cb0d89231e1947b499aa77346f4eb95e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -95,28 +94,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!95 &-5144432217408263385
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 614600644479178426}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: ae22bfa56f238c14281c64a6a49742ac, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!114 &3082395348453298397
 MonoBehaviour:
   m_ObjectHideFlags: 0
