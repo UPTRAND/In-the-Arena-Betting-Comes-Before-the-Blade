@@ -706,7 +706,10 @@ namespace InTheArena.Unit
             if (!m_IsMoving) return;
             m_IsMoving = false;
             m_Animator?.SetBool("IsMoving", false);
-            if (m_Rigidbody != null) m_Rigidbody.linearVelocity = Vector3.zero;
+            if (m_Rigidbody != null && !m_Rigidbody.isKinematic)
+            {
+                m_Rigidbody.linearVelocity = Vector3.zero;
+            }
             OnMoveComplete?.Invoke();
         }
 
