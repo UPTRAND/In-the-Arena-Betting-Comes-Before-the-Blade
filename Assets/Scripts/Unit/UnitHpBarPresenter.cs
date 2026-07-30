@@ -1,48 +1,52 @@
 #if UNITY_6000_0_OR_NEWER
+using InTheArena.UI;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace InTheArena.Unit
 {
     /// <summary>
-    /// 개별 World Space Canvas 대신 최대 24개의 Screen Space HP 바를 재사용합니다.
+    /// 유닛 피격 시 UI_UnitHPBar.prefab을 인스턴스화하고 [UI] World Canvas 하위에서 관리하는 헬퍼 클래스입니다.
     /// </summary>
     public sealed class UnitHpBarPresenter : MonoBehaviour
     {
-        private const int Capacity = 24;
-        private const float VisibleDuration = 1.5f;
-
-        private sealed class Slot
-        {
-            public Unit Unit;
-            public RectTransform Root;
-            public Image Fill;
-            public float VisibleUntil;
-        }
+        private const string PrefabPath = "Assets/Prefabs/UI/World/UI_UnitHPBar.prefab";
 
         private static UnitHpBarPresenter s_Instance;
-        private readonly Slot[] m_Slots = new Slot[Capacity];
-        private RectTransform m_CanvasRect;
+        [SerializeField] private GameObject m_HpBarPrefab;
+        private Transform m_WorldUiParent;
 
         public static UnitHpBarPresenter Instance => s_Instance;
 
+        public static UnitHpBarPresenter EnsureExists()
+        {
+            if (s_Instance != null)
+            {
+                return s_Instance;
+            }
+
+            GameObject presenterObj = new GameObject("[UnitHpBarPresenter]");
+            s_Instance = presenterObj.AddComponent<UnitHpBarPresenter>();
+            return s_Instance;
+        }
+
         public static UnitHpBarPresenter EnsureExists(Transform parent)
         {
-            if (s_Instance != null) return s_Instance;
-
-            var root = new GameObject("[UnitHpBars]", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
-            root.transform.SetParent(parent, false);
-            Canvas canvas = root.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 50;
-            s_Instance = root.AddComponent<UnitHpBarPresenter>();
-            return s_Instance;
+            UnitHpBarPresenter instance = EnsureExists();
+            if (parent != null && instance.transform.parent == null)
+            {
+                instance.transform.SetParent(parent, false);
+            }
+            return instance;
         }
 
         public static void NotifyDamaged(Unit unit)
         {
-            if (unit == null) return;
-            EnsureExists(UnitSimulationSystem.EnsureExists().transform).Show(unit, VisibleDuration);
+            if (unit == null)
+            {
+                return;
+            }
+
+            EnsureExists().ShowHpBarForUnit(unit, 1.5f);
         }
 
         private void Awake()
@@ -53,87 +57,118 @@ namespace InTheArena.Unit
                 return;
             }
             s_Instance = this;
-            m_CanvasRect = (RectTransform)transform;
-            BuildSlots();
+            LoadPrefabIfNeeded();
+            FindWorldUiParent();
         }
 
-        private void BuildSlots()
+        private void LoadPrefabIfNeeded()
         {
-            for (int i = 0; i < Capacity; i++)
+            if (m_HpBarPrefab != null)
             {
-                var root = new GameObject("HpBar_" + i, typeof(RectTransform), typeof(Image));
-                root.transform.SetParent(transform, false);
-                var rect = (RectTransform)root.transform;
-                rect.sizeDelta = new Vector2(54f, 6f);
-                root.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.7f);
+                return;
+            }
 
-                var fillObject = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-                fillObject.transform.SetParent(root.transform, false);
-                var fillRect = (RectTransform)fillObject.transform;
-                fillRect.anchorMin = Vector2.zero;
-                fillRect.anchorMax = Vector2.one;
-                fillRect.offsetMin = new Vector2(1f, 1f);
-                fillRect.offsetMax = new Vector2(-1f, -1f);
-                Image fill = fillObject.GetComponent<Image>();
-                fill.color = new Color(0.2f, 0.9f, 0.25f, 1f);
-                fill.type = Image.Type.Filled;
-                fill.fillMethod = Image.FillMethod.Horizontal;
-
-                m_Slots[i] = new Slot { Root = rect, Fill = fill };
-                root.SetActive(false);
+#if UNITY_EDITOR
+            m_HpBarPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+#endif
+            if (m_HpBarPrefab == null)
+            {
+                m_HpBarPrefab = Resources.Load<GameObject>("UI/World/UI_UnitHPBar");
             }
         }
 
-        private void Show(Unit unit, float duration)
+        /// <summary>
+        /// MainGame Scene 하이어라키에서 "[UI] World" 오브젝트를 탐색하여 부모로 저장합니다.
+        /// </summary>
+        private void FindWorldUiParent()
         {
-            Slot selected = null;
-            for (int i = 0; i < m_Slots.Length; i++)
+            if (UIManager.Instance != null)
             {
-                Slot slot = m_Slots[i];
-                if (slot.Unit == unit)
+                UI_Root worldRoot = UIManager.Instance.GetRootFromType(EUIObjectPoolingParent.World);
+                if (worldRoot != null)
                 {
-                    selected = slot;
-                    break;
+                    m_WorldUiParent = worldRoot.transform;
+                    return;
                 }
-                if (selected == null && (slot.Unit == null || slot.VisibleUntil <= Time.unscaledTime))
-                    selected = slot;
             }
 
-            if (selected == null) selected = m_Slots[0];
-            selected.Unit = unit;
-            selected.VisibleUntil = Time.unscaledTime + duration;
-            selected.Root.gameObject.SetActive(true);
+            GameObject worldObj = GameObject.Find("[UI] World");
+            if (worldObj != null)
+            {
+                m_WorldUiParent = worldObj.transform;
+            }
+            else
+            {
+                m_WorldUiParent = transform;
+            }
         }
 
-        public void Refresh(UnityEngine.Camera camera)
+        /// <summary>
+        /// Assets/Prefabs/UI/World/UI_UnitHPBar.prefab을 인스턴스화하여 [UI] World 하위에 바인딩합니다.
+        /// </summary>
+        public void ShowHpBarForUnit(Unit unit, float duration = 1.5f)
         {
-            if (camera == null || m_CanvasRect == null) return;
-
-            for (int i = 0; i < m_Slots.Length; i++)
+            if (unit == null || unit.IsDead)
             {
-                Slot slot = m_Slots[i];
-                Unit unit = slot.Unit;
-                if (unit == null || unit.IsDead || !unit.gameObject.activeInHierarchy ||
-                    slot.VisibleUntil <= Time.unscaledTime)
+                return;
+            }
+
+            if (m_WorldUiParent == null)
+            {
+                FindWorldUiParent();
+            }
+
+            if (m_HpBarPrefab == null)
+            {
+                LoadPrefabIfNeeded();
+            }
+
+            UI_UnitHPBar hpBar = unit.HpBar;
+            if (hpBar == null)
+            {
+                GameObject barObj = null;
+                if (m_HpBarPrefab != null)
                 {
-                    slot.Unit = null;
-                    slot.Root.gameObject.SetActive(false);
-                    continue;
+                    barObj = Instantiate(m_HpBarPrefab, m_WorldUiParent);
+                }
+                else
+                {
+                    barObj = new GameObject("HpBar_" + unit.name, typeof(RectTransform));
+                    if (m_WorldUiParent != null)
+                    {
+                        barObj.transform.SetParent(m_WorldUiParent, false);
+                    }
+                    else
+                    {
+                        barObj.transform.SetParent(transform, false);
+                    }
                 }
 
-                Vector3 screen = camera.WorldToScreenPoint(unit.HitPosition);
-                bool visible = screen.z > 0f;
-                slot.Root.gameObject.SetActive(visible);
-                if (!visible) continue;
+                barObj.name = "HpBar_" + unit.name;
+                hpBar = barObj.GetComponent<UI_UnitHPBar>();
+                if (hpBar == null)
+                {
+                    hpBar = barObj.AddComponent<UI_UnitHPBar>();
+                }
 
-                slot.Root.position = screen + Vector3.up * 12f;
-                slot.Fill.fillAmount = unit.MaxHp > 0f ? unit.CurrentHp / unit.MaxHp : 0f;
+                hpBar.SetTarget(unit);
+                unit.HpBar = hpBar;
             }
+
+            hpBar.ShowHpBar(duration);
+        }
+
+        public void Refresh(UnityEngine.Camera camera = null)
+        {
+            // 각 UI_UnitHPBar의 LateUpdate에서 개별 갱신되므로 호환성용 유지
         }
 
         private void OnDestroy()
         {
-            if (s_Instance == this) s_Instance = null;
+            if (s_Instance == this)
+            {
+                s_Instance = null;
+            }
         }
     }
 }

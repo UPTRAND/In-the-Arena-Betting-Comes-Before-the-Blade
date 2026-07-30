@@ -1,6 +1,7 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
+using InTheArena.UI;
 using UnityEngine;
 
 namespace InTheArena.Unit
@@ -121,6 +122,7 @@ namespace InTheArena.Unit
         public SkillRuntime Skill => m_RuntimeSkill;
         public IReadOnlyList<SkillRuntime> Skills => m_RuntimeSkills;
         public UnitAI_Base AI => m_RuntimeAI;
+        public UI_UnitHPBar HpBar { get; set; }
         public IReadOnlyList<StatusEffectRuntime> ActiveDataEffects => m_ActiveDataEffects;
         public Animator Animator => m_Animator;
         public Rigidbody Rigidbody => m_Rigidbody;
@@ -153,6 +155,11 @@ namespace InTheArena.Unit
         {
             UnregisterRuntime();
             ClearDataStatusEffects();
+            if (HpBar != null)
+            {
+                HpBar.HideHpBar();
+                HpBar = null;
+            }
         }
 
         public void Initialize(UnitData data, int team)
@@ -259,6 +266,12 @@ namespace InTheArena.Unit
             m_CastingTargets.Clear();
             m_HitFlashRemaining = 0f;
             ResetMaterialFlash();
+
+            if (HpBar != null)
+            {
+                HpBar.HideHpBar();
+                HpBar = null;
+            }
 
             OnHpChanged = null;
             OnDamaged = null;
