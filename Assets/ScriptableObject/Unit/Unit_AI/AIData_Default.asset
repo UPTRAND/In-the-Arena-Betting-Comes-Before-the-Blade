@@ -14,17 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.AIData
   m_AIName: Default AI
   m_Description: 
-  m_AILogic:
-    rid: 8871563050837606471
-  references:
-    version: 2
-    RefIds:
-    - rid: 8871563050837606471
-      type: {class: UnitAI_Default, ns: InTheArena.Unit, asm: Assembly-CSharp}
-      data:
-        m_SearchInterval: 0.5
-        m_TargetPriority: 0
-        m_MaxSearchDistance: 0
-        m_AttackStopDistanceRatio: 0.9
-        m_InterruptAttackForSkill: 1
-        m_InitialSearchDelay: 0.1
+  m_SearchInterval: 0.5
+  m_TargetPriority: 0
+  m_MaxSearchDistance: 0
+  m_AttackStopDistanceRatio: 0.9
+  m_InitialSearchDelay: 0.1

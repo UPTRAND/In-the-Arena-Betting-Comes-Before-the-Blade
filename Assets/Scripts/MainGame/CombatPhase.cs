@@ -88,53 +88,67 @@ namespace InTheArena.MainGame
             Context.TeamBUnits.Clear();
 
             // BettingPhase에서 확정한 셀별 편성을 그대로 사용한다.
-            SpawnTeamUnits(Context.TeamADeployments, Context.TeamAUnits, Team.Red, m_TeamASpawnRoot);
-            SpawnTeamUnits(Context.TeamBDeployments, Context.TeamBUnits, Team.Blue, m_TeamBSpawnRoot);
+            SpawnBattleConfig(BuildBattleConfig());
 
             Debug.Log($"[CombatPhase] 런타임 유닛 생성 완료 - Red: {Context.TeamAUnits.Count}, Blue: {Context.TeamBUnits.Count}");
         }
 
-        private void SpawnTeamUnits(List<TeamUnitDeployment> deployments, List<UnitType> runtimeUnits, Team team, Transform spawnRoot)
+        private BattleConfig BuildBattleConfig()
         {
-            if (deployments == null)
-            {
-                Debug.LogError($"[CombatPhase] {team} 팀의 베팅 편성이 없습니다.");
-                return;
-            }
+            var plans = new List<SpawnPlan>(UnitSpatialIndex.MaxUnits);
+            AddTeamPlans(Context.TeamADeployments, Team.Red, plans);
+            AddTeamPlans(Context.TeamBDeployments, Team.Blue, plans);
+            return new BattleConfig(plans.ToArray(), Context.CurrentRoundRule);
+        }
 
-            foreach (var deployment in deployments)
+        private void AddTeamPlans(
+            List<TeamUnitDeployment> deployments,
+            Team team,
+            List<SpawnPlan> plans)
+        {
+            if (deployments == null) return;
+            for (int deploymentIndex = 0; deploymentIndex < deployments.Count; deploymentIndex++)
             {
-                if (deployment == null || deployment.Units == null || deployment.Units.Count == 0) continue;
+                TeamUnitDeployment deployment = deployments[deploymentIndex];
+                if (deployment?.Units == null) continue;
 
-                var spawnPos = GetGridCellCenterPosition(team, deployment.CellIndex);
-                
-                foreach (var unitData in deployment.Units)
+                Vector3 center = GetGridCellCenterPosition(team, deployment.CellIndex);
+                for (int unitIndex = 0; unitIndex < deployment.Units.Count; unitIndex++)
                 {
+                    UnitData unitData = deployment.Units[unitIndex];
                     if (unitData == null) continue;
-
-                    var finalPos = spawnPos + new Vector3(
+                    Vector3 position = center + new Vector3(
                         UnityEngine.Random.Range(-0.3f, 0.3f),
                         0f,
-                        UnityEngine.Random.Range(-0.3f, 0.3f)
-                    );
-                    var unit = PoolManager.Require().Units.Spawn(
-                        unitData,
-                        spawnRoot,
-                        (int)team,
-                        finalPos,
-                        false);
-                    if (unit != null)
-                    {
-                        if (unit.AI == null)
-                        {
-                            Debug.LogError($"[CombatPhase] {unitData.UnitName}에 런타임 AI가 없어 전투 행동을 할 수 없습니다.");
-                        }
-
-                        unit.SetAIActive(false);
-                        runtimeUnits.Add(unit);
-                        RegisterUnitSlot(unit, team, deployment.CellIndex);
-                    }
+                        UnityEngine.Random.Range(-0.3f, 0.3f));
+                    plans.Add(new SpawnPlan(unitData, team, deployment.CellIndex, position));
                 }
+            }
+        }
+
+        private void SpawnBattleConfig(BattleConfig config)
+        {
+            ReadOnlySpan<SpawnPlan> plans = config.SpawnPlans;
+            for (int i = 0; i < plans.Length; i++)
+            {
+                SpawnPlan plan = plans[i];
+                Transform root = plan.Team == Team.Red ? m_TeamASpawnRoot : m_TeamBSpawnRoot;
+                List<UnitType> runtimeUnits =
+                    plan.Team == Team.Red ? Context.TeamAUnits : Context.TeamBUnits;
+                UnitType unit = PoolManager.Require().Units.Spawn(
+                    plan.UnitData,
+                    root,
+                    (int)plan.Team,
+                    plan.Position,
+                    false);
+                if (unit == null) continue;
+
+                if (unit.AI == null)
+                    Debug.LogError($"[CombatPhase] {plan.UnitData.UnitName} has no runtime AI.");
+
+                unit.SetAIActive(false);
+                runtimeUnits.Add(unit);
+                RegisterUnitSlot(unit, plan.Team, plan.CellIndex);
             }
         }
 

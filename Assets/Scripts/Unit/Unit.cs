@@ -8,7 +8,7 @@ namespace InTheArena.Unit
 {
     /// <summary>
     /// 유닛의 최상위 공개 컴포넌트이자 런타임 상태 소유자입니다.
-    /// 개별 Update 없이 UnitSimulationSystem이 AI, 스킬, 상태효과, 이동을 일괄 갱신합니다.
+    /// 개별 Update 없이 BattleSimulation이 AI, 스킬, 상태효과, 이동을 일괄 갱신합니다.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -62,11 +62,7 @@ namespace InTheArena.Unit
         private UnitStat m_StatModifierDebuffSum;
         private float m_CurrentHp;
         private float m_AttackCooldown;
-        private float m_AttackLockRemaining;
-        private bool m_IsStunned;
         private bool m_IsSilenced;
-        private bool m_IsCastingSkill;
-        private bool m_IsAttacking;
         private bool m_IsInitialized;
         private bool m_IsRegistered;
         private bool m_HoldDeathPresentation;
@@ -76,8 +72,11 @@ namespace InTheArena.Unit
 
         private Vector3 m_MoveTargetPosition;
         private float m_MoveStopDistance;
-        private bool m_IsMoving;
         private Vector3 m_FacingDirection;
+        private Vector3 m_PreviousSimulationPosition;
+        private Vector3 m_SimulationPosition;
+        private readonly UnitActionController m_ActionController = new UnitActionController();
+        private UnitAnimationPresenter m_AnimationPresenter;
 
         private readonly List<StatusEffectRuntime> m_ActiveDataEffects = new List<StatusEffectRuntime>(8);
         private readonly List<SkillRuntime> m_RuntimeSkills = new List<SkillRuntime>(8);
@@ -85,7 +84,7 @@ namespace InTheArena.Unit
         private SkillRuntime m_RuntimeSkill;
         private SkillRuntime m_CastingSkill;
         private float m_CastRemaining;
-        private UnitAI_Base m_RuntimeAI;
+        private UnitDecisionAgent m_RuntimeAI;
 
         private SpriteRenderer m_SourceSpriteRenderer;
         private SpriteRenderer m_BillboardSpriteRenderer;
@@ -109,26 +108,41 @@ namespace InTheArena.Unit
         public int InstanceId => m_InstanceId;
         public int SpawnVersion => m_SpawnVersion;
         public bool IsDead => m_IsInitialized && m_CurrentHp <= 0f;
-        public bool IsStunned => m_IsStunned;
+        public UnitActionState ActionState => m_ActionController.State;
+        public bool IsStunned => m_ActionController.IsStunned;
         public bool IsSilenced => m_IsSilenced;
-        public bool IsCastingSkill => m_IsCastingSkill;
-        public bool IsAttacking => m_IsAttacking;
-        public bool IsMoving => m_IsMoving;
+        public bool IsCastingSkill => m_ActionController.IsCasting;
+        public bool IsAttacking => m_ActionController.IsAttacking;
+        public bool IsMoving => m_ActionController.IsMoving;
         /// <summary>현재 유닛이 바라보는 월드 방향 벡터 (y=0).</summary>
         public Vector3 FacingDirection => m_FacingDirection;
+        public Vector3 SimulationPosition => m_SimulationPosition;
+        public UnitRuntime Runtime => new UnitRuntime(
+            m_InstanceId,
+            m_SpawnVersion,
+            m_Team,
+            m_CurrentHp,
+            m_CurrentStat,
+            m_SimulationPosition,
+            (m_SimulationPosition - m_PreviousSimulationPosition) * 20f,
+            new UnitHandle(m_RuntimeAI?.CurrentTarget),
+            m_ActionController.State,
+            m_AttackCooldown);
         internal bool IsDeathPresentationHeld => m_HoldDeathPresentation;
-        public bool CanAttack => m_IsInitialized && !IsDead && !m_IsStunned &&
-                                 !m_IsCastingSkill && !m_IsAttacking && m_AttackCooldown <= 0f;
+        public bool CanAttack => m_IsInitialized && !IsDead &&
+                                 m_ActionController.CanStartAction && m_AttackCooldown <= 0f;
         public SkillRuntime Skill => m_RuntimeSkill;
         public IReadOnlyList<SkillRuntime> Skills => m_RuntimeSkills;
-        public UnitAI_Base AI => m_RuntimeAI;
+        public UnitDecisionAgent AI => m_RuntimeAI;
         public UI_UnitHPBar HpBar { get; set; }
         public IReadOnlyList<StatusEffectRuntime> ActiveDataEffects => m_ActiveDataEffects;
         public Animator Animator => m_Animator;
         public Rigidbody Rigidbody => m_Rigidbody;
         public Collider Collider => m_Collider;
         public Transform VisualRoot => m_VisualRoot;
-        public Vector3 GroundPosition => m_GroundAnchor != null ? m_GroundAnchor.position : transform.position;
+        public Vector3 GroundPosition => Application.isPlaying && m_IsInitialized
+            ? m_SimulationPosition
+            : m_GroundAnchor != null ? m_GroundAnchor.position : transform.position;
         public Vector3 CastPosition => m_CastAnchor != null ? m_CastAnchor.position : transform.position + Vector3.up * DefaultCastHeight;
         public Vector3 HitPosition => m_HitAnchor != null ? m_HitAnchor.position : transform.position + Vector3.up * DefaultHitHeight;
         internal GameObject PoolSource => m_PoolSource;
@@ -136,6 +150,9 @@ namespace InTheArena.Unit
         private void Awake()
         {
             CacheComponents();
+            m_AnimationPresenter = new UnitAnimationPresenter(m_Animator);
+            m_ActionController.Reset();
+            m_AnimationPresenter.Reset();
             EnsureRuntimeVisualHierarchy();
             m_InstanceId = GetHashCode();
             m_MaterialPropertyBlock = new MaterialPropertyBlock();
@@ -184,12 +201,12 @@ namespace InTheArena.Unit
             m_StatModifierBuffSum = default;
             m_StatModifierDebuffSum = default;
             m_AttackCooldown = 0f;
-            m_AttackLockRemaining = 0f;
-            m_IsStunned = false;
             m_IsSilenced = false;
-            m_IsCastingSkill = false;
-            m_IsAttacking = false;
-            m_IsMoving = false;
+            m_ActionController.Reset();
+            m_AnimationPresenter ??= new UnitAnimationPresenter(m_Animator);
+            m_AnimationPresenter.Reset();
+            m_PreviousSimulationPosition = transform.position;
+            m_SimulationPosition = transform.position;
             m_FacingDirection = transform.forward;
             m_HoldDeathPresentation = false;
             m_CastingSkill = null;
@@ -251,12 +268,19 @@ namespace InTheArena.Unit
             m_PoolSource = source;
         }
 
+        internal void AssignSimulationId(int unitId)
+        {
+            m_InstanceId = unitId;
+        }
+
         internal void PrepareForPool()
         {
             SetAIActive(false);
             ClearDataStatusEffects();
             ResetRuntimeSkills();
             StopMovement();
+            m_ActionController.Reset();
+            m_AnimationPresenter?.Reset();
             m_IsInitialized = false;
             m_CurrentHp = 0f;
             m_HoldDeathPresentation = false;
@@ -295,11 +319,7 @@ namespace InTheArena.Unit
             if (!m_IsInitialized || IsDead) return;
 
             if (m_AttackCooldown > 0f) m_AttackCooldown = Mathf.Max(0f, m_AttackCooldown - deltaTime);
-            if (m_AttackLockRemaining > 0f)
-            {
-                m_AttackLockRemaining -= deltaTime;
-                if (m_AttackLockRemaining <= 0f) m_IsAttacking = false;
-            }
+            m_ActionController.Tick(deltaTime);
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
                 m_RuntimeSkills[i]?.Tick(deltaTime);
@@ -307,12 +327,22 @@ namespace InTheArena.Unit
             UpdateCasting(deltaTime);
             UpdateDataStatusEffects(deltaTime);
             m_RuntimeAI?.UpdateAI(deltaTime);
+            m_PreviousSimulationPosition = m_SimulationPosition;
+            UpdateMovement(deltaTime);
         }
 
-        internal void SimulationFrame(float deltaTime)
+        internal void SimulationFrame(float deltaTime, float interpolationAlpha)
         {
             if (!m_IsInitialized || IsDead) return;
-            UpdateMovement(deltaTime);
+            Vector3 previousPosition = transform.position;
+            transform.position = Vector3.Lerp(
+                m_PreviousSimulationPosition,
+                m_SimulationPosition,
+                Mathf.Clamp01(interpolationAlpha));
+            float actualSpeed = deltaTime > 0f
+                ? Vector3.Distance(previousPosition, transform.position) / deltaTime
+                : 0f;
+            m_AnimationPresenter?.SetActualSpeed(actualSpeed);
             UpdateFacingDirection();
 
             if (m_HitFlashRemaining > 0f)
@@ -452,7 +482,6 @@ namespace InTheArena.Unit
 
             OnHealed?.Invoke(actual, context.Source.Unit);
             OnHpChanged?.Invoke(m_CurrentHp, MaxHp);
-            m_Animator?.SetTrigger("Heal");
             if (Application.isPlaying) UnitHpBarPresenter.NotifyDamaged(this);
             return actual;
         }
@@ -463,11 +492,12 @@ namespace InTheArena.Unit
             ClearDataStatusEffects();
             m_RuntimeAI?.Deactivate();
             StopMovement();
+            m_ActionController.MarkDead();
             if (m_Collider != null) m_Collider.enabled = false;
             UnitRegistry.NotifyDeath(this);
             OnDied?.Invoke(killer);
             PlayClip(m_DeathSound);
-            m_Animator?.SetTrigger("Die");
+            m_AnimationPresenter?.PlayDeath();
             if (!m_HoldDeathPresentation) gameObject.SetActive(false);
         }
 
@@ -487,20 +517,20 @@ namespace InTheArena.Unit
         public bool TryAttack(Unit target)
         {
             if (!CanAttack || target == null || target.IsDead || target.Team == Team) return false;
+            if (!m_ActionController.TryBeginAttack(AttackAnimationLock)) return false;
 
             BasicAttackData attackData = m_UnitData != null ? m_UnitData.BasicAttackData : null;
             if (attackData == null || !attackData.TryExecute(this, target))
             {
+                m_ActionController.Tick(AttackAnimationLock);
                 m_AttackCooldown = attackData != null
                     ? attackData.FailureRetryDelay
                     : 0.25f;
                 return false;
             }
 
-            m_IsAttacking = true;
             m_AttackCooldown = AttackInterval;
-            m_AttackLockRemaining = AttackAnimationLock;
-            m_Animator?.SetTrigger("Attack");
+            m_AnimationPresenter?.PlayAttack();
             PlayClip(m_AttackSound);
             OnAttack?.Invoke(target);
             return true;
@@ -532,7 +562,7 @@ namespace InTheArena.Unit
 
         public bool TryUseSkill(in SkillUseRequest request)
         {
-            if (m_IsSilenced || m_IsStunned || m_IsCastingSkill || IsDead) return false;
+            if (m_IsSilenced || IsDead || !m_ActionController.CanStartAction) return false;
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
             {
@@ -553,7 +583,8 @@ namespace InTheArena.Unit
 
         private bool UseSkill(SkillRuntime skill, in SkillUseRequest request)
         {
-            if (skill == null || !skill.CanUse || m_IsSilenced || m_IsCastingSkill || IsDead || m_IsStunned)
+            if (skill == null || !skill.CanUse || m_IsSilenced || IsDead ||
+                !m_ActionController.CanStartAction)
                 return false;
             if (!skill.TryResolve(request, m_CastingTargets)) return false;
             BeginCast(skill);
@@ -562,19 +593,18 @@ namespace InTheArena.Unit
 
         private void BeginCast(SkillRuntime skill)
         {
-            m_IsCastingSkill = true;
-            m_IsAttacking = false;
+            if (!m_ActionController.TryBeginCast(skill.Data.CastTime)) return;
             m_CastingSkill = skill;
             m_CastRemaining = skill.Data.CastTime;
-            m_Animator?.SetTrigger("CastSkill");
+            m_AnimationPresenter?.PlayCast();
             OnSkillCastStart?.Invoke(skill);
             if (m_CastRemaining <= 0f) CompleteCast();
         }
 
         private void UpdateCasting(float deltaTime)
         {
-            if (!m_IsCastingSkill || m_CastingSkill == null) return;
-            if (m_IsStunned || IsDead)
+            if (!IsCastingSkill || m_CastingSkill == null) return;
+            if (IsStunned || IsDead)
             {
                 CancelCast();
                 return;
@@ -587,7 +617,7 @@ namespace InTheArena.Unit
         private void CompleteCast()
         {
             SkillRuntime skill = m_CastingSkill;
-            m_IsCastingSkill = false;
+            m_ActionController.CompleteCast();
             m_CastingSkill = null;
             m_CastRemaining = 0f;
 
@@ -603,7 +633,7 @@ namespace InTheArena.Unit
 
         private void CancelCast()
         {
-            m_IsCastingSkill = false;
+            m_ActionController.CompleteCast();
             m_CastingSkill = null;
             m_CastRemaining = 0f;
             m_CastingTargets.Clear();
@@ -661,15 +691,13 @@ namespace InTheArena.Unit
                 stunned |= effect.GrantsStun;
                 silenced |= effect.GrantsSilence;
             }
-            bool becameStunned = !m_IsStunned && stunned;
-            m_IsStunned = stunned;
+            bool becameStunned = !IsStunned && stunned;
             m_IsSilenced = silenced;
-            m_Animator?.SetBool("Stunned", stunned);
             if (becameStunned)
             {
                 StopMovement();
-                m_IsAttacking = false;
             }
+            m_ActionController.SetStunned(stunned);
             if (stunned || silenced) CancelCast();
         }
 
@@ -691,21 +719,19 @@ namespace InTheArena.Unit
 
         public void MoveTo(Vector3 targetPosition, float stopDistance = 0f)
         {
-            if (IsDead || m_IsStunned) return;
-            targetPosition.y = transform.position.y;
-            bool wasMoving = m_IsMoving;
+            if (IsDead || IsStunned) return;
+            targetPosition.y = m_SimulationPosition.y;
+            bool wasMoving = IsMoving;
             m_MoveTargetPosition = targetPosition;
             m_MoveStopDistance = Mathf.Max(0f, stopDistance);
-            m_IsMoving = true;
-            m_Animator?.SetBool("IsMoving", true);
-            if (!wasMoving) OnMoveStart?.Invoke();
+            m_ActionController.SetMoveIntent(true);
+            if (!wasMoving && IsMoving) OnMoveStart?.Invoke();
         }
 
         public void StopMovement()
         {
-            if (!m_IsMoving) return;
-            m_IsMoving = false;
-            m_Animator?.SetBool("IsMoving", false);
+            if (!IsMoving) return;
+            m_ActionController.SetMoveIntent(false);
             if (m_Rigidbody != null && !m_Rigidbody.isKinematic)
             {
                 m_Rigidbody.linearVelocity = Vector3.zero;
@@ -715,9 +741,9 @@ namespace InTheArena.Unit
 
         private void UpdateMovement(float deltaTime)
         {
-            if (!m_IsMoving || m_CurrentStat.moveSpeed <= 0f) return;
+            if (!IsMoving || m_CurrentStat.moveSpeed <= 0f) return;
 
-            Vector3 current = transform.position;
+            Vector3 current = m_SimulationPosition;
             Vector3 delta = m_MoveTargetPosition - current;
             delta.y = 0f;
             float stopDistance = m_MoveStopDistance;
@@ -733,7 +759,7 @@ namespace InTheArena.Unit
                 (m_UnitData?.VisualRadius ?? 0.5f) * 2f);
             direction = Vector3.Normalize(direction + separation * 0.35f);
             float distance = Mathf.Min(delta.magnitude - stopDistance, m_CurrentStat.moveSpeed * deltaTime);
-            transform.position = current + direction * Mathf.Max(0f, distance);
+            m_SimulationPosition = current + direction * Mathf.Max(0f, distance);
 
             if (direction.sqrMagnitude > 0.0001f)
             {
@@ -848,7 +874,7 @@ namespace InTheArena.Unit
                         (isCritical ? SkillEventFlags.Critical : SkillEventFlags.None) |
                         (isReaction ? SkillEventFlags.Reaction : SkillEventFlags.None)
             };
-            UnitSimulationSystem.EnqueueSkillEvent(in context);
+            BattleSimulation.EnqueueSkillEvent(in context);
         }
 
         private void SetupComponents()
@@ -951,7 +977,8 @@ namespace InTheArena.Unit
                 renderer.SetPropertyBlock(m_MaterialPropertyBlock);
             }
             PlayClip(m_HitSound);
-            m_Animator?.SetTrigger("Hit");
+            if (!IsAttacking && !IsCastingSkill)
+                m_AnimationPresenter?.PlayHit();
         }
 
         private void ResetMaterialFlash()
@@ -972,7 +999,7 @@ namespace InTheArena.Unit
         /// </summary>
         private void UpdateFacingDirection()
         {
-            if (m_IsMoving)
+            if (IsMoving)
             {
                 // 이동 중이면 이동 방향으로 facing (UpdateMovement에서 이미 갱신됨)
                 return;
@@ -1006,14 +1033,14 @@ namespace InTheArena.Unit
         private void RegisterRuntime()
         {
             if (m_IsRegistered || !m_IsInitialized || IsDead) return;
-            UnitSimulationSystem.Register(this);
+            BattleSimulation.Register(this);
             m_IsRegistered = true;
         }
 
         private void UnregisterRuntime()
         {
             if (!m_IsRegistered) return;
-            UnitSimulationSystem.Unregister(this);
+            BattleSimulation.Unregister(this);
             m_IsRegistered = false;
         }
 

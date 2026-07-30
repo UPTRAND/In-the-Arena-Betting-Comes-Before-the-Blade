@@ -13,11 +13,19 @@ namespace InTheArena.Unit
         private const int InitialCapacity = 108;
         private static readonly List<Unit> RedUnits = new List<Unit>(InitialCapacity);
         private static readonly List<Unit> BlueUnits = new List<Unit>(InitialCapacity);
+        private static readonly UnitSpatialIndex SpatialIndex = new UnitSpatialIndex();
+        private static bool s_SpatialIndexReady;
 
         public static IReadOnlyList<Unit> RedTeam => RedUnits;
         public static IReadOnlyList<Unit> BlueTeam => BlueUnits;
         public static int RedAliveCount { get; private set; }
         public static int BlueAliveCount { get; private set; }
+
+        public static void RebuildSpatialIndex()
+        {
+            SpatialIndex.Rebuild(RedUnits, BlueUnits);
+            s_SpatialIndexReady = true;
+        }
 
         public static void Register(Unit unit)
         {
@@ -27,6 +35,7 @@ namespace InTheArena.Unit
             if (team.Contains(unit)) return;
 
             team.Add(unit);
+            s_SpatialIndexReady = false;
             if (!unit.IsDead)
             {
                 if (unit.Team == 0) RedAliveCount++;
@@ -40,6 +49,9 @@ namespace InTheArena.Unit
 
             List<Unit> team = unit.Team == 0 ? RedUnits : BlueUnits;
             if (!team.Remove(unit)) return;
+            s_SpatialIndexReady = false;
+            EngagementSlotSystem.Release(unit);
+            EngagementSlotSystem.ReleaseTarget(unit);
 
             if (!unit.IsDead)
             {
@@ -51,6 +63,8 @@ namespace InTheArena.Unit
         public static void NotifyDeath(Unit unit)
         {
             if (unit == null) return;
+            EngagementSlotSystem.Release(unit);
+            EngagementSlotSystem.ReleaseTarget(unit);
             if (unit.Team == 0) RedAliveCount = Mathf.Max(0, RedAliveCount - 1);
             else BlueAliveCount = Mathf.Max(0, BlueAliveCount - 1);
         }
@@ -61,6 +75,14 @@ namespace InTheArena.Unit
             float maxDistance)
         {
             if (owner == null) return null;
+            if (!s_SpatialIndexReady) RebuildSpatialIndex();
+
+            if (priority == TargetPriorityType.Nearest ||
+                priority == TargetPriorityType.HighestThreat)
+            {
+                Unit spatialTarget = SpatialIndex.FindNearestEnemy(owner, maxDistance);
+                if (spatialTarget != null) return spatialTarget;
+            }
 
             List<Unit> enemies = owner.Team == 0 ? BlueUnits : RedUnits;
             Unit best = null;
@@ -110,28 +132,21 @@ namespace InTheArena.Unit
         public static Vector3 CalculateSeparation(Unit owner, float radius)
         {
             if (owner == null || radius <= 0f) return Vector3.zero;
+            if (!s_SpatialIndexReady) RebuildSpatialIndex();
+            return SpatialIndex.CalculateSeparation(owner, radius);
+        }
 
-            List<Unit> team = owner.Team == 0 ? RedUnits : BlueUnits;
-            Vector3 result = Vector3.zero;
-            Vector3 origin = owner.transform.position;
-            float radiusSqr = radius * radius;
+        public static Vector3 GetEngagementPosition(Unit owner, Unit target)
+            => EngagementSlotSystem.GetPosition(owner, target);
 
-            for (int i = 0; i < team.Count; i++)
-            {
-                Unit other = team[i];
-                if (other == null || other == owner || other.IsDead || !other.gameObject.activeInHierarchy)
-                    continue;
-
-                Vector3 delta = origin - other.transform.position;
-                delta.y = 0f;
-                float sqr = delta.sqrMagnitude;
-                if (sqr <= 0.0001f || sqr >= radiusSqr) continue;
-
-                float distance = Mathf.Sqrt(sqr);
-                result += delta / distance * (1f - distance / radius);
-            }
-
-            return Vector3.ClampMagnitude(result, 1f);
+        public static int CollectEnemiesInRadius(
+            int sourceTeam,
+            Vector3 position,
+            float radius,
+            Unit[] output)
+        {
+            if (!s_SpatialIndexReady) RebuildSpatialIndex();
+            return SpatialIndex.CollectEnemiesInRadius(sourceTeam, position, radius, output);
         }
 
         public static bool TryCalculateLivingBounds(float visualRadius, out Bounds bounds)
@@ -175,6 +190,9 @@ namespace InTheArena.Unit
             BlueUnits.Clear();
             RedAliveCount = 0;
             BlueAliveCount = 0;
+            SpatialIndex.Rebuild(RedUnits, BlueUnits);
+            s_SpatialIndexReady = true;
+            EngagementSlotSystem.Clear();
         }
     }
 
@@ -182,28 +200,36 @@ namespace InTheArena.Unit
     /// 유닛별 Update를 대체하는 단일 전투 스케줄러입니다.
     /// </summary>
     [DefaultExecutionOrder(100)]
-    public sealed class UnitSimulationSystem : MonoBehaviour
+    public sealed class BattleSimulation : MonoBehaviour
     {
         private const float SimulationStep = 1f / 20f;
         private const int InitialCapacity = 108;
-        private static UnitSimulationSystem s_Instance;
+        private const int EventCapacity = 2048;
+        private static BattleSimulation s_Instance;
+        private static int s_NextUnitId;
         private readonly List<Unit> m_Units = new List<Unit>(InitialCapacity);
-        private readonly SkillTriggerContext[] m_EventQueue = new SkillTriggerContext[256];
+        private readonly SkillTriggerContext[] m_EventQueue = new SkillTriggerContext[EventCapacity];
+        private int m_EventHead;
+        private int m_EventTail;
         private int m_EventCount;
         private float m_Accumulator;
 
-        public static UnitSimulationSystem EnsureExists()
+        public static int PeakEventCount { get; private set; }
+        public static int EventOverflowCount { get; private set; }
+
+        public static BattleSimulation EnsureExists()
         {
             if (s_Instance != null) return s_Instance;
 
-            var gameObject = new GameObject("[UnitRuntime]");
-            s_Instance = gameObject.AddComponent<UnitSimulationSystem>();
+            var gameObject = new GameObject("[BattleSimulation]");
+            s_Instance = gameObject.AddComponent<BattleSimulation>();
             return s_Instance;
         }
 
         public static void Register(Unit unit)
         {
-            UnitSimulationSystem system = EnsureExists();
+            BattleSimulation system = EnsureExists();
+            unit.AssignSimulationId(++s_NextUnitId);
             if (!system.m_Units.Contains(unit)) system.m_Units.Add(unit);
             UnitRegistry.Register(unit);
         }
@@ -216,13 +242,18 @@ namespace InTheArena.Unit
 
         public static void EnqueueSkillEvent(in SkillTriggerContext context)
         {
-            UnitSimulationSystem system = EnsureExists();
+            BattleSimulation system = EnsureExists();
             if (system.m_EventCount >= system.m_EventQueue.Length)
             {
-                Debug.LogWarning("[UnitSimulationSystem] 스킬 이벤트 큐가 가득 차 이벤트를 폐기했습니다.");
+                EventOverflowCount++;
+                Unit receiver = context.Receiver.Unit;
+                receiver?.DispatchSkillTrigger(context);
                 return;
             }
-            system.m_EventQueue[system.m_EventCount++] = context;
+            system.m_EventQueue[system.m_EventTail] = context;
+            system.m_EventTail = (system.m_EventTail + 1) % system.m_EventQueue.Length;
+            system.m_EventCount++;
+            PeakEventCount = Mathf.Max(PeakEventCount, system.m_EventCount);
         }
 
         private void Awake()
@@ -245,6 +276,7 @@ namespace InTheArena.Unit
 
             while (m_Accumulator >= SimulationStep)
             {
+                UnitRegistry.RebuildSpatialIndex();
                 for (int i = m_Units.Count - 1; i >= 0; i--)
                 {
                     Unit unit = m_Units[i];
@@ -264,7 +296,7 @@ namespace InTheArena.Unit
             {
                 Unit unit = m_Units[i];
                 if (unit != null && unit.gameObject.activeInHierarchy)
-                    unit.SimulationFrame(deltaTime);
+                    unit.SimulationFrame(deltaTime, m_Accumulator / SimulationStep);
             }
 
             PoolManager.Instance?.Projectiles?.SimulationFrame(deltaTime);
@@ -272,15 +304,15 @@ namespace InTheArena.Unit
 
         private void DrainSkillEvents()
         {
-            int index = 0;
-            while (index < m_EventCount)
+            while (m_EventCount > 0)
             {
-                SkillTriggerContext context = m_EventQueue[index];
-                m_EventQueue[index++] = default;
+                SkillTriggerContext context = m_EventQueue[m_EventHead];
+                m_EventQueue[m_EventHead] = default;
+                m_EventHead = (m_EventHead + 1) % m_EventQueue.Length;
+                m_EventCount--;
                 Unit receiver = context.Receiver.Unit;
                 receiver?.DispatchSkillTrigger(context);
             }
-            m_EventCount = 0;
         }
 
         private void LateUpdate()
@@ -304,7 +336,12 @@ namespace InTheArena.Unit
             if (s_Instance == this)
             {
                 s_Instance = null;
+                m_EventHead = 0;
+                m_EventTail = 0;
                 m_EventCount = 0;
+                PeakEventCount = 0;
+                EventOverflowCount = 0;
+                s_NextUnitId = 0;
                 UnitRegistry.Clear();
                 PoolManager.Instance?.ClearStage();
             }

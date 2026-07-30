@@ -54,7 +54,7 @@ namespace InTheArena.Unit
                         Position = attacker.GroundPosition,
                         Flags = SkillEventFlags.Skill | SkillEventFlags.Reaction
                     };
-                    UnitSimulationSystem.EnqueueSkillEvent(in attackEvent);
+                    BattleSimulation.EnqueueSkillEvent(in attackEvent);
                 }
                 else runtime.DelayRetry();
             }

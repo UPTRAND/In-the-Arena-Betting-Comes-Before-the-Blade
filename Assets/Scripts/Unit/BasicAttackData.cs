@@ -133,6 +133,7 @@ namespace InTheArena.Unit
     [Serializable]
     public sealed class AreaDamageAttackEffect : AttackImpactEffectDefinition
     {
+        private static readonly Unit[] CandidateBuffer = new Unit[UnitSpatialIndex.MaxUnits];
         [SerializeField, Min(0.01f)] private float m_Radius = 1.5f;
         [SerializeField, Min(0f)] private float m_DamageMultiplier = 0.5f;
         [SerializeField] private bool m_UseDistanceFalloff = true;
@@ -144,13 +145,16 @@ namespace InTheArena.Unit
             float radius = Mathf.Max(0.01f, m_Radius);
             float radiusSqr = radius * radius;
             bool applied = false;
-            IReadOnlyList<Unit> enemies = context.Payload.SourceTeam == 0
-                ? UnitRegistry.BlueTeam
-                : UnitRegistry.RedTeam;
+            int candidateCount = UnitRegistry.CollectEnemiesInRadius(
+                context.Payload.SourceTeam,
+                context.ImpactPosition,
+                radius,
+                CandidateBuffer);
 
-            for (int i = 0; i < enemies.Count; i++)
+            for (int i = 0; i < candidateCount; i++)
             {
-                Unit candidate = enemies[i];
+                Unit candidate = CandidateBuffer[i];
+                CandidateBuffer[i] = null;
                 if (candidate == null || candidate.IsDead ||
                     m_ExcludePrimaryTarget && candidate == context.PrimaryTarget)
                     continue;

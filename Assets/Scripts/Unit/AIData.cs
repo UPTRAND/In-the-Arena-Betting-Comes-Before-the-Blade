@@ -1,87 +1,51 @@
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine;
-using MackySoft.SerializeReferenceExtensions;
 
 namespace InTheArena.Unit
 {
-    /// <summary>
-    /// AI 데이터 ScriptableObject
-    /// AI 설정(탐색 주기, 타겟 우선순위 등)과 로직(UnitAI_Base 구현체)을 함께 관리
-    /// </summary>
     [CreateAssetMenu(fileName = "AIData_", menuName = "In The Arena/Unit/AI Data", order = 10)]
-    public class AIData : ScriptableObject
+    public sealed class AIData : ScriptableObject
     {
-        [Header("AI 기본 설정")]
-        [Tooltip("AI 이름")]
+        [Header("Identity")]
         [SerializeField] private string m_AIName = "Default AI";
+        [SerializeField, TextArea(2, 4)] private string m_Description;
 
-        [Tooltip("AI 설명")]
-        [SerializeField] [TextArea(2, 4)] private string m_Description;
+        [Header("Decision Settings")]
+        [SerializeField, Min(0f)] private float m_SearchInterval = 0.5f;
+        [SerializeField] private TargetPriorityType m_TargetPriority = TargetPriorityType.Nearest;
+        [SerializeField, Min(0f)] private float m_MaxSearchDistance;
+        [SerializeField, Range(0f, 1f)] private float m_AttackStopDistanceRatio = 0.9f;
+        [SerializeField, Min(0f)] private float m_InitialSearchDelay = 0.1f;
 
-        [Header("AI 로직")]
-        [Tooltip("실제 AI 동작을 구현한 UnitAI_Base 상속 클래스")]
-        [SerializeReference, SubclassSelector]
-        private UnitAI_Base m_AILogic;
-
-        /// <summary> AI 이름 </summary>
         public string AIName => m_AIName;
-
-        /// <summary> AI 설명 </summary>
         public string Description => m_Description;
+        public float SearchInterval => Mathf.Max(0f, m_SearchInterval);
+        public TargetPriorityType TargetPriority => m_TargetPriority;
+        public float MaxSearchDistance => Mathf.Max(0f, m_MaxSearchDistance);
+        public float AttackStopDistanceRatio => Mathf.Clamp01(m_AttackStopDistanceRatio);
+        public float InitialSearchDelay => Mathf.Max(0f, m_InitialSearchDelay);
 
-        /// <summary> AI 로직 </summary>
-        public UnitAI_Base AILogic => m_AILogic;
-
-        /// <summary>
-        /// 런타임용 AI 로직 인스턴스 생성 (Initialize는 호출자에서 수행)
-        /// </summary>
-        public UnitAI_Base CreateRuntimeAI()
+        public UnitDecisionAgent CreateAndInitializeRuntimeAI(Unit owner)
         {
-            if (m_AILogic == null) return null;
-
-            var runtimeAI = m_AILogic.Clone();
-            return runtimeAI;
+            var agent = new UnitDecisionAgent(this);
+            agent.Initialize(owner);
+            return agent;
         }
 
-        /// <summary>
-        /// 런타임용 AI 로직 인스턴스 생성 및 초기화 (편의 메서드)
-        /// </summary>
-        public UnitAI_Base CreateAndInitializeRuntimeAI(Unit owner)
-        {
-            var ai = CreateRuntimeAI();
-            if (ai != null)
-            {
-                ai.Initialize(owner);
-            }
-            return ai;
-        }
-
-        /// <summary>
-        /// 데이터 유효성 검사
-        /// </summary>
         public bool IsValid()
         {
-            bool isValid = true;
-
-            if (string.IsNullOrEmpty(m_AIName))
-            {
-                Debug.LogError($"[AIData] {name}: AI 이름이 비어있습니다.");
-                isValid = false;
-            }
-
-            if (m_AILogic == null)
-            {
-                Debug.LogError($"[AIData] {name}: AI 로직이 할당되지 않았습니다.");
-                isValid = false;
-            }
-
-            return isValid;
+            if (!string.IsNullOrWhiteSpace(m_AIName)) return true;
+            Debug.LogError($"[AIData] {name}: AI name is empty.", this);
+            return false;
         }
 
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            IsValid();
+            m_SearchInterval = Mathf.Max(0f, m_SearchInterval);
+            m_MaxSearchDistance = Mathf.Max(0f, m_MaxSearchDistance);
+            m_AttackStopDistanceRatio = Mathf.Clamp01(m_AttackStopDistanceRatio);
+            m_InitialSearchDelay = Mathf.Max(0f, m_InitialSearchDelay);
         }
 #endif
     }

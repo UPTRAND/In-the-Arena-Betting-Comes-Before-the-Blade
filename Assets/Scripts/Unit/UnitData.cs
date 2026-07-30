@@ -75,20 +75,17 @@ namespace InTheArena.Unit
         public float VisualRadius => Mathf.Max(0.1f, m_VisualRadius);
 
         /// <summary> AI 로직 (런타임용) </summary>
-        public UnitAI_Base AI => m_AIData?.AILogic;
+        public AIData AI => m_AIData;
 
         /// <summary>
         /// 런타임용 AI 인스턴스 생성 및 초기화
         /// </summary>
-        public UnitAI_Base CreateRuntimeAI(Unit owner = null)
+        public UnitDecisionAgent CreateRuntimeAI(Unit owner = null)
         {
             if (m_AIData == null) return null;
 
-            var ai = m_AIData.CreateRuntimeAI();
-            if (ai != null && owner != null)
-            {
-                ai.Initialize(owner);
-            }
+            var ai = new UnitDecisionAgent(m_AIData);
+            if (owner != null) ai.Initialize(owner);
             return ai;
         }
 
