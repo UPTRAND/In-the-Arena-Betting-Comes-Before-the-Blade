@@ -44,6 +44,7 @@ namespace InTheArena.Unit
         [SerializeField] private Transform m_GroundAnchor;
         [SerializeField] private Transform m_CastAnchor;
         [SerializeField] private Transform m_HitAnchor;
+        [SerializeField] private Sprite[] m_RedTeamSprites = Array.Empty<Sprite>();
 
         [Header("시각 효과")]
         [SerializeField] private Material m_HitFlashMaterial;
@@ -360,7 +361,7 @@ namespace InTheArena.Unit
             if (m_SourceSpriteRenderer != null && m_BillboardSpriteRenderer != null &&
                 m_SourceSpriteRenderer != m_BillboardSpriteRenderer)
             {
-                m_BillboardSpriteRenderer.sprite = m_SourceSpriteRenderer.sprite;
+                m_BillboardSpriteRenderer.sprite = ResolveTeamSprite(m_SourceSpriteRenderer.sprite);
                 m_BillboardSpriteRenderer.color = m_SourceSpriteRenderer.color;
                 m_BillboardSpriteRenderer.flipY = m_SourceSpriteRenderer.flipY;
                 m_BillboardSpriteRenderer.enabled = m_SourceSpriteRenderer.gameObject.activeInHierarchy;
@@ -378,6 +379,26 @@ namespace InTheArena.Unit
                 bool facingLeft = Vector3.Dot(m_FacingDirection, cameraRight) < 0f;
                 m_BillboardSpriteRenderer.flipX = facingLeft;
             }
+        }
+
+        private Sprite ResolveTeamSprite(Sprite source)
+        {
+            if (m_Team != 0 || source == null || m_RedTeamSprites == null) return source;
+
+            string spriteName = source.name;
+            int separator = spriteName.LastIndexOf('_');
+            if (separator < 0 || separator == spriteName.Length - 1) return source;
+
+            int frameIndex = 0;
+            for (int i = separator + 1; i < spriteName.Length; i++)
+            {
+                int digit = spriteName[i] - '0';
+                if ((uint)digit > 9u) return source;
+                frameIndex = frameIndex * 10 + digit;
+            }
+
+            if ((uint)frameIndex >= (uint)m_RedTeamSprites.Length) return source;
+            return m_RedTeamSprites[frameIndex] != null ? m_RedTeamSprites[frameIndex] : source;
         }
 
         public float ApplyDamage(float damage, Unit attacker = null, bool isCritical = false, bool isSkillDamage = false)

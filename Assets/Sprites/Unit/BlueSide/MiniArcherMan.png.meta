@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 6a940757f130ab147bc818ddaa16b1bc
+guid: c369170da1065fe42acbac852ae4af84
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,10 +110,32 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: MiniShieldMan_Idle_0
+      name: MiniArcherMan_0
       rect:
         serializedVersion: 2
-        x: 4
+        x: 6
+        y: 193
+        width: 23
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4464cd21cbf036545885888645804666
+      internalID: -86967063
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_1
+      rect:
+        serializedVersion: 2
+        x: 37
         y: 193
         width: 24
         height: 24
@@ -125,17 +147,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2872f29743b3b944d89e74d295c1fd22
-      internalID: 48037446
+      spriteID: e6fbd4e927b49ca489564cebe8094fad
+      internalID: -1162813518
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Idle_1
+      name: MiniArcherMan_2
       rect:
         serializedVersion: 2
-        x: 36
+        x: 69
         y: 193
         width: 24
         height: 24
@@ -147,17 +169,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 0637bcfd29e251541a2accb5c01f9970
-      internalID: 1401908707
+      spriteID: 37ed3ac20a6580048ae374e7ea4290ff
+      internalID: 1878445929
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Idle_2
+      name: MiniArcherMan_3
       rect:
         serializedVersion: 2
-        x: 68
+        x: 101
         y: 193
         width: 24
         height: 24
@@ -169,39 +191,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fabd34ca8b2319a41a537d0d3cbf3498
-      internalID: 740956645
+      spriteID: a73cf36da8aa0db4490ade7eccf976e4
+      internalID: 119245968
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Idle_3
+      name: MiniArcherMan_4
       rect:
         serializedVersion: 2
-        x: 100
-        y: 193
-        width: 24
-        height: 24
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 0f9217b8ce033584b898ac7d7423ac68
-      internalID: -640537668
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: MiniShieldMan_Walk_0
-      rect:
-        serializedVersion: 2
-        x: 4
+        x: 5
         y: 161
         width: 24
         height: 24
@@ -213,17 +213,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3fe51157bd98fb24c98a8ad853d175d3
-      internalID: 1344564277
+      spriteID: 11ac1b58961434f4eb177294a12169e1
+      internalID: 1546261064
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Walk_1
+      name: MiniArcherMan_5
       rect:
         serializedVersion: 2
-        x: 36
+        x: 37
         y: 161
         width: 24
         height: 24
@@ -235,17 +235,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fa878a28af310a04a8e9df2c6c4b3b26
-      internalID: -565563195
+      spriteID: 3fae72e53562ef94683c6b25b597c96d
+      internalID: -1671457327
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Walk_2
+      name: MiniArcherMan_6
       rect:
         serializedVersion: 2
-        x: 68
+        x: 69
         y: 161
         width: 24
         height: 24
@@ -257,17 +257,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 21011974d7775e64cb2816394a79c165
-      internalID: -61425265
+      spriteID: 7fa434cd1c017684b8e89400e38fca32
+      internalID: -2141431925
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Walk_3
+      name: MiniArcherMan_7
       rect:
         serializedVersion: 2
-        x: 100
+        x: 101
         y: 161
         width: 24
         height: 24
@@ -279,17 +279,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 01c1e050951f3884ca93126a6984ff03
-      internalID: -1990077421
+      spriteID: b8b76fc67c314e242be0906ff01a5d69
+      internalID: 1231908701
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Walk_4
+      name: MiniArcherMan_8
       rect:
         serializedVersion: 2
-        x: 132
+        x: 133
         y: 161
         width: 24
         height: 24
@@ -301,17 +301,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 06d7ae708a4df8e45b751cb5c343c87d
-      internalID: -1865685051
+      spriteID: a124e2c19b4895d41a90edd21a926f30
+      internalID: -1829634089
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Walk_5
+      name: MiniArcherMan_9
       rect:
         serializedVersion: 2
-        x: 164
+        x: 165
         y: 161
         width: 24
         height: 24
@@ -323,17 +323,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 99709f2dfb942c34a826e3c136da0d30
-      internalID: -1584394821
+      spriteID: 3f483f0b9991d2c4a972512c5c42d667
+      internalID: -1311573575
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Jump_0
+      name: MiniArcherMan_10
       rect:
         serializedVersion: 2
-        x: 4
+        x: 5
         y: 129
         width: 24
         height: 24
@@ -345,17 +345,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7ffb9f954810cee4fa7c5df8bc0dabcf
-      internalID: -319951177
+      spriteID: 6de6a28d62a447d4cb4109ec9b050585
+      internalID: -146446739
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Jump_1
+      name: MiniArcherMan_11
       rect:
         serializedVersion: 2
-        x: 36
+        x: 37
         y: 129
         width: 24
         height: 24
@@ -367,17 +367,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c80db1d89e7a1e34c80739558e259305
-      internalID: -1001022415
+      spriteID: 6ae7f6f6ccf4e4047b93382e7378909f
+      internalID: 97274782
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Jump_2
+      name: MiniArcherMan_12
       rect:
         serializedVersion: 2
-        x: 68
+        x: 69
         y: 129
         width: 24
         height: 24
@@ -389,17 +389,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4758590e605d76c4d985b1e6494fda1e
-      internalID: -1528927825
+      spriteID: 672fb50b86e51a44bbdaf01fed101720
+      internalID: 1546052031
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_0
+      name: MiniArcherMan_13
       rect:
         serializedVersion: 2
-        x: 4
+        x: 5
         y: 97
         width: 24
         height: 24
@@ -411,17 +411,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e243fe7180ef75a42acac683f70614bf
-      internalID: -1075793557
+      spriteID: 16e7fd77bf11f204088674b24f590388
+      internalID: -1239390606
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_1
+      name: MiniArcherMan_14
       rect:
         serializedVersion: 2
-        x: 33
+        x: 37
         y: 97
         width: 24
         height: 24
@@ -433,14 +433,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f62852ad8a38c28499b00c013444fa65
-      internalID: 415669597
+      spriteID: 42549d13682367c408fc92f4125958ac
+      internalID: 1036970115
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_2
+      name: MiniArcherMan_15
       rect:
         serializedVersion: 2
         x: 69
@@ -455,17 +455,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4cb236513fffb984db24596f1acea0ac
-      internalID: -1296178289
+      spriteID: 5c13a2542c978264494e5c82f6b47b31
+      internalID: -1318929608
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_3
+      name: MiniArcherMan_16
       rect:
         serializedVersion: 2
-        x: 100
+        x: 101
         y: 97
         width: 24
         height: 24
@@ -477,17 +477,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6e2f29ffde570f24a8e2882147643aa4
-      internalID: 2078275453
+      spriteID: 308cc7ea043927545900ccdb6e24aeed
+      internalID: -15396816
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_4
+      name: MiniArcherMan_17
       rect:
         serializedVersion: 2
-        x: 132
+        x: 133
         y: 97
         width: 24
         height: 24
@@ -499,17 +499,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 1479ce98b397a6c499b1a0521690e70f
-      internalID: -388837542
+      spriteID: 9f57565abbfdeb74fbdf118930dbcb32
+      internalID: 359712742
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Attack_5
+      name: MiniArcherMan_18
       rect:
         serializedVersion: 2
-        x: 164
+        x: 165
         y: 97
         width: 24
         height: 24
@@ -521,17 +521,127 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 0456179ae18d5c248bfd506a5816ab8d
-      internalID: 1981537507
+      spriteID: 9326b81990b698447a979839aab5158c
+      internalID: -1300914379
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_0
+      name: MiniArcherMan_19
       rect:
         serializedVersion: 2
-        x: 4
+        x: 197
+        y: 97
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 55d448fd10658d24faa768a061e0060f
+      internalID: 432396709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_20
+      rect:
+        serializedVersion: 2
+        x: 229
+        y: 97
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c9e2e1ccc3f12ff48afe06c6efaa02e7
+      internalID: -128611034
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_21
+      rect:
+        serializedVersion: 2
+        x: 261
+        y: 97
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a5ad98c3c0398ac4cbd3a75344e04291
+      internalID: 838119478
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_22
+      rect:
+        serializedVersion: 2
+        x: 293
+        y: 97
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b688a1564fdf6e149baaa5d7cba1f98c
+      internalID: 674754450
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_23
+      rect:
+        serializedVersion: 2
+        x: 325
+        y: 97
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9fe347885758ede4080eebce0b5a61d6
+      internalID: 1170826720
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: MiniArcherMan_24
+      rect:
+        serializedVersion: 2
+        x: 5
         y: 65
         width: 24
         height: 24
@@ -543,17 +653,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3ad922cffc3643d48a09a2235e548204
-      internalID: -1320165851
+      spriteID: 604a536f4ab700946b5b7c355d583b00
+      internalID: 2061209233
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_1
+      name: MiniArcherMan_25
       rect:
         serializedVersion: 2
-        x: 36
+        x: 37
         y: 65
         width: 24
         height: 24
@@ -565,17 +675,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 62bce03d8847e3d448e8a10e2e54de3c
-      internalID: -876910272
+      spriteID: ce8df4f18a4ba2b46b6ea1f5ff665ee8
+      internalID: 1559329461
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_2
+      name: MiniArcherMan_26
       rect:
         serializedVersion: 2
-        x: 68
+        x: 69
         y: 65
         width: 24
         height: 24
@@ -587,17 +697,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: df2e7a9ee4f8d574b941c6a4f3f6b2ad
-      internalID: -1494733489
+      spriteID: b805e871fb42b0b47a0cee627418eb8c
+      internalID: -742978772
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_3
+      name: MiniArcherMan_27
       rect:
         serializedVersion: 2
-        x: 100
+        x: 101
         y: 65
         width: 24
         height: 24
@@ -609,17 +719,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 04e9154df54cb814793a1639f87020e6
-      internalID: 625006907
+      spriteID: fcc18fe19cb1e0c4fb658dd49d14e969
+      internalID: -571739008
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_4
+      name: MiniArcherMan_28
       rect:
         serializedVersion: 2
-        x: 132
+        x: 133
         y: 65
         width: 24
         height: 24
@@ -631,17 +741,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2851bce3b09407643a26f82211c9cd61
-      internalID: -1368168329
+      spriteID: 3469f579c1747dc4abd6d09dae244ac0
+      internalID: 706189995
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Shield_5
+      name: MiniArcherMan_29
       rect:
         serializedVersion: 2
-        x: 164
+        x: 165
         y: 65
         width: 24
         height: 24
@@ -653,17 +763,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c3e664655c9b1be42ba020ba80ca8b59
-      internalID: -2015212077
+      spriteID: 8ae757cc46af5514c9bfe8e046eb4b58
+      internalID: 1456970884
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Hit_0
+      name: MiniArcherMan_30
       rect:
         serializedVersion: 2
-        x: 4
+        x: 5
         y: 33
         width: 24
         height: 24
@@ -675,17 +785,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7338bd70486851249a843d097eff00df
-      internalID: -1351091899
+      spriteID: 4a1f409693731bf4686071d7d2d1eb6c
+      internalID: 2049726958
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Hit_1
+      name: MiniArcherMan_31
       rect:
         serializedVersion: 2
-        x: 36
+        x: 37
         y: 33
         width: 24
         height: 24
@@ -697,17 +807,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 67b9f6da4f879e849bad3c8ef07448e1
-      internalID: -637635984
+      spriteID: 8468a4a94f11f6c40ba40c3e15d93cc2
+      internalID: -1170459075
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Hit_2
+      name: MiniArcherMan_32
       rect:
         serializedVersion: 2
-        x: 68
+        x: 69
         y: 33
         width: 24
         height: 24
@@ -719,17 +829,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 259712d071850404999233b6a966eb40
-      internalID: 784810394
+      spriteID: 234ed1a2204396744b29f6a651e3f2f7
+      internalID: -1928120903
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Death_0
+      name: MiniArcherMan_33
       rect:
         serializedVersion: 2
-        x: 4
+        x: 5
         y: 1
         width: 24
         height: 24
@@ -741,17 +851,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b0e1e8dc7b3a6ad49ac7a7469407b185
-      internalID: -472318220
+      spriteID: 2f0d6e57800bd5e4a85ed1ce7a46a3b7
+      internalID: 377381431
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Death_1
+      name: MiniArcherMan_34
       rect:
         serializedVersion: 2
-        x: 36
+        x: 37
         y: 1
         width: 24
         height: 24
@@ -763,17 +873,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a4210b4b5c101744abee4eb738aa548d
-      internalID: 1475376622
+      spriteID: 12450eaefc0ff214ba5d98d152de0a17
+      internalID: 143797560
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Death_2
+      name: MiniArcherMan_35
       rect:
         serializedVersion: 2
-        x: 68
+        x: 69
         y: 1
         width: 24
         height: 24
@@ -785,17 +895,17 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 88b16e4998ece494c820ae4437880af6
-      internalID: 283992990
+      spriteID: 1041e5cfeff616746b99cf9f5570a7a6
+      internalID: -993590600
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: MiniShieldMan_Death_3
+      name: MiniArcherMan_36
       rect:
         serializedVersion: 2
-        x: 100
+        x: 101
         y: 1
         width: 24
         height: 24
@@ -807,8 +917,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 43a0341df5676d247878505f199425f5
-      internalID: -13194551
+      spriteID: 8c58ddac46bbd534abbf1113cb8a9cf3
+      internalID: 1373923474
       vertices: []
       indices: 
       edges: []
@@ -817,7 +927,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b5fd4f4a4f999e94ba7917f16f01c1f8
+    spriteID: 7f0d83f71dc59334bb6843d30ff2d6ee
     internalID: 0
     vertices: []
     indices: 
@@ -829,40 +939,44 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      MiniShieldMan_32: -436215548
-      MiniShieldMan_33: 180057174
-      MiniShieldMan_Attack_0: -1075793557
-      MiniShieldMan_Attack_1: 415669597
-      MiniShieldMan_Attack_2: -1296178289
-      MiniShieldMan_Attack_3: 2078275453
-      MiniShieldMan_Attack_4: -388837542
-      MiniShieldMan_Attack_5: 1981537507
-      MiniShieldMan_Death_0: -472318220
-      MiniShieldMan_Death_1: 1475376622
-      MiniShieldMan_Death_2: 283992990
-      MiniShieldMan_Death_3: -13194551
-      MiniShieldMan_Hit_0: -1351091899
-      MiniShieldMan_Hit_1: -637635984
-      MiniShieldMan_Hit_2: 784810394
-      MiniShieldMan_Idle_0: 48037446
-      MiniShieldMan_Idle_1: 1401908707
-      MiniShieldMan_Idle_2: 740956645
-      MiniShieldMan_Idle_3: -640537668
-      MiniShieldMan_Jump_0: -319951177
-      MiniShieldMan_Jump_1: -1001022415
-      MiniShieldMan_Jump_2: -1528927825
-      MiniShieldMan_Shield_0: -1320165851
-      MiniShieldMan_Shield_1: -876910272
-      MiniShieldMan_Shield_2: -1494733489
-      MiniShieldMan_Shield_3: 625006907
-      MiniShieldMan_Shield_4: -1368168329
-      MiniShieldMan_Shield_5: -2015212077
-      MiniShieldMan_Walk_0: 1344564277
-      MiniShieldMan_Walk_1: -565563195
-      MiniShieldMan_Walk_2: -61425265
-      MiniShieldMan_Walk_3: -1990077421
-      MiniShieldMan_Walk_4: -1865685051
-      MiniShieldMan_Walk_5: -1584394821
+      MiniArcherMan_37: -410173223
+      MiniArcherMan_24: 2061209233
+      MiniArcherMan_25: 1559329461
+      MiniArcherMan_26: -742978772
+      MiniArcherMan_27: -571739008
+      MiniArcherMan_28: 706189995
+      MiniArcherMan_29: 1456970884
+      MiniArcherMan_13: -1239390606
+      MiniArcherMan_14: 1036970115
+      MiniArcherMan_23: 1170826720
+      MiniArcherMan_15: -1318929608
+      MiniArcherMan_16: -15396816
+      MiniArcherMan_17: 359712742
+      MiniArcherMan_18: -1300914379
+      MiniArcherMan_19: 432396709
+      MiniArcherMan_20: -128611034
+      MiniArcherMan_21: 838119478
+      MiniArcherMan_22: 674754450
+      MiniArcherMan_33: 377381431
+      MiniArcherMan_34: 143797560
+      MiniArcherMan_35: -993590600
+      MiniArcherMan_36: 1373923474
+      MiniArcherMan_30: 2049726958
+      MiniArcherMan_31: -1170459075
+      MiniArcherMan_32: -1928120903
+      MiniArcherMan_0: -86967063
+      MiniArcherMan_1: -1162813518
+      MiniArcherMan_2: 1878445929
+      MiniArcherMan_3: 119245968
+      MiniArcherMan_10: -146446739
+      MiniArcherMan_11: 97274782
+      MiniArcherMan_12: 1546052031
+      MiniArcherMan_4: 1546261064
+      MiniArcherMan_5: -1671457327
+      MiniArcherMan_6: -2141431925
+      MiniArcherMan_7: 1231908701
+      MiniArcherMan_8: -1829634089
+      MiniArcherMan_9: -1311573575
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

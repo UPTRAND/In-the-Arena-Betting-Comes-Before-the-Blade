@@ -223,7 +223,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!95 &293012097988100823
@@ -316,6 +316,39 @@ MonoBehaviour:
   m_GroundAnchor: {fileID: 811000000000000003}
   m_CastAnchor: {fileID: 811000000000000005}
   m_HitAnchor: {fileID: 811000000000000007}
+  m_RedTeamSprites:
+  - {fileID: -2032111366, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -470019266, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 454141868, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 1223252913, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 708918120, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 758741704, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 924349479, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 511357397, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1570086654, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 1866236645, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -937287547, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 47653027, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 177201681, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1156335163, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1977526678, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1905810551, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 60665887, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 454238662, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 1346991724, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1722672022, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -6970620, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1318095665, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1019455800, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1149572709, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -929006054, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 941523754, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1557907845, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -949096647, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1619190978, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 1139315861, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: -1503957979, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
+  - {fileID: 1085971350, guid: ce0b976316cf9ab4694a022109fab289, type: 3}
   m_HitFlashMaterial: {fileID: 0}
   m_OriginalMaterial: {fileID: 0}
   m_HpBarPrefab: {fileID: 0}
