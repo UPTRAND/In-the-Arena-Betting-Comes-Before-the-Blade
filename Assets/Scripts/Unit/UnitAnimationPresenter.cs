@@ -15,6 +15,7 @@ namespace InTheArena.Unit
 
         private static readonly int IsMovingParameter = Animator.StringToHash("IsMoving");
         private static readonly int AttackState = Animator.StringToHash("Attack");
+        private static readonly int SkillState = Animator.StringToHash("Skill");
         private static readonly int HitState = Animator.StringToHash("Hit");
         private static readonly int DeathState = Animator.StringToHash("Death");
         private static readonly int ShieldState = Animator.StringToHash("Shield");
@@ -65,8 +66,7 @@ namespace InTheArena.Unit
 
         public void PlayCast()
         {
-            // Knight has Shield as its current cast fallback. Archer safely has no cast state.
-            TryCrossFade(ShieldState);
+            if (!TryCrossFade(SkillState)) TryCrossFade(ShieldState);
         }
 
         public void PlayDeath() => TryCrossFade(DeathState);
@@ -82,12 +82,14 @@ namespace InTheArena.Unit
             if (m_Animator == null) return false;
 
             AnimatorStateInfo current = m_Animator.GetCurrentAnimatorStateInfo(0);
-            if (current.shortNameHash == AttackState || current.shortNameHash == ShieldState)
+            if (current.shortNameHash == AttackState || current.shortNameHash == SkillState ||
+                current.shortNameHash == ShieldState)
                 return true;
 
             if (!m_Animator.IsInTransition(0)) return false;
             AnimatorStateInfo next = m_Animator.GetNextAnimatorStateInfo(0);
-            return next.shortNameHash == AttackState || next.shortNameHash == ShieldState;
+            return next.shortNameHash == AttackState || next.shortNameHash == SkillState ||
+                   next.shortNameHash == ShieldState;
         }
 
         private bool TryCrossFade(int shortStateHash)
@@ -100,7 +102,9 @@ namespace InTheArena.Unit
                     ? Animator.StringToHash("Base Layer.Hit")
                     : shortStateHash == DeathState
                         ? Animator.StringToHash("Base Layer.Death")
-                        : Animator.StringToHash("Base Layer.Shield");
+                        : shortStateHash == SkillState
+                            ? Animator.StringToHash("Base Layer.Skill")
+                            : Animator.StringToHash("Base Layer.Shield");
 
             if (!m_Animator.HasState(0, fullPathHash)) return false;
             m_Animator.CrossFade(fullPathHash, CrossFadeDuration, 0, 0f);

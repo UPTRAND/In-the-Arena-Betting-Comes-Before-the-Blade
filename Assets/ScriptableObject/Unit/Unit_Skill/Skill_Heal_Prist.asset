@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
+  m_Name: Skill_Heal_Prist
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
+  m_SkillName: Heal
+  m_Description: Heals the lowest-health ally for 30 plus 50% of the caster's attack
+    power.
+  m_SkillType: 0
+  m_Range: 5
+  m_Cooldown: 5
+  m_CastTime: 0.6
+  m_FailureRetryDelay: 0.25
+  m_ExecutionMode: 0
+  m_Targeting:
+    rid: 6331182184304214092
+  m_Effects:
+  - rid: 6331182184304214093
+  m_Behavior:
+    rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6331182184304214092
+      type: {class: LowestHealthAllySkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_IncludeSelf: 1
+        m_MaxHealthRatio: 0.85
+    - rid: 6331182184304214093
+      type: {class: HealSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_BaseHeal: 30
+        m_AttackPowerRatio: 0.5
+        m_MaxHealthRatio: 0

@@ -172,6 +172,7 @@ namespace InTheArena.Unit
     [Serializable]
     public sealed class SpawnProjectileSkillEffect : SkillEffectDefinition, IProjectileImpactResolver
     {
+        [SerializeField] private ProjectileData m_ProjectileData;
         [SerializeField] private GameObject m_ProjectilePrefab;
         [SerializeField, Min(0.1f)] private float m_Speed = 20f;
         [SerializeField, Min(0.1f)] private float m_Lifetime = 5f;
@@ -184,7 +185,10 @@ namespace InTheArena.Unit
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
             Unit target = context.Targets.Count > 0 ? context.Targets[0].Unit : null;
-            if (m_ProjectilePrefab == null || target == null || target.IsDead)
+            GameObject projectilePrefab = m_ProjectileData != null
+                ? m_ProjectileData.Prefab
+                : m_ProjectilePrefab;
+            if (projectilePrefab == null || target == null || target.IsDead)
                 return SkillExecutionResult.InvalidTarget;
 
             var payload = new ProjectileImpactPayload(
@@ -196,14 +200,23 @@ namespace InTheArena.Unit
                 context.IsReaction,
                 this);
 
-            if (!PoolManager.Require().Projectiles.TrySpawn(
-                    m_ProjectilePrefab,
+            ProjectilePoolService projectiles = PoolManager.Require().Projectiles;
+            bool spawned = m_ProjectileData != null
+                ? projectiles.TrySpawn(
+                    m_ProjectileData,
+                    context.Owner.CastPosition,
+                    new UnitHandle(target),
+                    payload,
+                    out _)
+                : projectiles.TrySpawn(
+                    projectilePrefab,
                     context.Owner.CastPosition,
                     new UnitHandle(target),
                     payload,
                     m_Speed,
                     m_Lifetime,
-                    out _))
+                    out _);
+            if (!spawned)
                 return SkillExecutionResult.PoolExhausted;
 
             return SkillExecutionResult.Success;
@@ -231,9 +244,7 @@ namespace InTheArena.Unit
                 delta.y = 0f;
                 float distanceSqr = delta.sqrMagnitude;
                 if (distanceSqr > radiusSqr) continue;
-                float multiplier = 1f -
-                                   Mathf.Sqrt(distanceSqr) / m_ExplosionRadius * 0.5f;
-                applied |= ApplyTo(in payload, candidate, multiplier);
+                applied |= ApplyTo(in payload, candidate, 1f);
             }
             return applied;
         }
@@ -260,8 +271,8 @@ namespace InTheArena.Unit
 
         public override void CollectProjectilePrefabs(List<GameObject> output)
         {
-            if (m_ProjectilePrefab != null && output != null && !output.Contains(m_ProjectilePrefab))
-                output.Add(m_ProjectilePrefab);
+            GameObject prefab = m_ProjectileData != null ? m_ProjectileData.Prefab : m_ProjectilePrefab;
+            if (prefab != null && output != null && !output.Contains(prefab)) output.Add(prefab);
         }
     }
 }

@@ -27,8 +27,16 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
+    - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    m_ExtraCountRange: 1
+    m_SpawnProbability: 0.3
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
@@ -41,6 +49,8 @@ MonoBehaviour:
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   - m_IsFixed: 0
@@ -49,14 +59,8 @@ MonoBehaviour:
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
-    m_ExtraCountRange: 1
-    m_SpawnProbability: 0.3
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
-    m_FixedCount: 1
-    m_VariableUnitPool:
-    - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
-    - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   m_TeamBGrid:
@@ -73,8 +77,16 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
+    - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    m_ExtraCountRange: 1
+    m_SpawnProbability: 0.3
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
@@ -87,6 +99,8 @@ MonoBehaviour:
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   - m_IsFixed: 0
@@ -95,14 +109,8 @@ MonoBehaviour:
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
-    m_ExtraCountRange: 1
-    m_SpawnProbability: 0.3
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
-    m_FixedCount: 1
-    m_VariableUnitPool:
-    - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
-    - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   m_SpecialRule: 0

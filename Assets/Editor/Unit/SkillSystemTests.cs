@@ -228,6 +228,40 @@ namespace InTheArena.Editor.Unit
             Assert.That(unit.IsCastingSkill, Is.False);
         }
 
+        [Test]
+        public void ProjectileExplosion_AppliesFlatDamageInsideRadius()
+        {
+            UnitType owner = CreateUnit(0);
+            UnitType center = CreateUnit(1);
+            UnitType edge = CreateUnit(1);
+            UnitType outside = CreateUnit(1);
+            center.transform.position = Vector3.zero;
+            edge.transform.position = new Vector3(0.9f, 0f, 0f);
+            outside.transform.position = new Vector3(1.1f, 0f, 0f);
+            SetDefense(center, 0f);
+            SetDefense(edge, 0f);
+            SetDefense(outside, 0f);
+
+            var effect = new SpawnProjectileSkillEffect();
+            SetField(effect, "m_BaseDamage", 20f);
+            SetField(effect, "m_AttackPowerRatio", 0f);
+            SetField(effect, "m_ExplosionRadius", 1f);
+            SetField(effect, "m_CriticalChance", 0f);
+            var payload = new ProjectileImpactPayload(
+                new UnitHandle(owner),
+                owner.Team,
+                20f,
+                false,
+                true,
+                false,
+                effect);
+
+            Assert.That(effect.ApplyImpact(in payload, center, Vector3.zero), Is.True);
+            Assert.That(center.CurrentHp, Is.EqualTo(80f));
+            Assert.That(edge.CurrentHp, Is.EqualTo(80f));
+            Assert.That(outside.CurrentHp, Is.EqualTo(100f));
+        }
+
         private UnitType CreateUnit(int team)
         {
             UnitData data = ScriptableObject.CreateInstance<UnitData>();
@@ -239,6 +273,14 @@ namespace InTheArena.Editor.Unit
             UnitType unit = gameObject.AddComponent<UnitType>();
             unit.Initialize(data, team);
             return unit;
+        }
+
+        private static void SetDefense(UnitType unit, float defense)
+        {
+            UnitStat stat = unit.UnitData.BaseStat;
+            stat.defense = defense;
+            SetField(unit.UnitData, "m_BaseStat", stat);
+            unit.Initialize(unit.UnitData, unit.Team);
         }
 
         private SkillData CreateSkill(
