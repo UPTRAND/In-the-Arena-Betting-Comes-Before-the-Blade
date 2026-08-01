@@ -12,9 +12,6 @@ using UnityEngine.UI;
 
 namespace InTheArena.MainGame
 {
-    /// <summary>
-    /// 라운드 편성을 확정하고 단일 복합 베팅 티켓을 입력받는 페이즈입니다.
-    /// </summary>
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
@@ -60,14 +57,53 @@ namespace InTheArena.MainGame
         private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
+        
+        // 아이템 상태 트래킹
+        private bool m_UsedAdditionalBetTicket = false;
+        private bool m_UsedInsurance = false;
+        private bool m_UsedRerollTicket = false;
+        private SpecialBetType? m_OverriddenSpecialBet = null;
+        private bool m_HasRerolledThisRound = false;
+
+        public RoundBetTicket DraftTicket 
+        { 
+            get 
+            { 
+                return m_DraftTicket; 
+            } 
+        }
+
+        public SpecialBetType? OverriddenSpecialBet 
+        { 
+            get 
+            { 
+                return m_OverriddenSpecialBet; 
+            } 
+        }
+
+        public bool UsedAdditionalBetTicket 
+        { 
+            get 
+            { 
+                return m_UsedAdditionalBetTicket; 
+            } 
+        }
+
+        public bool UsedInsurance 
+        { 
+            get 
+            { 
+                return m_UsedInsurance; 
+            } 
+        }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
             var cameraController = InTheArena.Camera.CameraController.Instance;
             if (cameraController != null)
-                await cameraController.SetPhaseAsync(
-                    InTheArena.Camera.CameraPhase.Betting,
-                    token);
+            {
+                await cameraController.SetPhaseAsync(InTheArena.Camera.CameraPhase.Betting, token);
+            }
 
             InitializePhaseData();
             SetupUI();
@@ -92,6 +128,12 @@ namespace InTheArena.MainGame
         private void InitializePhaseData()
         {
             IsPhaseCompleted = false;
+            m_UsedAdditionalBetTicket = false;
+            m_UsedInsurance = false;
+            m_UsedRerollTicket = false;
+            m_OverriddenSpecialBet = null;
+            m_HasRerolledThisRound = false;
+
             Context.AssignUnitsForBetting();
             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
             m_DraftTicket = new RoundBetTicket();
@@ -114,7 +156,9 @@ namespace InTheArena.MainGame
                 CountProjectiles(projectileCounts, projectilePrefabs, pair.Key, pair.Value);
             }
             foreach (KeyValuePair<GameObject, int> pair in projectileCounts)
+            {
                 manager.Projectiles.Prewarm(pair.Key, Mathf.Clamp(pair.Value * 2, 16, 128));
+            }
         }
 
         private static void CountUnits(List<UnitData> units, Dictionary<UnitData, int> counts)
@@ -129,14 +173,13 @@ namespace InTheArena.MainGame
             }
         }
 
-        private static void CountProjectiles(
-            Dictionary<GameObject, int> counts,
-            List<GameObject> projectilePrefabs,
-            UnitData unitData,
-            int unitCount)
+        private static void CountProjectiles(Dictionary<GameObject, int> counts, List<GameObject> projectilePrefabs, UnitData unitData, int unitCount)
         {
             projectilePrefabs.Clear();
-            unitData?.BasicAttackData?.CollectProjectilePrefabs(projectilePrefabs);
+            if (unitData?.BasicAttackData != null)
+            {
+                unitData.BasicAttackData.CollectProjectilePrefabs(projectilePrefabs);
+            }
             AddProjectileCounts(counts, projectilePrefabs, unitCount);
 
             IReadOnlyList<SkillData> skills = unitData?.SkillDatas;
@@ -152,10 +195,7 @@ namespace InTheArena.MainGame
             }
         }
 
-        private static void AddProjectileCounts(
-            Dictionary<GameObject, int> counts,
-            List<GameObject> projectilePrefabs,
-            int unitCount)
+        private static void AddProjectileCounts(Dictionary<GameObject, int> counts, List<GameObject> projectilePrefabs, int unitCount)
         {
             for (int i = 0; i < projectilePrefabs.Count; i++)
             {
@@ -184,17 +224,22 @@ namespace InTheArena.MainGame
 
             StageData stageData = Context.CurrentStageData;
             SetActive(m_FactionBetRoot, stageData != null && stageData.EnableFactionBet);
-            SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
-            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
-            SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
-            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
+            RefreshSpecialBetAvailability();
             UpdateSurvivingSlotAvailability();
             RefreshBetSummary();
         }
 
         private bool HasSpecial(SpecialBetType type)
         {
-            return Context.CurrentStageData != null && Context.CurrentStageData.HasSpecialBet(type);
+            return Context != null && Context.ActiveSpecialBets.Contains(type);
+        }
+
+        private void RefreshSpecialBetAvailability()
+        {
+            SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
+            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
+            SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
+            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
         }
 
         private static void SetActive(GameObject target, bool active)
@@ -385,7 +430,7 @@ namespace InTheArena.MainGame
                 m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
             }
 
-            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context.CurrentCall, out string error);
+            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out string error);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
             if (m_ValidationText != null) m_ValidationText.text = valid ? string.Empty : error;
         }
@@ -414,10 +459,106 @@ namespace InTheArena.MainGame
                 : new Color(0.2f, 0.24f, 0.3f);
         }
 
+        // 아이템 사용
+        public bool UseBettingItem(ItemData itemData, out string message, out int remainingCount)
+        {
+            remainingCount = 0;
+            message = "";
+
+            if (itemData == null)
+            {
+                message = "유효하지 않은 아이템입니다.";
+                return false;
+            }
+
+            var inventoryService = SaveManager.Instance?.InventoryService;
+            var playerState = StageManager.Instance?.PlayerState;
+            
+            if (inventoryService == null || playerState == null)
+            {
+                message = "아이템 시스템을 불러올 수 없습니다.";
+                return false;
+            }
+
+            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
+            {
+                message = "보유한 아이템이 없습니다.";
+                return false;
+            }
+
+            bool success = false;
+
+            if (itemData.ItemType == ItemType.AdditionalBetTicket)
+            {
+                if (m_UsedAdditionalBetTicket)
+                {
+                    message = "추가 배팅권은 라운드당 1회만 사용 가능합니다.";
+                }
+                else
+                {
+                    m_UsedAdditionalBetTicket = true;
+                    success = true;
+                    message = "추가 배팅권(+500 Call)을 사용했습니다.";
+                }
+            }
+            else if (itemData.ItemType == ItemType.Insurance)
+            {
+                if (m_UsedInsurance)
+                {
+                    message = "보험은 라운드당 1회만 사용 가능합니다.";
+                }
+                else
+                {
+                    m_UsedInsurance = true;
+                    success = true;
+                    message = "패배 시 원금이 반환되는 보험을 사용했습니다.";
+                }
+            }
+            else if (itemData.ItemType == ItemType.RerollTicket)
+            {
+                if (m_UsedRerollTicket || m_HasRerolledThisRound)
+                {
+                    message = "리롤권은 라운드당 1회만 사용 가능합니다.";
+                }
+                else
+                {
+                    var specialBets = Context.CurrentStageData.SpecialBetTypes;
+                    if (specialBets != null && specialBets.Count > 0)
+                    {
+                        int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
+                        m_OverriddenSpecialBet = specialBets[randomIndex];
+                        m_HasRerolledThisRound = true;
+                        m_UsedRerollTicket = true;
+                        Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
+                        RefreshSpecialBetAvailability();
+                        UpdateSurvivingSlotAvailability();
+                        RefreshBetSummary();
+
+                        success = true;
+                        message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
+                    }
+                    else
+                    {
+                        message = "변경할 특수 베팅 룰이 없습니다.";
+                    }
+                }
+            }
+
+            if (success)
+            {
+                inventoryService.TryUseItemFromStage(itemData, playerState);
+            }
+
+            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
+            return success;
+        }
+
         private void OnConfirmBetClicked()
         {
             if (IsPhaseCompleted) return;
-            if (!Context.StageSession.TryPlaceBet(m_DraftTicket, out string error))
+
+            m_DraftTicket.SetItemUsages(m_UsedAdditionalBetTicket, m_UsedInsurance);
+            if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
             {
                 if (m_ValidationText != null) m_ValidationText.text = error;
                 Debug.LogError($"[BettingPhase] {error}");

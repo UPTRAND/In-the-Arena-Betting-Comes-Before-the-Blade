@@ -1,0 +1,1106 @@
+﻿diff --git a/Assets/Editor/Debug/BetSettlementServiceTests.cs b/Assets/Editor/Debug/BetSettlementServiceTests.cs
+index c78b8ef..3d46248 100644
+--- a/Assets/Editor/Debug/BetSettlementServiceTests.cs
++++ b/Assets/Editor/Debug/BetSettlementServiceTests.cs
+@@ -43,7 +43,9 @@ public sealed class BetSettlementServiceTests
+         ticket.SetOddEven(OddEvenPrediction.Odd);
+         ticket.SetFirstEliminatedSlot(3);
+ 
+-        Assert.That(session.TryPlaceBet(ticket, out string error), Is.True, error);
++        var context = new RoundContext();
++        context.InitializeStage(m_StageData);
++        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
+         Assert.That(session.CurrentCall, Is.EqualTo(400));
+ 
+         var result = new CombatResultSnapshot(
+@@ -70,7 +72,9 @@ public sealed class BetSettlementServiceTests
+         ticket.SetFaction(FactionPrediction.Blue);
+         ticket.SetOddEven(OddEvenPrediction.Even);
+ 
+-        Assert.That(session.TryPlaceBet(ticket, out _), Is.True);
++        var context = new RoundContext();
++        context.InitializeStage(m_StageData);
++        Assert.That(session.TryPlaceBet(ticket, context, out _), Is.True);
+         var result = new CombatResultSnapshot(
+             Team.Blue, 4f, 0, 3,
+             new int[0], new[] { 1, 2 }, -1);
+@@ -107,7 +111,9 @@ public sealed class BetSettlementServiceTests
+         ticket.SetFaction(FactionPrediction.Blue);
+         ticket.SetSurvivingSlots(Team.Blue, new HashSet<int> { 2, 5 });
+ 
+-        Assert.That(session.TryPlaceBet(ticket, out string error), Is.True, error);
++        var context = new RoundContext();
++        context.InitializeStage(m_StageData);
++        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
+         var result = new CombatResultSnapshot(
+             Team.Blue, 8f, 0, 2,
+             new int[0], new[] { 2, 5 }, 1);
+diff --git a/Assets/Editor/MainGame/StageBettingVerification.cs b/Assets/Editor/MainGame/StageBettingVerification.cs
+index f25fb2b..78b4e7a 100644
+--- a/Assets/Editor/MainGame/StageBettingVerification.cs
++++ b/Assets/Editor/MainGame/StageBettingVerification.cs
+@@ -62,7 +62,9 @@ namespace InTheArena.MainGame.Editor
+             ticket.SetOddEven(OddEvenPrediction.Odd);
+             ticket.SetFirstEliminatedSlot(3);
+ 
+-            if (!session.TryPlaceBet(ticket, out string error)) throw new InvalidOperationException(error);
++            var context = new RoundContext();
++            context.InitializeStage(stageData);
++            if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
+             var result = new CombatResultSnapshot(
+                 Team.Red, 12f, 3, 0,
+                 new[] { 1, 3 }, Array.Empty<int>(), 3);
+@@ -84,7 +86,9 @@ namespace InTheArena.MainGame.Editor
+             ticket.SetFaction(FactionPrediction.Blue);
+             ticket.SetOddEven(OddEvenPrediction.Even);
+ 
+-            if (!session.TryPlaceBet(ticket, out string error)) throw new InvalidOperationException(error);
++            var context = new RoundContext();
++            context.InitializeStage(stageData);
++            if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
+             var result = new CombatResultSnapshot(
+                 Team.Blue, 4f, 0, 3,
+                 Array.Empty<int>(), new[] { 1, 2 }, -1);
+diff --git a/Assets/Scripts/MainGame/BettingModels.cs b/Assets/Scripts/MainGame/BettingModels.cs
+index 37b8c63..effdc5d 100644
+--- a/Assets/Scripts/MainGame/BettingModels.cs
++++ b/Assets/Scripts/MainGame/BettingModels.cs
+@@ -60,6 +60,9 @@ namespace InTheArena.MainGame
+         public bool IsPlaced { get; private set; }
+         public bool IsSettled { get; private set; }
+ 
++        public bool HasAdditionalBet { get; private set; }
++        public bool HasInsurance { get; private set; }
++
+         public int SelectedCategoryCount
+         {
+             get
+@@ -112,7 +115,13 @@ namespace InTheArena.MainGame
+             HasSurvivingSlotsPrediction = false;
+         }
+ 
+-        public bool Validate(StageData stageData, int availableCall, out string error)
++        public void SetItemUsages(bool hasAdditionalBet, bool hasInsurance)
++        {
++            HasAdditionalBet = hasAdditionalBet;
++            HasInsurance = hasInsurance;
++        }
++
++        public bool Validate(StageData stageData, RoundContext context, int availableCall, out string error)
+         {
+             if (stageData == null)
+             {
+@@ -120,6 +129,12 @@ namespace InTheArena.MainGame
+                 return false;
+             }
+ 
++            if (context == null)
++            {
++                error = "RoundContext媛 ?놁뒿?덈떎.";
++                return false;
++            }
++
+             if (WagerCall < 1 || WagerCall > availableCall)
+             {
+                 error = $"踰좏똿?≪? 1~{availableCall} Call 踰붿쐞?ъ빞 ?⑸땲??";
+@@ -138,10 +153,10 @@ namespace InTheArena.MainGame
+                 return false;
+             }
+ 
+-            if (RemainingTime.HasValue && !stageData.HasSpecialBet(SpecialBetType.RemainingTime) ||
+-                OddEven.HasValue && !stageData.HasSpecialBet(SpecialBetType.OddEven) ||
+-                FirstEliminatedSlot.HasValue && !stageData.HasSpecialBet(SpecialBetType.FirstEliminatedSlot) ||
+-                HasSurvivingSlotsPrediction && !stageData.HasSpecialBet(SpecialBetType.SurvivingSlots))
++            if (RemainingTime.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.RemainingTime) ||
++                OddEven.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.OddEven) ||
++                FirstEliminatedSlot.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedSlot) ||
++                HasSurvivingSlotsPrediction && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingSlots))
+             {
+                 error = "?ㅽ뀒?댁??먯꽌 ?쒓났?섏? ?딅뒗 ?뱀닔 踰좏똿???좏깮?섏뿀?듬땲??";
+                 return false;
+@@ -284,7 +299,25 @@ namespace InTheArena.MainGame
+             }
+ 
+             bool isWin = failed.Count == 0;
+-            int payout = isWin ? checked(ticket.WagerCall * ticket.Multiplier) : 0;
++            int payout = 0;
++
++            if (isWin)
++            {
++                int effectiveWager = ticket.WagerCall;
++                if (ticket.HasAdditionalBet)
++                {
++                    effectiveWager += 500;
++                }
++                payout = checked(effectiveWager * ticket.Multiplier);
++            }
++            else
++            {
++                if (ticket.HasInsurance)
++                {
++                    payout = ticket.WagerCall;
++                }
++            }
++
+             ticket.MarkSettled();
+             return new BetSettlement(isWin, ticket.WagerCall, ticket.Multiplier, payout, failed);
+         }
+@@ -324,7 +357,7 @@ namespace InTheArena.MainGame
+             CurrentCall = stageData.InitialCall;
+         }
+ 
+-        public bool TryPlaceBet(RoundBetTicket ticket, out string error)
++        public bool TryPlaceBet(RoundBetTicket ticket, RoundContext context, out string error)
+         {
+             if (ticket == null)
+             {
+@@ -332,7 +365,7 @@ namespace InTheArena.MainGame
+                 return false;
+             }
+ 
+-            if (!ticket.Validate(StageData, CurrentCall, out error)) return false;
++            if (!ticket.Validate(StageData, context, CurrentCall, out error)) return false;
+             if (ticket.IsPlaced)
+             {
+                 error = "?대? ?뺤젙??踰좏똿?낅땲??";
+diff --git a/Assets/Scripts/MainGame/BettingPhase.cs b/Assets/Scripts/MainGame/BettingPhase.cs
+index de5220c..510e26d 100644
+--- a/Assets/Scripts/MainGame/BettingPhase.cs
++++ b/Assets/Scripts/MainGame/BettingPhase.cs
+@@ -1,85 +1,70 @@
+ #if UNITY_6000_0_OR_NEWER
+ using System;
+ using System.Collections.Generic;
+-using System.Text;
+ using System.Threading;
+-using DG.Tweening;
+ using InTheArena.Unit;
+-using TMPro;
+ using UnityEngine;
+-using UnityEngine.Serialization;
+-using UnityEngine.UI;
+ 
+ namespace InTheArena.MainGame
+ {
+-    /// <summary>
+-    /// ?쇱슫???몄꽦???뺤젙?섍퀬 ?⑥씪 蹂듯빀 踰좏똿 ?곗폆???낅젰諛쏅뒗 ?섏씠利덉엯?덈떎.
+-    /// </summary>
+     [DisallowMultipleComponent]
+     public class BettingPhase : RoundPhaseBase
+     {
+-        [Header("Round / Team Info")]
+-        [SerializeField] private CanvasGroup m_BettingCanvasGroup;
+-        [SerializeField] private TMP_Text m_RoundText;
+-        [SerializeField] private TMP_Text m_TeamANameText;
+-        [SerializeField] private TMP_Text m_TeamAUnitInfoText;
+-        [SerializeField] private TMP_Text m_TeamBNameText;
+-        [SerializeField] private TMP_Text m_TeamBUnitInfoText;
+-
+-        [Header("Wager")]
+-        [FormerlySerializedAs("m_BetRatioSlider")]
+-        [SerializeField] private Slider m_WagerSlider;
+-        [FormerlySerializedAs("m_TeamARatioText")]
+-        [SerializeField] private TMP_Text m_CurrentCallText;
+-        [FormerlySerializedAs("m_TeamBRatioText")]
+-        [SerializeField] private TMP_Text m_WagerCallText;
+-        [SerializeField] private TMP_Text m_MultiplierText;
+-        [SerializeField] private TMP_Text m_EstimatedPayoutText;
+-
+-        [Header("Faction Bet")]
+-        [SerializeField] private GameObject m_FactionBetRoot;
+-        [SerializeField] private Button m_RedButton;
+-        [SerializeField] private Button m_BlueButton;
+-        [SerializeField] private Button m_DrawButton;
+-        [SerializeField] private Button m_ClearFactionButton;
++        private AwaitableCompletionSource m_PhaseCompletionSource;
++        private RoundBetTicket m_DraftTicket;
++        
++        // ?꾩씠???곹깭 ?몃옒??+        private bool m_UsedAdditionalBetTicket = false;
++        private bool m_UsedInsurance = false;
++        private bool m_UsedRerollTicket = false;
++        private SpecialBetType? m_OverriddenSpecialBet = null;
++        private bool m_HasRerolledThisRound = false;
++
++        public RoundBetTicket DraftTicket 
++        { 
++            get 
++            { 
++                return m_DraftTicket; 
++            } 
++        }
+ 
+-        [Header("Special Bets")]
+-        [SerializeField] private GameObject m_RemainingTimeRoot;
+-        [SerializeField] private Button[] m_RemainingTimeButtons = new Button[5];
+-        [SerializeField] private GameObject m_SurvivingSlotsRoot;
+-        [SerializeField] private Button[] m_SurvivingSlotButtons = new Button[6];
+-        [SerializeField] private GameObject m_OddEvenRoot;
+-        [SerializeField] private Button[] m_OddEvenButtons = new Button[2];
+-        [SerializeField] private GameObject m_FirstEliminatedSlotRoot;
+-        [SerializeField] private Button[] m_FirstEliminatedSlotButtons = new Button[6];
++        public SpecialBetType? OverriddenSpecialBet 
++        { 
++            get 
++            { 
++                return m_OverriddenSpecialBet; 
++            } 
++        }
+ 
+-        [Header("Confirm")]
+-        [SerializeField] private TMP_Text m_ValidationText;
+-        [SerializeField] private Button m_ConfirmBetButton;
++        public bool UsedAdditionalBetTicket 
++        { 
++            get 
++            { 
++                return m_UsedAdditionalBetTicket; 
++            } 
++        }
+ 
+-        private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
+-        private AwaitableCompletionSource m_PhaseCompletionSource;
+-        private RoundBetTicket m_DraftTicket;
++        public bool UsedInsurance 
++        { 
++            get 
++            { 
++                return m_UsedInsurance; 
++            } 
++        }
+ 
+         public override async Awaitable EnterPhaseAsync(CancellationToken token)
+         {
+             var cameraController = InTheArena.Camera.CameraController.Instance;
+             if (cameraController != null)
+-                await cameraController.SetPhaseAsync(
+-                    InTheArena.Camera.CameraPhase.Betting,
+-                    token);
++            {
++                await cameraController.SetPhaseAsync(InTheArena.Camera.CameraPhase.Betting, token);
++            }
+ 
+             InitializePhaseData();
+-            SetupUI();
+-            SubscribeEvents();
+ 
+-            CanvasGroup canvasGroup = m_BettingCanvasGroup;
+-            if (canvasGroup != null)
+-            {
+-                canvasGroup.gameObject.SetActive(true);
+-                canvasGroup.alpha = 0f;
+-                await AwaitTweenAsync(canvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad), token);
+-            }
++            // UI 留ㅻ땲?瑜??듯빐 UI_BettingPhase瑜??щ뒗 濡쒖쭅 (?꾩옱 ?꾨줈?앺듃??UIManager.Show(...) 諛⑹떇???덈떎硫??ъ슜)
++            // ?꾩떆濡?寃뚯엫?ㅻ툕?앺듃瑜?耳쒕뒗 ?깆쓽 ?숈옉 ??? UI??蹂꾨룄 ?쒖뒪?쒖뿉 ?섑빐 ?몄텧?섎룄濡??좊룄
++            // (?댄썑 UI_BettingPhase ?앹꽦 ???곕룞)
+ 
+             m_PhaseCompletionSource = new AwaitableCompletionSource();
+             using (token.Register(() => m_PhaseCompletionSource?.TrySetResult()))
+@@ -92,11 +77,17 @@ namespace InTheArena.MainGame
+         private void InitializePhaseData()
+         {
+             IsPhaseCompleted = false;
++            m_UsedAdditionalBetTicket = false;
++            m_UsedInsurance = false;
++            m_UsedRerollTicket = false;
++            m_OverriddenSpecialBet = null;
++            m_HasRerolledThisRound = false;
++
+             Context.AssignUnitsForBetting();
+             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
++            
+             m_DraftTicket = new RoundBetTicket();
+             m_DraftTicket.SetWager(Mathf.Max(1, Context.CurrentCall));
+-            m_SelectedSurvivingSlots.Clear();
+         }
+ 
+         private static void PrewarmConfirmedPools(List<UnitData> red, List<UnitData> blue)
+@@ -114,7 +105,9 @@ namespace InTheArena.MainGame
+                 CountProjectiles(projectileCounts, projectilePrefabs, pair.Key, pair.Value);
+             }
+             foreach (KeyValuePair<GameObject, int> pair in projectileCounts)
++            {
+                 manager.Projectiles.Prewarm(pair.Key, Mathf.Clamp(pair.Value * 2, 16, 128));
++            }
+         }
+ 
+         private static void CountUnits(List<UnitData> units, Dictionary<UnitData, int> counts)
+@@ -129,14 +122,13 @@ namespace InTheArena.MainGame
+             }
+         }
+ 
+-        private static void CountProjectiles(
+-            Dictionary<GameObject, int> counts,
+-            List<GameObject> projectilePrefabs,
+-            UnitData unitData,
+-            int unitCount)
++        private static void CountProjectiles(Dictionary<GameObject, int> counts, List<GameObject> projectilePrefabs, UnitData unitData, int unitCount)
+         {
+             projectilePrefabs.Clear();
+-            unitData?.BasicAttackData?.CollectProjectilePrefabs(projectilePrefabs);
++            if (unitData?.BasicAttackData != null)
++            {
++                unitData.BasicAttackData.CollectProjectilePrefabs(projectilePrefabs);
++            }
+             AddProjectileCounts(counts, projectilePrefabs, unitCount);
+ 
+             IReadOnlyList<SkillData> skills = unitData?.SkillDatas;
+@@ -152,10 +144,7 @@ namespace InTheArena.MainGame
+             }
+         }
+ 
+-        private static void AddProjectileCounts(
+-            Dictionary<GameObject, int> counts,
+-            List<GameObject> projectilePrefabs,
+-            int unitCount)
++        private static void AddProjectileCounts(Dictionary<GameObject, int> counts, List<GameObject> projectilePrefabs, int unitCount)
+         {
+             for (int i = 0; i < projectilePrefabs.Count; i++)
+             {
+@@ -166,297 +155,116 @@ namespace InTheArena.MainGame
+             }
+         }
+ 
+-        private void SetupUI()
++        // ?꾩씠???ъ슜
++        public bool UseBettingItem(ItemData itemData, out string message, out int remainingCount)
+         {
+-            if (m_RoundText != null) m_RoundText.text = $"Round {Context.CurrentRound}";
+-            if (m_TeamANameText != null) m_TeamANameText.text = "Red Team";
+-            if (m_TeamBNameText != null) m_TeamBNameText.text = "Blue Team";
+-            SetTeamUnitInfo(m_TeamAUnitInfoText, Context.TeamADeployments);
+-            SetTeamUnitInfo(m_TeamBUnitInfoText, Context.TeamBDeployments);
++            remainingCount = 0;
++            message = "";
+ 
+-            if (m_WagerSlider != null)
++            if (itemData == null)
+             {
+-                m_WagerSlider.wholeNumbers = true;
+-                m_WagerSlider.minValue = 1f;
+-                m_WagerSlider.maxValue = Mathf.Max(1, Context.CurrentCall);
+-                m_WagerSlider.value = Mathf.Max(1, Context.CurrentCall);
++                message = "?좏슚?섏? ?딆? ?꾩씠?쒖엯?덈떎.";
++                return false;
+             }
+ 
+-            StageData stageData = Context.CurrentStageData;
+-            SetActive(m_FactionBetRoot, stageData != null && stageData.EnableFactionBet);
+-            SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
+-            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
+-            SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
+-            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
+-            UpdateSurvivingSlotAvailability();
+-            RefreshBetSummary();
+-        }
+-
+-        private bool HasSpecial(SpecialBetType type)
+-        {
+-            return Context.CurrentStageData != null && Context.CurrentStageData.HasSpecialBet(type);
+-        }
+-
+-        private static void SetActive(GameObject target, bool active)
+-        {
+-            if (target != null) target.SetActive(active);
+-        }
+-
+-        private static void SetTeamUnitInfo(TMP_Text infoText, List<TeamUnitDeployment> deployments)
+-        {
+-            if (infoText == null) return;
+-            if (deployments == null || deployments.Count == 0)
++            var inventoryService = SaveManager.Instance?.InventoryService;
++            var playerState = StageManager.Instance?.PlayerState;
++            
++            if (inventoryService == null || playerState == null)
+             {
+-                infoText.text = "No units deployed";
+-                return;
++                message = "?꾩씠???쒖뒪?쒖쓣 遺덈윭?????놁뒿?덈떎.";
++                return false;
+             }
+ 
+-            var lines = new StringBuilder();
+-            for (int i = 0; i < deployments.Count; i++)
++            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
+             {
+-                TeamUnitDeployment deployment = deployments[i];
+-                int col = deployment.CellIndex % 2;
+-                int row = deployment.CellIndex / 2;
+-                lines.Append($"({col},{row}) {DescribeUnits(deployment.Units)}");
+-                if (i < deployments.Count - 1) lines.Append('\n');
++                message = "蹂댁쑀???꾩씠?쒖씠 ?놁뒿?덈떎.";
++                return false;
+             }
+-            infoText.text = lines.ToString();
+-        }
+ 
+-        private static string DescribeUnits(List<UnitData> units)
+-        {
+-            if (units == null || units.Count == 0) return "Empty";
+-            UnitData first = units[0];
+-            bool sameType = first != null;
+-            for (int i = 1; i < units.Count; i++)
++            bool success = false;
++
++            if (itemData.ItemType == ItemType.AdditionalBetTicket)
+             {
+-                if (units[i] != first)
++                if (m_UsedAdditionalBetTicket)
+                 {
+-                    sameType = false;
+-                    break;
++                    message = "異붽? 諛고똿沅뚯? ?쇱슫?쒕떦 1?뚮쭔 ?ъ슜 媛?ν빀?덈떎.";
++                }
++                else
++                {
++                    m_UsedAdditionalBetTicket = true;
++                    success = true;
++                    message = "異붽? 諛고똿沅?+500 Call)???ъ슜?덉뒿?덈떎.";
+                 }
+             }
+-            return sameType
+-                ? $"{first.UnitName} x{units.Count}"
+-                : string.Join(", ", units.ConvertAll(unit => unit != null ? unit.UnitName : "Unknown"));
+-        }
+-
+-        private void SubscribeEvents()
+-        {
+-            if (m_WagerSlider != null) m_WagerSlider.onValueChanged.AddListener(OnWagerChanged);
+-            AddClick(m_RedButton, () => SetFaction(FactionPrediction.Red));
+-            AddClick(m_BlueButton, () => SetFaction(FactionPrediction.Blue));
+-            AddClick(m_DrawButton, () => SetFaction(FactionPrediction.Draw));
+-            AddClick(m_ClearFactionButton, () => SetFaction(FactionPrediction.NotSelected));
+-
+-            for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
+-            {
+-                int index = i;
+-                AddClick(m_RemainingTimeButtons[i], () => ToggleRemainingTime((RemainingTimePrediction)index));
+-            }
+-            for (int i = 0; i < m_OddEvenButtons.Length; i++)
+-            {
+-                int index = i;
+-                AddClick(m_OddEvenButtons[i], () => ToggleOddEven((OddEvenPrediction)index));
+-            }
+-            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+-            {
+-                int slot = i + 1;
+-                AddClick(m_FirstEliminatedSlotButtons[i], () => ToggleFirstEliminatedSlot(slot));
+-            }
+-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
+-            {
+-                int slot = i + 1;
+-                AddClick(m_SurvivingSlotButtons[i], () => ToggleSurvivingSlot(slot));
+-            }
+-            if (m_ConfirmBetButton != null) m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
+-        }
+-
+-        private static void AddClick(Button button, UnityEngine.Events.UnityAction action)
+-        {
+-            if (button != null) button.onClick.AddListener(action);
+-        }
+-
+-        private void UnsubscribeEvents()
+-        {
+-            if (m_WagerSlider != null) m_WagerSlider.onValueChanged.RemoveAllListeners();
+-            RemoveClicks(m_RedButton, m_BlueButton, m_DrawButton, m_ClearFactionButton, m_ConfirmBetButton);
+-            RemoveClicks(m_RemainingTimeButtons);
+-            RemoveClicks(m_OddEvenButtons);
+-            RemoveClicks(m_FirstEliminatedSlotButtons);
+-            RemoveClicks(m_SurvivingSlotButtons);
+-        }
+-
+-        private static void RemoveClicks(params Button[] buttons)
+-        {
+-            if (buttons == null) return;
+-            foreach (Button button in buttons)
+-            {
+-                if (button != null) button.onClick.RemoveAllListeners();
+-            }
+-        }
+-
+-        private void OnWagerChanged(float value)
+-        {
+-            m_DraftTicket.SetWager(Mathf.Clamp(Mathf.RoundToInt(value), 1, Mathf.Max(1, Context.CurrentCall)));
+-            RefreshBetSummary();
+-        }
+-
+-        private void SetFaction(FactionPrediction prediction)
+-        {
+-            m_DraftTicket.SetFaction(prediction);
+-            if (prediction != FactionPrediction.Red && prediction != FactionPrediction.Blue)
+-            {
+-                m_SelectedSurvivingSlots.Clear();
+-                m_DraftTicket.ClearSurvivingSlots();
+-            }
+-            else if (m_DraftTicket.HasSurvivingSlotsPrediction)
++            else if (itemData.ItemType == ItemType.Insurance)
+             {
+-                m_DraftTicket.SetSurvivingSlots(GetSelectedTeam(), m_SelectedSurvivingSlots);
++                if (m_UsedInsurance)
++                {
++                    message = "蹂댄뿕? ?쇱슫?쒕떦 1?뚮쭔 ?ъ슜 媛?ν빀?덈떎.";
++                }
++                else
++                {
++                    m_UsedInsurance = true;
++                    success = true;
++                    message = "?⑤같 ???먭툑??諛섑솚?섎뒗 蹂댄뿕???ъ슜?덉뒿?덈떎.";
++                }
+             }
+-            UpdateSurvivingSlotAvailability();
+-            RefreshBetSummary();
+-        }
+-
+-        private Team GetSelectedTeam()
+-        {
+-            return m_DraftTicket.Faction == FactionPrediction.Red ? Team.Red :
+-                m_DraftTicket.Faction == FactionPrediction.Blue ? Team.Blue : Team.None;
+-        }
+-
+-        private void ToggleRemainingTime(RemainingTimePrediction value)
+-        {
+-            m_DraftTicket.SetRemainingTime(m_DraftTicket.RemainingTime == value ? null : value);
+-            RefreshBetSummary();
+-        }
+-
+-        private void ToggleOddEven(OddEvenPrediction value)
+-        {
+-            m_DraftTicket.SetOddEven(m_DraftTicket.OddEven == value ? null : value);
+-            RefreshBetSummary();
+-        }
+-
+-        private void ToggleFirstEliminatedSlot(int slot)
+-        {
+-            m_DraftTicket.SetFirstEliminatedSlot(m_DraftTicket.FirstEliminatedSlot == slot ? null : slot);
+-            RefreshBetSummary();
+-        }
+-
+-        private void ToggleSurvivingSlot(int slot)
+-        {
+-            Team team = GetSelectedTeam();
+-            if (team == Team.None || !IsOccupiedSlot(team, slot)) return;
+-
+-            if (!m_SelectedSurvivingSlots.Add(slot)) m_SelectedSurvivingSlots.Remove(slot);
+-            if (m_SelectedSurvivingSlots.Count == 0)
+-                m_DraftTicket.ClearSurvivingSlots();
+-            else
+-                m_DraftTicket.SetSurvivingSlots(team, m_SelectedSurvivingSlots);
+-            RefreshBetSummary();
+-        }
+-
+-        private void UpdateSurvivingSlotAvailability()
+-        {
+-            Team team = GetSelectedTeam();
+-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
++            else if (itemData.ItemType == ItemType.RerollTicket)
+             {
+-                Button button = m_SurvivingSlotButtons[i];
+-                if (button != null) button.interactable = team != Team.None && IsOccupiedSlot(team, i + 1);
++                if (m_UsedRerollTicket || m_HasRerolledThisRound)
++                {
++                    message = "由щ·沅뚯? ?쇱슫?쒕떦 1?뚮쭔 ?ъ슜 媛?ν빀?덈떎.";
++                }
++                else
++                {
++                    var specialBets = Context.CurrentStageData.SpecialBetTypes;
++                    if (specialBets != null && specialBets.Count > 0)
++                    {
++                        int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
++                        m_OverriddenSpecialBet = specialBets[randomIndex];
++                        m_HasRerolledThisRound = true;
++                        m_UsedRerollTicket = true;
++                        
++                        Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
++
++                        success = true;
++                        message = $"?뱀닔 諛고똿??{m_OverriddenSpecialBet}濡?蹂寃쎈릺?덉뒿?덈떎.";
++                    }
++                    else
++                    {
++                        message = "蹂寃쏀븷 ?뱀닔 踰좏똿 猷곗씠 ?놁뒿?덈떎.";
++                    }
++                }
+             }
+-        }
+-
+-        private bool IsOccupiedSlot(Team team, int slot)
+-        {
+-            List<TeamUnitDeployment> deployments = team == Team.Red
+-                ? Context.TeamADeployments
+-                : Context.TeamBDeployments;
+-            return deployments.Exists(item => item.CellIndex == slot - 1 && item.Units.Count > 0);
+-        }
+ 
+-        private void RefreshBetSummary()
+-        {
+-            RefreshSelectionVisuals();
+-            int wager = Mathf.Clamp(m_DraftTicket.WagerCall, 1, Mathf.Max(1, Context.CurrentCall));
+-            if (m_CurrentCallText != null) m_CurrentCallText.text = $"{Context.CurrentCall} Call";
+-            if (m_WagerCallText != null) m_WagerCallText.text = $"{wager} Call";
+-            if (m_MultiplierText != null) m_MultiplierText.text = $"횞{m_DraftTicket.Multiplier}";
+-            if (m_EstimatedPayoutText != null)
++            if (success)
+             {
+-                m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
++                inventoryService.TryUseItemFromStage(itemData, playerState);
+             }
+ 
+-            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context.CurrentCall, out string error);
+-            if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
+-            if (m_ValidationText != null) m_ValidationText.text = valid ? string.Empty : error;
+-        }
+-
+-        private void RefreshSelectionVisuals()
+-        {
+-            SetSelected(m_RedButton, m_DraftTicket.Faction == FactionPrediction.Red);
+-            SetSelected(m_BlueButton, m_DraftTicket.Faction == FactionPrediction.Blue);
+-            SetSelected(m_DrawButton, m_DraftTicket.Faction == FactionPrediction.Draw);
+-
+-            for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
+-                SetSelected(m_RemainingTimeButtons[i], m_DraftTicket.RemainingTime == (RemainingTimePrediction)i);
+-            for (int i = 0; i < m_OddEvenButtons.Length; i++)
+-                SetSelected(m_OddEvenButtons[i], m_DraftTicket.OddEven == (OddEvenPrediction)i);
+-            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+-                SetSelected(m_FirstEliminatedSlotButtons[i], m_DraftTicket.FirstEliminatedSlot == i + 1);
+-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
+-                SetSelected(m_SurvivingSlotButtons[i], m_SelectedSurvivingSlots.Contains(i + 1));
++            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
++            return success;
+         }
+ 
+-        private static void SetSelected(Button button, bool selected)
+-        {
+-            if (button == null || button.image == null) return;
+-            button.image.color = selected
+-                ? new Color(0.95f, 0.72f, 0.18f)
+-                : new Color(0.2f, 0.24f, 0.3f);
+-        }
+-
+-        private void OnConfirmBetClicked()
++        public void ConfirmBetting(RoundBetTicket ticket)
+         {
+             if (IsPhaseCompleted) return;
+-            if (!Context.StageSession.TryPlaceBet(m_DraftTicket, out string error))
++            
++            if (ticket != null)
+             {
+-                if (m_ValidationText != null) m_ValidationText.text = error;
+-                Debug.LogError($"[BettingPhase] {error}");
+-                return;
++                ticket.SetItemUsages(m_UsedAdditionalBetTicket, m_UsedInsurance);
+             }
+ 
+-            Context.BetTicket = m_DraftTicket;
++            Context.BetTicket = ticket;
+             CompletePhase();
+             m_PhaseCompletionSource?.TrySetResult();
+         }
+ 
+         public override async Awaitable ExitPhaseAsync(CancellationToken token)
+         {
+-            UnsubscribeEvents();
+-            CanvasGroup canvasGroup = m_BettingCanvasGroup;
+-            if (canvasGroup != null)
+-            {
+-                await AwaitTweenAsync(canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad), token);
+-                canvasGroup.gameObject.SetActive(false);
+-            }
+-            transform.DOKill();
+-        }
+-
+-        private static async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
+-        {
+-            if (tween == null || !tween.IsActive()) return;
+-            using (token.Register(() =>
+-            {
+-                if (tween.IsActive()) tween.Kill();
+-            }))
+-            {
+-                await tween.AsyncWaitForCompletion();
+-            }
+-        }
+-
+-        private void OnDestroy()
+-        {
+-            transform.DOKill();
+-            UnsubscribeEvents();
++            // UI瑜??ル뒗 濡쒖쭅??UIManager瑜??듯븯?꾨줉 異뷀썑 援ы쁽
++            await Awaitable.NextFrameAsync();
+         }
+     }
+ }
+diff --git a/Assets/Scripts/MainGame/CombatPhase.cs b/Assets/Scripts/MainGame/CombatPhase.cs
+index a73c231..731fbf7 100644
+--- a/Assets/Scripts/MainGame/CombatPhase.cs
++++ b/Assets/Scripts/MainGame/CombatPhase.cs
+@@ -38,6 +38,11 @@ namespace InTheArena.MainGame
+ 
+         [Header("Final Elimination")]
+         [SerializeField] [Range(0.01f, 1f)] private float m_FinalEliminationTimeScale = 0.25f;
++
++        [Header("Item Effect References")]
++        [SerializeField] private UnitData m_MercenaryKnightData;
++        [SerializeField] private UnitData m_MercenaryArcherData;
++        [SerializeField] private InTheArena.Unit.StatusEffectData m_MeteorStunEffect;
+         [SerializeField] [Min(0f)] private float m_FinalEliminationDuration = 1.5f;
+ 
+         private CancellationTokenSource m_CombatCts;
+@@ -581,6 +586,177 @@ namespace InTheArena.MainGame
+             m_DeathHandlers.Clear();
+         }
+ 
++        public event System.Action<ItemData> OnItemUsed;
++
++        public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
++        {
++            remainingCount = 0;
++            message = "";
++
++            if (itemData == null)
++            {
++                message = "?좏슚?섏? ?딆? ?꾩씠?쒖엯?덈떎.";
++                return false;
++            }
++
++            var inventoryService = SaveManager.Instance?.InventoryService;
++            var playerState = StageManager.Instance?.PlayerState;
++
++            if (inventoryService == null || playerState == null)
++            {
++                message = "?꾩씠???쒖뒪?쒖쓣 遺덈윭?????놁뒿?덈떎.";
++                return false;
++            }
++
++            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
++            {
++                message = "蹂댁쑀???꾩씠?쒖씠 ?놁뒿?덈떎.";
++                return false;
++            }
++
++            bool success = false;
++
++            if (itemData.ItemType == ItemType.Meteor)
++            {
++                ApplyMeteorEffect(dropPosition);
++                success = true;
++                message = "硫뷀뀒?ㅻ? ?ъ슜?덉뒿?덈떎.";
++            }
++            else if (itemData.ItemType == ItemType.Mercenary)
++            {
++                if (m_MercenaryKnightData == null || m_MercenaryArcherData == null)
++                {
++                    message = "?⑸퀝 ?곗씠?곌? ?놁뒿?덈떎.";
++                    return false;
++                }
++                
++                Team team = Team.Red;
++                if (UnityEngine.Camera.main != null)
++                {
++                    Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
++                    if (viewportPos.x >= 0.5f)
++                    {
++                        team = Team.Blue;
++                    }
++                }
++
++                SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
++                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
++                SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
++
++                success = true;
++                message = "?⑸퀝??怨좎슜?덉뒿?덈떎.";
++            }
++            else if (itemData.ItemType == ItemType.TimeExtension)
++            {
++                m_RemainingCombatTime += 5f;
++                success = true;
++                message = "?꾪닾 ?쒓컙??5珥??곗옣?덉뒿?덈떎.";
++            }
++            else
++            {
++                message = "?꾪닾 ?꾩씠?쒖씠 ?꾨떃?덈떎.";
++                return false;
++            }
++
++            if (success)
++            {
++                inventoryService.TryUseItemFromStage(itemData, playerState);
++                OnItemUsed?.Invoke(itemData);
++            }
++
++            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
++            return success;
++        }
++
++        private void OnMercenaryDied(UnitType deadUnit)
++        {
++            if (deadUnit == null) return;
++
++            bool teamEliminated = deadUnit.Team == (int)Team.Red
++                ? UnitRegistry.RedAliveCount == 0
++                : UnitRegistry.BlueAliveCount == 0;
++            
++            if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
++
++            deadUnit.HoldDeathPresentation();
++            m_FinalDeathPresentationUnits.Add(deadUnit);
++        }
++
++        private void SpawnMercenary(UnitData unitData, Team team, Vector3 position)
++        {
++            if (unitData == null)
++            {
++                return;
++            }
++
++            if (Context == null)
++            {
++                return;
++            }
++
++            InTheArena.Unit.Unit unit = PoolManager.Require().Units.Spawn(
++                unitData,
++                team == Team.Red ? m_TeamASpawnRoot : m_TeamBSpawnRoot,
++                (int)team,
++                position,
++                false
++            );
++
++            if (unit != null)
++            {
++                unit.SetAIActive(true);
++                List<InTheArena.Unit.Unit> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
++                runtimeUnits.Add(unit);
++                
++                System.Action<UnitType> handler = _ => OnMercenaryDied(unit);
++                m_DeathHandlers[unit] = handler;
++                unit.OnDied += handler;
++            }
++        }
++
++        private void ApplyMeteorEffect(Vector3 center)
++        {
++            float radius = 2f;
++            float damage = 10f;
++            float stunDuration = 3f;
++            float radiusSqr = radius * radius;
++
++            if (Context != null)
++            {
++                ApplyDamageAndStun(Context.TeamAUnits, center, radiusSqr, damage, stunDuration);
++                ApplyDamageAndStun(Context.TeamBUnits, center, radiusSqr, damage, stunDuration);
++            }
++        }
++
++        private void ApplyDamageAndStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float damage, float stunDuration)
++        {
++            if (units == null)
++            {
++                return;
++            }
++
++            for (int i = 0; i < units.Count; i++)
++            {
++                var unit = units[i];
++                if (unit != null)
++                {
++                    if (unit.IsDead == false)
++                    {
++                        float distSqr = (unit.GroundPosition - center).sqrMagnitude;
++                        if (distSqr <= radiusSqr)
++                        {
++                            unit.ApplyDamage(damage);
++                            if (m_MeteorStunEffect != null)
++                            {
++                                unit.ApplyStatusEffect(m_MeteorStunEffect, null, stunDuration);
++                            }
++                        }
++                    }
++                }
++            }
++        }
++
+         private void OnDestroy()
+         {
+             Time.timeScale = 1f;
+diff --git a/Assets/Scripts/MainGame/RoundContext.cs b/Assets/Scripts/MainGame/RoundContext.cs
+index 408c65a..7d0ed44 100644
+--- a/Assets/Scripts/MainGame/RoundContext.cs
++++ b/Assets/Scripts/MainGame/RoundContext.cs
+@@ -46,6 +46,19 @@ namespace InTheArena.MainGame
+         // ?밸퀎 洹쒖튃
+         public RoundRule CurrentRoundRule { get; set; } = RoundRule.None;
+ 
++        public List<SpecialBetType> ActiveSpecialBets { get; } = new List<SpecialBetType>();
++        public event System.Action OnSpecialBetChanged;
++
++        public void SetActiveSpecialBets(IEnumerable<SpecialBetType> bets)
++        {
++            ActiveSpecialBets.Clear();
++            if (bets != null)
++            {
++                ActiveSpecialBets.AddRange(bets);
++            }
++            OnSpecialBetChanged?.Invoke();
++        }
++
+         /// <summary>
+         /// ?ㅽ뀒?댁? ?고????곹깭瑜???踰?珥덇린?뷀빀?덈떎.
+         /// </summary>
+@@ -100,6 +113,12 @@ namespace InTheArena.MainGame
+             CombatWinner = Team.None;
+             IsRoundCompleted = false;
+             CurrentRoundRule = RoundRule.None;
++
++            ActiveSpecialBets.Clear();
++            if (CurrentStageData != null && CurrentStageData.SpecialBetTypes != null)
++            {
++                ActiveSpecialBets.AddRange(CurrentStageData.SpecialBetTypes);
++            }
+         }
+ 
+         /// <summary>
+@@ -174,6 +193,8 @@ namespace InTheArena.MainGame
+             IsRoundCompleted = false;
+             CombatWinner = Team.None;
+             CurrentRoundRule = RoundRule.None;
++            ActiveSpecialBets.Clear();
++            OnSpecialBetChanged = null;
+         }
+     }
+ 
+diff --git a/Assets/Scripts/Managers/RoundManager.cs b/Assets/Scripts/Managers/RoundManager.cs
+index ddb47b2..d210368 100644
+--- a/Assets/Scripts/Managers/RoundManager.cs
++++ b/Assets/Scripts/Managers/RoundManager.cs
+@@ -36,6 +36,22 @@ namespace InTheArena.MainGame
+         [SerializeField] private CombatPhase m_CombatPhase;
+         [SerializeField] private ResultPhase m_ResultPhase;
+ 
++        public BettingPhase BettingPhase 
++        { 
++            get 
++            { 
++                return m_BettingPhase; 
++            } 
++        }
++
++        public CombatPhase CombatPhase 
++        { 
++            get 
++            { 
++                return m_CombatPhase; 
++            } 
++        }
++
+         private RoundContext m_Context;
+         private StageData m_CurrentStageData;
+         private CancellationTokenSource m_RoundCts;
+@@ -61,15 +77,16 @@ namespace InTheArena.MainGame
+         }
+ 
+         /// <summary>
+-                /// StageManager?먯꽌 ?몄텧?섏뿬 而⑦뀓?ㅽ듃? ?ㅽ뀒?댁? ?곗씠??珥덇린??-                /// </summary>
+-                public void InitializeContext(RoundContext context, StageData stageData)
+-                {
+-                    m_Context = context ?? new RoundContext();
+-                    m_CurrentStageData = stageData;
+-                    m_Context.InitializeStage(stageData);
+-                    Debug.Log($"[RoundManager] 而⑦뀓?ㅽ듃 珥덇린???꾨즺 - ?ㅽ뀒?댁?: {stageData?.FullStageName}");
+-                }
++        /// StageManager?먯꽌 ?몄텧?섏뿬 而⑦뀓?ㅽ듃? ?ㅽ뀒?댁? ?곗씠??珥덇린??+        /// </summary>
++        public void InitializeContext(RoundContext context, StageData stageData)
++        {
++            m_Context = context ?? new RoundContext();
++            m_CurrentStageData = stageData;
++            m_Context.InitializeStage(stageData);
++
++            Debug.Log($"[RoundManager] 而⑦뀓?ㅽ듃 珥덇린???꾨즺 - ?ㅽ뀒?댁?: {stageData?.FullStageName}");
++        }
+ 
+         /// <summary>
+         /// 吏?뺣맂 ?쇱슫???ㅽ뻾
+diff --git a/Assets/Scripts/Managers/SaveManager.cs b/Assets/Scripts/Managers/SaveManager.cs
+index ed4472d..be87ac1 100644
+--- a/Assets/Scripts/Managers/SaveManager.cs
++++ b/Assets/Scripts/Managers/SaveManager.cs
+@@ -9,6 +9,9 @@ public sealed class PlayerData
+     public int hearts;
+     public int stars;
+     public long lastHeartRecoveryUtcTicks;
++
++    // ?꾩씠??蹂댁쑀??(?몃뜳??= ItemType ?뺤닔媛?
++    public int[] itemCounts = new int[20];
+ }
+ 
+ [DisallowMultipleComponent]
+@@ -25,9 +28,10 @@ public class SaveManager : Manager_Base
+     [SerializeField] private ushort m_InitializationOrder = 5;
+     public override ushort InitializationOrder => m_InitializationOrder;
+     public PlayerData Data { get; private set; }
++    public InTheArena.MainGame.ItemInventoryService InventoryService { get; private set; }
+ 
+     private void Awake() { if (Instance != null && Instance != this) { Destroy(gameObject); return; } Instance = this; }
+-    protected override bool Init() { Load(); RefreshHearts(); return true; }
++    protected override bool Init() { Load(); RefreshHearts(); InventoryService = new InTheArena.MainGame.ItemInventoryService(this); return true; }
+ 
+     public void Load()
+     {
+diff --git a/Assets/Scripts/Managers/StageManager.cs b/Assets/Scripts/Managers/StageManager.cs
+index b2f287f..a8d9ea7 100644
+--- a/Assets/Scripts/Managers/StageManager.cs
++++ b/Assets/Scripts/Managers/StageManager.cs
+@@ -55,6 +55,8 @@ namespace InTheArena.MainGame
+         public bool IsStageRunning => m_IsStageRunning;
+         public int CurrentRoundIndex => m_CurrentRoundIndex;
+ 
++        public StagePlayerState PlayerState { get; private set; }
++
+         private void Awake()
+         {
+             if (!ReferenceEquals(_instance, null) && _instance != null && _instance != this)
+@@ -127,6 +129,12 @@ namespace InTheArena.MainGame
+                 m_Context.Clear();
+                 m_Context.InitializeStage(stageData);
+                 
++                PlayerState = new StagePlayerState();
++                if (SaveManager.Instance != null)
++                {
++                    PlayerState.CopyFrom(SaveManager.Instance.Data);
++                }
++
+                 // 濡쒕뵫 吏꾪뻾???쒕??덉씠??(?ㅼ젣濡쒕뒗 AssetBundle/Addressables 濡쒕뱶)
+                 await LoadStageDataAsync(m_StageCts.Token);
+ 
+@@ -251,7 +259,22 @@ namespace InTheArena.MainGame
+ 
+         private bool CheckStageClear()
+         {
+-            return m_Context.CurrentCall >= m_CurrentStageData.TargetCall;
++            if (m_Context.CurrentCall >= m_CurrentStageData.TargetCall)
++            {
++                if (PlayerState != null)
++                {
++                    if (SaveManager.Instance != null)
++                    {
++                        if (SaveManager.Instance.Data != null)
++                        {
++                            PlayerState.ApplyTo(SaveManager.Instance.Data);
++                            SaveManager.Instance.Save();
++                        }
++                    }
++                }
++                return true;
++            }
++            return false;
+         }
+ 
+         private bool CheckGameOver()
+@@ -311,6 +334,7 @@ namespace InTheArena.MainGame
+             }
+ 
+             m_Context?.Clear();
++            PlayerState = null;
+         }
+     }
+ }

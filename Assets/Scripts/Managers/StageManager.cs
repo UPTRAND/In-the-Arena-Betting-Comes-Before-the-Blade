@@ -55,6 +55,8 @@ namespace InTheArena.MainGame
         public bool IsStageRunning => m_IsStageRunning;
         public int CurrentRoundIndex => m_CurrentRoundIndex;
 
+        public StagePlayerState PlayerState { get; private set; }
+
         private void Awake()
         {
             if (!ReferenceEquals(_instance, null) && _instance != null && _instance != this)
@@ -127,6 +129,12 @@ namespace InTheArena.MainGame
                 m_Context.Clear();
                 m_Context.InitializeStage(stageData);
                 
+                PlayerState = new StagePlayerState();
+                if (SaveManager.Instance != null)
+                {
+                    PlayerState.CopyFrom(SaveManager.Instance.Data);
+                }
+
                 // 로딩 진행도 시뮬레이션 (실제로는 AssetBundle/Addressables 로드)
                 await LoadStageDataAsync(m_StageCts.Token);
 
@@ -251,7 +259,22 @@ namespace InTheArena.MainGame
 
         private bool CheckStageClear()
         {
-            return m_Context.CurrentCall >= m_CurrentStageData.TargetCall;
+            if (m_Context.CurrentCall >= m_CurrentStageData.TargetCall)
+            {
+                if (PlayerState != null)
+                {
+                    if (SaveManager.Instance != null)
+                    {
+                        if (SaveManager.Instance.Data != null)
+                        {
+                            PlayerState.ApplyTo(SaveManager.Instance.Data);
+                            SaveManager.Instance.Save();
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
         }
 
         private bool CheckGameOver()
@@ -311,6 +334,7 @@ namespace InTheArena.MainGame
             }
 
             m_Context?.Clear();
+            PlayerState = null;
         }
     }
 }

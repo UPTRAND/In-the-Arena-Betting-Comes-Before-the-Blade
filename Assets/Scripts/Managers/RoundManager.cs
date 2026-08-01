@@ -36,6 +36,22 @@ namespace InTheArena.MainGame
         [SerializeField] private CombatPhase m_CombatPhase;
         [SerializeField] private ResultPhase m_ResultPhase;
 
+        public BettingPhase BettingPhase 
+        { 
+            get 
+            { 
+                return m_BettingPhase; 
+            } 
+        }
+
+        public CombatPhase CombatPhase 
+        { 
+            get 
+            { 
+                return m_CombatPhase; 
+            } 
+        }
+
         private RoundContext m_Context;
         private StageData m_CurrentStageData;
         private CancellationTokenSource m_RoundCts;
@@ -61,15 +77,16 @@ namespace InTheArena.MainGame
         }
 
         /// <summary>
-                /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
-                /// </summary>
-                public void InitializeContext(RoundContext context, StageData stageData)
-                {
-                    m_Context = context ?? new RoundContext();
-                    m_CurrentStageData = stageData;
-                    m_Context.InitializeStage(stageData);
-                    Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
-                }
+        /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
+        /// </summary>
+        public void InitializeContext(RoundContext context, StageData stageData)
+        {
+            m_Context = context ?? new RoundContext();
+            m_CurrentStageData = stageData;
+            m_Context.InitializeStage(stageData);
+
+            Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
+        }
 
         /// <summary>
         /// 지정된 라운드 실행

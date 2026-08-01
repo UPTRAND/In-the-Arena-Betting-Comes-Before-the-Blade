@@ -62,7 +62,9 @@ namespace InTheArena.MainGame.Editor
             ticket.SetOddEven(OddEvenPrediction.Odd);
             ticket.SetFirstEliminatedSlot(3);
 
-            if (!session.TryPlaceBet(ticket, out string error)) throw new InvalidOperationException(error);
+            var context = new RoundContext();
+            context.InitializeStage(stageData);
+            if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
             var result = new CombatResultSnapshot(
                 Team.Red, 12f, 3, 0,
                 new[] { 1, 3 }, Array.Empty<int>(), 3);
@@ -84,7 +86,9 @@ namespace InTheArena.MainGame.Editor
             ticket.SetFaction(FactionPrediction.Blue);
             ticket.SetOddEven(OddEvenPrediction.Even);
 
-            if (!session.TryPlaceBet(ticket, out string error)) throw new InvalidOperationException(error);
+            var context = new RoundContext();
+            context.InitializeStage(stageData);
+            if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
             var result = new CombatResultSnapshot(
                 Team.Blue, 4f, 0, 3,
                 Array.Empty<int>(), new[] { 1, 2 }, -1);

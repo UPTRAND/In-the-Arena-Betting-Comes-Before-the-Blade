@@ -46,6 +46,19 @@ namespace InTheArena.MainGame
         // 특별 규칙
         public RoundRule CurrentRoundRule { get; set; } = RoundRule.None;
 
+        public List<SpecialBetType> ActiveSpecialBets { get; } = new List<SpecialBetType>();
+        public event System.Action OnSpecialBetChanged;
+
+        public void SetActiveSpecialBets(IEnumerable<SpecialBetType> bets)
+        {
+            ActiveSpecialBets.Clear();
+            if (bets != null)
+            {
+                ActiveSpecialBets.AddRange(bets);
+            }
+            OnSpecialBetChanged?.Invoke();
+        }
+
         /// <summary>
         /// 스테이지 런타임 상태를 한 번 초기화합니다.
         /// </summary>
@@ -100,6 +113,12 @@ namespace InTheArena.MainGame
             CombatWinner = Team.None;
             IsRoundCompleted = false;
             CurrentRoundRule = RoundRule.None;
+
+            ActiveSpecialBets.Clear();
+            if (CurrentStageData != null && CurrentStageData.SpecialBetTypes != null)
+            {
+                ActiveSpecialBets.AddRange(CurrentStageData.SpecialBetTypes);
+            }
         }
 
         /// <summary>
@@ -174,6 +193,8 @@ namespace InTheArena.MainGame
             IsRoundCompleted = false;
             CombatWinner = Team.None;
             CurrentRoundRule = RoundRule.None;
+            ActiveSpecialBets.Clear();
+            OnSpecialBetChanged = null;
         }
     }
 

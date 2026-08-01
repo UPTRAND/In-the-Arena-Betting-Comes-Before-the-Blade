@@ -9,6 +9,9 @@ public sealed class PlayerData
     public int hearts;
     public int stars;
     public long lastHeartRecoveryUtcTicks;
+
+    // 아이템 보유수 (인덱스 = ItemType 정수값)
+    public int[] itemCounts = new int[20];
 }
 
 [DisallowMultipleComponent]
@@ -25,9 +28,10 @@ public class SaveManager : Manager_Base
     [SerializeField] private ushort m_InitializationOrder = 5;
     public override ushort InitializationOrder => m_InitializationOrder;
     public PlayerData Data { get; private set; }
+    public InTheArena.MainGame.ItemInventoryService InventoryService { get; private set; }
 
     private void Awake() { if (Instance != null && Instance != this) { Destroy(gameObject); return; } Instance = this; }
-    protected override bool Init() { Load(); RefreshHearts(); return true; }
+    protected override bool Init() { Load(); RefreshHearts(); InventoryService = new InTheArena.MainGame.ItemInventoryService(this); return true; }
 
     public void Load()
     {

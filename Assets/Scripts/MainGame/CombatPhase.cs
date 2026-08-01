@@ -38,6 +38,11 @@ namespace InTheArena.MainGame
 
         [Header("Final Elimination")]
         [SerializeField] [Range(0.01f, 1f)] private float m_FinalEliminationTimeScale = 0.25f;
+
+        [Header("Item Effect References")]
+        [SerializeField] private UnitData m_MercenaryKnightData;
+        [SerializeField] private UnitData m_MercenaryArcherData;
+        [SerializeField] private InTheArena.Unit.StatusEffectData m_MeteorStunEffect;
         [SerializeField] [Min(0f)] private float m_FinalEliminationDuration = 1.5f;
 
         private CancellationTokenSource m_CombatCts;
@@ -579,6 +584,177 @@ namespace InTheArena.MainGame
                 if (pair.Key != null) pair.Key.OnDied -= pair.Value;
             }
             m_DeathHandlers.Clear();
+        }
+
+        public event System.Action<ItemData> OnItemUsed;
+
+        public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
+        {
+            remainingCount = 0;
+            message = "";
+
+            if (itemData == null)
+            {
+                message = "유효하지 않은 아이템입니다.";
+                return false;
+            }
+
+            var inventoryService = SaveManager.Instance?.InventoryService;
+            var playerState = StageManager.Instance?.PlayerState;
+
+            if (inventoryService == null || playerState == null)
+            {
+                message = "아이템 시스템을 불러올 수 없습니다.";
+                return false;
+            }
+
+            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
+            {
+                message = "보유한 아이템이 없습니다.";
+                return false;
+            }
+
+            bool success = false;
+
+            if (itemData.ItemType == ItemType.Meteor)
+            {
+                ApplyMeteorEffect(dropPosition);
+                success = true;
+                message = "메테오를 사용했습니다.";
+            }
+            else if (itemData.ItemType == ItemType.Mercenary)
+            {
+                if (m_MercenaryKnightData == null || m_MercenaryArcherData == null)
+                {
+                    message = "용병 데이터가 없습니다.";
+                    return false;
+                }
+                
+                Team team = Team.Red;
+                if (UnityEngine.Camera.main != null)
+                {
+                    Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
+                    if (viewportPos.x >= 0.5f)
+                    {
+                        team = Team.Blue;
+                    }
+                }
+
+                SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
+                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
+                SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
+
+                success = true;
+                message = "용병을 고용했습니다.";
+            }
+            else if (itemData.ItemType == ItemType.TimeExtension)
+            {
+                m_RemainingCombatTime += 5f;
+                success = true;
+                message = "전투 시간을 5초 연장했습니다.";
+            }
+            else
+            {
+                message = "전투 아이템이 아닙니다.";
+                return false;
+            }
+
+            if (success)
+            {
+                inventoryService.TryUseItemFromStage(itemData, playerState);
+                OnItemUsed?.Invoke(itemData);
+            }
+
+            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
+            return success;
+        }
+
+        private void OnMercenaryDied(UnitType deadUnit)
+        {
+            if (deadUnit == null) return;
+
+            bool teamEliminated = deadUnit.Team == (int)Team.Red
+                ? UnitRegistry.RedAliveCount == 0
+                : UnitRegistry.BlueAliveCount == 0;
+            
+            if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
+
+            deadUnit.HoldDeathPresentation();
+            m_FinalDeathPresentationUnits.Add(deadUnit);
+        }
+
+        private void SpawnMercenary(UnitData unitData, Team team, Vector3 position)
+        {
+            if (unitData == null)
+            {
+                return;
+            }
+
+            if (Context == null)
+            {
+                return;
+            }
+
+            InTheArena.Unit.Unit unit = PoolManager.Require().Units.Spawn(
+                unitData,
+                team == Team.Red ? m_TeamASpawnRoot : m_TeamBSpawnRoot,
+                (int)team,
+                position,
+                false
+            );
+
+            if (unit != null)
+            {
+                unit.SetAIActive(true);
+                List<InTheArena.Unit.Unit> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
+                runtimeUnits.Add(unit);
+                
+                System.Action<UnitType> handler = _ => OnMercenaryDied(unit);
+                m_DeathHandlers[unit] = handler;
+                unit.OnDied += handler;
+            }
+        }
+
+        private void ApplyMeteorEffect(Vector3 center)
+        {
+            float radius = 2f;
+            float damage = 10f;
+            float stunDuration = 3f;
+            float radiusSqr = radius * radius;
+
+            if (Context != null)
+            {
+                ApplyDamageAndStun(Context.TeamAUnits, center, radiusSqr, damage, stunDuration);
+                ApplyDamageAndStun(Context.TeamBUnits, center, radiusSqr, damage, stunDuration);
+            }
+        }
+
+        private void ApplyDamageAndStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float damage, float stunDuration)
+        {
+            if (units == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < units.Count; i++)
+            {
+                var unit = units[i];
+                if (unit != null)
+                {
+                    if (unit.IsDead == false)
+                    {
+                        float distSqr = (unit.GroundPosition - center).sqrMagnitude;
+                        if (distSqr <= radiusSqr)
+                        {
+                            unit.ApplyDamage(damage);
+                            if (m_MeteorStunEffect != null)
+                            {
+                                unit.ApplyStatusEffect(m_MeteorStunEffect, null, stunDuration);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void OnDestroy()

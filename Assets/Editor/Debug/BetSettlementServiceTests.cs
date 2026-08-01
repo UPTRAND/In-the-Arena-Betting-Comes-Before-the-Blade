@@ -43,7 +43,9 @@ public sealed class BetSettlementServiceTests
         ticket.SetOddEven(OddEvenPrediction.Odd);
         ticket.SetFirstEliminatedSlot(3);
 
-        Assert.That(session.TryPlaceBet(ticket, out string error), Is.True, error);
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
         Assert.That(session.CurrentCall, Is.EqualTo(400));
 
         var result = new CombatResultSnapshot(
@@ -70,7 +72,9 @@ public sealed class BetSettlementServiceTests
         ticket.SetFaction(FactionPrediction.Blue);
         ticket.SetOddEven(OddEvenPrediction.Even);
 
-        Assert.That(session.TryPlaceBet(ticket, out _), Is.True);
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        Assert.That(session.TryPlaceBet(ticket, context, out _), Is.True);
         var result = new CombatResultSnapshot(
             Team.Blue, 4f, 0, 3,
             new int[0], new[] { 1, 2 }, -1);
@@ -107,7 +111,9 @@ public sealed class BetSettlementServiceTests
         ticket.SetFaction(FactionPrediction.Blue);
         ticket.SetSurvivingSlots(Team.Blue, new HashSet<int> { 2, 5 });
 
-        Assert.That(session.TryPlaceBet(ticket, out string error), Is.True, error);
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
         var result = new CombatResultSnapshot(
             Team.Blue, 8f, 0, 2,
             new int[0], new[] { 2, 5 }, 1);

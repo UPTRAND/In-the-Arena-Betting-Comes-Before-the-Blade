@@ -60,6 +60,9 @@ namespace InTheArena.MainGame
         public bool IsPlaced { get; private set; }
         public bool IsSettled { get; private set; }
 
+        public bool HasAdditionalBet { get; private set; }
+        public bool HasInsurance { get; private set; }
+
         public int SelectedCategoryCount
         {
             get
@@ -112,11 +115,23 @@ namespace InTheArena.MainGame
             HasSurvivingSlotsPrediction = false;
         }
 
-        public bool Validate(StageData stageData, int availableCall, out string error)
+        public void SetItemUsages(bool hasAdditionalBet, bool hasInsurance)
+        {
+            HasAdditionalBet = hasAdditionalBet;
+            HasInsurance = hasInsurance;
+        }
+
+        public bool Validate(StageData stageData, RoundContext context, int availableCall, out string error)
         {
             if (stageData == null)
             {
                 error = "StageData가 없습니다.";
+                return false;
+            }
+
+            if (context == null)
+            {
+                error = "RoundContext가 없습니다.";
                 return false;
             }
 
@@ -138,10 +153,10 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (RemainingTime.HasValue && !stageData.HasSpecialBet(SpecialBetType.RemainingTime) ||
-                OddEven.HasValue && !stageData.HasSpecialBet(SpecialBetType.OddEven) ||
-                FirstEliminatedSlot.HasValue && !stageData.HasSpecialBet(SpecialBetType.FirstEliminatedSlot) ||
-                HasSurvivingSlotsPrediction && !stageData.HasSpecialBet(SpecialBetType.SurvivingSlots))
+            if (RemainingTime.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.RemainingTime) ||
+                OddEven.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.OddEven) ||
+                FirstEliminatedSlot.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedSlot) ||
+                HasSurvivingSlotsPrediction && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingSlots))
             {
                 error = "스테이지에서 제공하지 않는 특수 베팅이 선택되었습니다.";
                 return false;
@@ -284,7 +299,25 @@ namespace InTheArena.MainGame
             }
 
             bool isWin = failed.Count == 0;
-            int payout = isWin ? checked(ticket.WagerCall * ticket.Multiplier) : 0;
+            int payout = 0;
+
+            if (isWin)
+            {
+                int effectiveWager = ticket.WagerCall;
+                if (ticket.HasAdditionalBet)
+                {
+                    effectiveWager += 500;
+                }
+                payout = checked(effectiveWager * ticket.Multiplier);
+            }
+            else
+            {
+                if (ticket.HasInsurance)
+                {
+                    payout = ticket.WagerCall;
+                }
+            }
+
             ticket.MarkSettled();
             return new BetSettlement(isWin, ticket.WagerCall, ticket.Multiplier, payout, failed);
         }
@@ -324,7 +357,7 @@ namespace InTheArena.MainGame
             CurrentCall = stageData.InitialCall;
         }
 
-        public bool TryPlaceBet(RoundBetTicket ticket, out string error)
+        public bool TryPlaceBet(RoundBetTicket ticket, RoundContext context, out string error)
         {
             if (ticket == null)
             {
@@ -332,7 +365,7 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (!ticket.Validate(StageData, CurrentCall, out error)) return false;
+            if (!ticket.Validate(StageData, context, CurrentCall, out error)) return false;
             if (ticket.IsPlaced)
             {
                 error = "이미 확정된 베팅입니다.";
