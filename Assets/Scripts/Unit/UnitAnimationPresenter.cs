@@ -15,6 +15,7 @@ namespace InTheArena.Unit
 
         private static readonly int IsMovingParameter = Animator.StringToHash("IsMoving");
         private static readonly int AttackState = Animator.StringToHash("Attack");
+        private static readonly int DaggerAttackState = Animator.StringToHash("DaggerAttack");
         private static readonly int SkillState = Animator.StringToHash("Skill");
         private static readonly int HitState = Animator.StringToHash("Hit");
         private static readonly int DeathState = Animator.StringToHash("Death");
@@ -63,7 +64,13 @@ namespace InTheArena.Unit
             m_Animator.SetBool(IsMovingParameter, moving);
         }
 
-        public void PlayAttack() => TryCrossFade(AttackState);
+        public void PlayAttack(BasicAttackData attackData = null)
+        {
+            if (attackData?.Delivery is ImmediateAttackDelivery && TryCrossFade(DaggerAttackState))
+                return;
+
+            TryCrossFade(AttackState);
+        }
 
         public void PlayCast()
         {
@@ -85,13 +92,15 @@ namespace InTheArena.Unit
             if (m_Animator == null) return false;
 
             AnimatorStateInfo current = m_Animator.GetCurrentAnimatorStateInfo(0);
-            if (current.shortNameHash == AttackState || current.shortNameHash == SkillState ||
+            if (current.shortNameHash == AttackState || current.shortNameHash == DaggerAttackState ||
+                current.shortNameHash == SkillState ||
                 current.shortNameHash == ShieldState || current.shortNameHash == DrinkState)
                 return true;
 
             if (!m_Animator.IsInTransition(0)) return false;
             AnimatorStateInfo next = m_Animator.GetNextAnimatorStateInfo(0);
-            return next.shortNameHash == AttackState || next.shortNameHash == SkillState ||
+            return next.shortNameHash == AttackState || next.shortNameHash == DaggerAttackState ||
+                   next.shortNameHash == SkillState ||
                    next.shortNameHash == ShieldState || next.shortNameHash == DrinkState;
         }
 
@@ -101,15 +110,17 @@ namespace InTheArena.Unit
 
             int fullPathHash = shortStateHash == AttackState
                 ? Animator.StringToHash("Base Layer.Attack")
-                : shortStateHash == HitState
-                    ? Animator.StringToHash("Base Layer.Hit")
-                    : shortStateHash == DeathState
-                        ? Animator.StringToHash("Base Layer.Death")
-                        : shortStateHash == SkillState
-                            ? Animator.StringToHash("Base Layer.Skill")
-                            : shortStateHash == ShieldState
-                                ? Animator.StringToHash("Base Layer.Shield")
-                                : Animator.StringToHash("Base Layer.Drink");
+                : shortStateHash == DaggerAttackState
+                    ? Animator.StringToHash("Base Layer.DaggerAttack")
+                    : shortStateHash == HitState
+                        ? Animator.StringToHash("Base Layer.Hit")
+                        : shortStateHash == DeathState
+                            ? Animator.StringToHash("Base Layer.Death")
+                            : shortStateHash == SkillState
+                                ? Animator.StringToHash("Base Layer.Skill")
+                                : shortStateHash == ShieldState
+                                    ? Animator.StringToHash("Base Layer.Shield")
+                                    : Animator.StringToHash("Base Layer.Drink");
 
             if (!m_Animator.HasState(0, fullPathHash)) return false;
             m_Animator.CrossFade(fullPathHash, CrossFadeDuration, 0, 0f);

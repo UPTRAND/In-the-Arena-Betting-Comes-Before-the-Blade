@@ -15,7 +15,7 @@ MonoBehaviour:
   m_RoundNumber: 1
   m_TeamAGrid:
   - m_IsFixed: 1
-    m_FixedUnit: {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    m_FixedUnit: {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_FixedCount: 2
     m_VariableUnitPool: []
     m_ExtraCountRange: 1
@@ -44,7 +44,7 @@ MonoBehaviour:
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+    m_FixedUnit: {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
@@ -53,10 +53,11 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     - {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
     - {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+    m_FixedUnit: {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
@@ -65,6 +66,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     - {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
     - {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   m_TeamBGrid:
@@ -107,6 +109,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     - {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
     - {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   - m_IsFixed: 0
@@ -119,6 +122,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     - {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
     - {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 0.3
   m_SpecialRule: 0

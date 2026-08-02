@@ -41,7 +41,7 @@ namespace InTheArena.Unit
             int positionInRing = slot % SlotsPerRing;
             float angle = positionInRing * (Mathf.PI * 2f / SlotsPerRing) +
                           (ring & 1) * (Mathf.PI / SlotsPerRing);
-            bool ranged = owner.UnitData?.BasicAttackData?.Delivery is HomingProjectileAttackDelivery;
+            bool ranged = owner.CurrentBasicAttackData?.Delivery is HomingProjectileAttackDelivery;
             float baseRadius = ranged
                 ? Mathf.Max(GetContactDistance(owner, target), owner.CurrentAttackRange * 0.85f)
                 : GetContactDistance(owner, target);

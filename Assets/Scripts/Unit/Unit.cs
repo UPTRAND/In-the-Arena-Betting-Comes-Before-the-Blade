@@ -61,6 +61,9 @@ namespace InTheArena.Unit
         private UnitStat m_CurrentStat;
         private UnitStat m_StatModifierBuffSum;
         private UnitStat m_StatModifierDebuffSum;
+        private UnitStat m_WeaponStatOverride;
+        private bool m_HasWeaponStatOverride;
+        private BasicAttackData m_BasicAttackOverride;
         private float m_CurrentHp;
         private float m_AttackCooldown;
         private bool m_IsSilenced;
@@ -86,7 +89,6 @@ namespace InTheArena.Unit
         private SkillRuntime m_RuntimeSkill;
         private SkillRuntime m_CastingSkill;
         private float m_CastRemaining;
-        private float m_AttackAnimationLock = MinimumAttackAnimationLock;
         private UnitDecisionAgent m_RuntimeAI;
 
         private SpriteRenderer m_SourceSpriteRenderer;
@@ -99,6 +101,8 @@ namespace InTheArena.Unit
         public UnitData UnitData => m_UnitData;
         public UnitStat BaseStat => m_BaseStat;
         public UnitStat CurrentStat => m_CurrentStat;
+        public BasicAttackData CurrentBasicAttackData =>
+            m_BasicAttackOverride != null ? m_BasicAttackOverride : m_UnitData?.BasicAttackData;
         public float CurrentHp => m_CurrentHp;
         public float MaxHp => m_CurrentStat.maxHp;
         public float CurrentAttackPower => m_CurrentStat.attackPower;
@@ -203,12 +207,14 @@ namespace InTheArena.Unit
             m_CurrentHp = m_BaseStat.maxHp;
             m_StatModifierBuffSum = default;
             m_StatModifierDebuffSum = default;
+            m_WeaponStatOverride = default;
+            m_HasWeaponStatOverride = false;
+            m_BasicAttackOverride = null;
             m_AttackCooldown = 0f;
             m_IsSilenced = false;
             m_ActionController.Reset();
             m_AnimationPresenter ??= new UnitAnimationPresenter(m_Animator);
             m_AnimationPresenter.Reset();
-            m_AttackAnimationLock = ResolveAttackAnimationLock();
             m_PreviousSimulationPosition = transform.position;
             m_SimulationPosition = transform.position;
             m_FacingDirection = transform.forward;
@@ -296,6 +302,9 @@ namespace InTheArena.Unit
             m_RuntimeAI = null;
             m_RuntimeSkill = null;
             m_CastingSkill = null;
+            m_WeaponStatOverride = default;
+            m_HasWeaponStatOverride = false;
+            m_BasicAttackOverride = null;
             m_CombatLogNumber = 0;
             m_CastingTargets.Clear();
             m_HitFlashRemaining = 0f;
@@ -547,12 +556,14 @@ namespace InTheArena.Unit
         public bool TryAttack(Unit target)
         {
             if (!CanAttack || target == null || target.IsDead || target.Team == Team) return false;
-            if (!m_ActionController.TryBeginAttack(m_AttackAnimationLock)) return false;
 
-            BasicAttackData attackData = m_UnitData != null ? m_UnitData.BasicAttackData : null;
+            BasicAttackData attackData = CurrentBasicAttackData;
+            float attackAnimationLock = ResolveAttackAnimationLock(attackData);
+            if (!m_ActionController.TryBeginAttack(attackAnimationLock)) return false;
+
             if (attackData == null || !attackData.TryExecute(this, target))
             {
-                m_ActionController.Tick(m_AttackAnimationLock);
+                m_ActionController.Tick(attackAnimationLock);
                 m_AttackCooldown = attackData != null
                     ? attackData.FailureRetryDelay
                     : 0.25f;
@@ -560,17 +571,20 @@ namespace InTheArena.Unit
             }
 
             m_AttackCooldown = AttackInterval;
-            m_AnimationPresenter?.PlayAttack();
+            m_AnimationPresenter?.PlayAttack(attackData);
             PlayClip(m_AttackSound);
             OnAttack?.Invoke(target);
             return true;
         }
 
-        private float ResolveAttackAnimationLock()
+        private float ResolveAttackAnimationLock(BasicAttackData attackData = null)
         {
             RuntimeAnimatorController controller = m_Animator != null ? m_Animator.runtimeAnimatorController : null;
             if (controller == null) return MinimumAttackAnimationLock;
 
+            string preferredClipName = attackData?.Delivery is ImmediateAttackDelivery
+                ? "DaggerAttack"
+                : "Attack";
             AnimationClip[] clips = controller.animationClips;
             float bestLength = 0f;
             for (int i = 0; clips != null && i < clips.Length; i++)
@@ -578,9 +592,12 @@ namespace InTheArena.Unit
                 AnimationClip clip = clips[i];
                 if (clip == null) continue;
                 string clipName = clip.name;
-                if (!clipName.StartsWith("Attack", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!clipName.Equals(preferredClipName, StringComparison.OrdinalIgnoreCase)) continue;
                 bestLength = Mathf.Max(bestLength, clip.length);
             }
+
+            if (bestLength <= 0f && !preferredClipName.Equals("Attack", StringComparison.OrdinalIgnoreCase))
+                return ResolveAttackAnimationLock();
 
             return Mathf.Max(MinimumAttackAnimationLock, bestLength);
         }
@@ -610,6 +627,15 @@ namespace InTheArena.Unit
             string targetLabel = target != null ? target.BuildCombatLogLabel() : "대상 없음";
             Debug.Log(
                 $"{sourceLabel}이(가) {targetLabel}에게 {actionName}을 사용하여 {amount:0.##}의 {resultType}을(를) 줌.",
+                this);
+        }
+
+        internal void LogHunterModeChange(string modeName)
+        {
+            string teamName = m_Team == 0 ? "Red" : "Blue";
+            int logNumber = m_CombatLogNumber > 0 ? m_CombatLogNumber : 1;
+            Debug.Log(
+                $"팀 {teamName} 유닛 사냥꾼 (n : {logNumber}) 이(가) 현재 {modeName} 모드입니다.",
                 this);
         }
 
@@ -870,6 +896,12 @@ namespace InTheArena.Unit
         {
             float hpRatio = MaxHp > 0f ? m_CurrentHp / MaxHp : 1f;
             m_CurrentStat = m_BaseStat + m_StatModifierBuffSum - m_StatModifierDebuffSum;
+            if (m_HasWeaponStatOverride)
+            {
+                m_CurrentStat.attackPower = m_WeaponStatOverride.attackPower;
+                m_CurrentStat.attackSpeed = m_WeaponStatOverride.attackSpeed;
+                m_CurrentStat.attackRange = m_WeaponStatOverride.attackRange;
+            }
             m_CurrentStat.maxHp = Mathf.Max(1f, m_CurrentStat.maxHp);
             m_CurrentStat.attackPower = Mathf.Max(0f, m_CurrentStat.attackPower);
             m_CurrentStat.defense = Mathf.Max(0f, m_CurrentStat.defense);
@@ -877,6 +909,29 @@ namespace InTheArena.Unit
             m_CurrentStat.moveSpeed = Mathf.Max(0f, m_CurrentStat.moveSpeed);
             m_CurrentStat.attackRange = Mathf.Max(0f, m_CurrentStat.attackRange);
             m_CurrentHp = Mathf.Clamp(m_CurrentStat.maxHp * hpRatio, 0f, m_CurrentStat.maxHp);
+        }
+
+        public void SetWeaponOverride(
+            BasicAttackData attackData,
+            float attackPower,
+            float attackSpeed,
+            float attackRange)
+        {
+            m_BasicAttackOverride = attackData;
+            m_WeaponStatOverride = m_CurrentStat;
+            m_WeaponStatOverride.attackPower = Mathf.Max(0f, attackPower);
+            m_WeaponStatOverride.attackSpeed = Mathf.Max(0.01f, attackSpeed);
+            m_WeaponStatOverride.attackRange = Mathf.Max(0f, attackRange);
+            m_HasWeaponStatOverride = true;
+            RecalculateStats();
+        }
+
+        public void ClearWeaponOverride()
+        {
+            m_BasicAttackOverride = null;
+            m_WeaponStatOverride = default;
+            m_HasWeaponStatOverride = false;
+            RecalculateStats();
         }
 
         private void AddRuntimeSkill(SkillData skillData)

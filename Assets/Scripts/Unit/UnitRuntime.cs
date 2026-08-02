@@ -78,7 +78,7 @@ namespace InTheArena.Unit
 
             Vector3 delta = target.GroundPosition - owner.GroundPosition;
             delta.y = 0f;
-            bool ranged = owner.UnitData?.BasicAttackData?.Delivery
+            bool ranged = owner.CurrentBasicAttackData?.Delivery
                 is HomingProjectileAttackDelivery;
             float configuredStopRange =
                 owner.CurrentAttackRange * Mathf.Clamp01(attackRangeRatio);
@@ -91,10 +91,13 @@ namespace InTheArena.Unit
                     EngagementSlotSystem.DistanceEpsilon);
             if (delta.sqrMagnitude > attackRange * attackRange)
             {
+                Vector3 destination = ranged
+                    ? CalculateRangedApproachPosition(owner, target, configuredStopRange)
+                    : UnitRegistry.GetEngagementPosition(owner, target);
                 return new UnitIntent(
                     UnitIntentType.Move,
                     target,
-                    UnitRegistry.GetEngagementPosition(owner, target));
+                    destination);
             }
 
             if (owner.IsAttacking || owner.IsCastingSkill)
@@ -107,6 +110,31 @@ namespace InTheArena.Unit
                     return new UnitIntent(UnitIntentType.CastSkill, target);
             }
             return new UnitIntent(UnitIntentType.BasicAttack, target);
+        }
+
+        private static Vector3 CalculateRangedApproachPosition(
+            Unit owner,
+            Unit target,
+            float desiredDistance)
+        {
+            Vector3 fromTarget = owner.GroundPosition - target.GroundPosition;
+            fromTarget.y = 0f;
+            if (fromTarget.sqrMagnitude <= 0.0001f)
+                fromTarget = owner.transform.position - target.transform.position;
+            fromTarget.y = 0f;
+            if (fromTarget.sqrMagnitude <= 0.0001f)
+                fromTarget = -target.transform.forward;
+            fromTarget.y = 0f;
+
+            Vector3 direction = fromTarget.sqrMagnitude > 0.0001f
+                ? fromTarget.normalized
+                : Vector3.back;
+            float distance = Mathf.Max(
+                desiredDistance,
+                EngagementSlotSystem.GetContactDistance(owner, target) +
+                EngagementSlotSystem.ArrivalTolerance +
+                EngagementSlotSystem.DistanceEpsilon);
+            return target.GroundPosition + direction * distance;
         }
     }
 }

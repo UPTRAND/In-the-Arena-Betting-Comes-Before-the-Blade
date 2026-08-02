@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 584264125abff5b4783ffeb890702786, type: 3}
+  m_Name: BasicAttackData_Hunter_Dagger
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.BasicAttackData
+  m_AttackPowerMultiplier: 1
+  m_CriticalChance: 0.05
+  m_FailureRetryDelay: 0.18
+  m_Delivery:
+    rid: 950000000000000003
+  m_ImpactEffects:
+  - rid: 950000000000000004
+  references:
+    version: 2
+    RefIds:
+    - rid: 950000000000000003
+      type: {class: ImmediateAttackDelivery, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data: 
+    - rid: 950000000000000004
+      type: {class: PrimaryDamageAttackEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_DamageMultiplier: 1
