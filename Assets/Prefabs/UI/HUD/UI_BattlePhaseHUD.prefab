@@ -1712,7 +1712,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_BattlePhaseHUD
   m_HasControl: 0
-  m_CanCloseControlWithBackButton: 1
+  m_CanCloseControlWithBackButton: 0
   m_BIsPlayerUI: 0
   m_RoundInfoText: {fileID: 1464049910770985453}
   m_TargetInfoText: {fileID: 2592702035910873763}

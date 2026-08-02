@@ -99,6 +99,12 @@ namespace InTheArena.Camera
         [SerializeField] [Range(0f, 2f)] private float m_DeadZoneRadius = 0.1f;
 
         [Header("Automatic Framing")]
+        [Tooltip("프레이밍 기준 종횡비")]
+        [SerializeField] private float m_FramingAspect = 16f / 9f;
+        [Tooltip("프레이밍 구도 중심 이동 오프셋 (월드 XZ)")]
+        [SerializeField] private Vector2 m_FramingCenterOffset = Vector2.zero;
+        [Tooltip("자동 Bounds 갱신 토글")]
+        [SerializeField] private bool m_EnableAutoFraming = true;
         [SerializeField] [Range(0f, 5f)] private float m_FramingPadding = 1.5f;
         [SerializeField] [Range(0f, 2f)] private float m_CenterDeadZone = 0.25f;
         [SerializeField] [Range(0f, 5f)] private float m_DistanceDeadZone = 0.5f;
@@ -198,6 +204,9 @@ namespace InTheArena.Camera
         /// <summary> 데드존 반경 </summary>
         public float DeadZoneRadius => m_DeadZoneRadius;
         public float FramingPadding => m_FramingPadding;
+        public float FramingAspect => Mathf.Max(0.1f, m_FramingAspect);
+        public Vector2 FramingCenterOffset => m_FramingCenterOffset;
+        public bool EnableAutoFraming => m_EnableAutoFraming;
         public float CenterDeadZone => m_CenterDeadZone;
         public float DistanceDeadZone => m_DistanceDeadZone;
         public float AutoZoomInSpeed => m_AutoZoomInSpeed;

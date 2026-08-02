@@ -95,6 +95,7 @@ namespace InTheArena.Camera
             if (m_MainCamera == null || m_CameraSettings == null || m_IsTransitioning) return;
 
             if (m_CurrentPhase == CameraPhase.Combat &&
+                m_CameraSettings.EnableAutoFraming &&
                 !m_IsCinematicFocus &&
                 Time.unscaledTime >= m_NextBoundsRefreshTime)
             {
@@ -279,8 +280,12 @@ namespace InTheArena.Camera
         {
             if (phase == CameraPhase.Combat)
             {
-                RefreshCombatTarget();
-                return m_TargetPose;
+                if (m_CameraSettings != null && m_CameraSettings.EnableAutoFraming)
+                {
+                    RefreshCombatTarget();
+                    return m_TargetPose;
+                }
+                return m_DefaultPose;
             }
 
             if (phase == CameraPhase.Result &&
@@ -494,7 +499,7 @@ namespace InTheArena.Camera
             center.y = 0f;
             float safeWidth = Mathf.Max(0.1f, 1f - settings.SafeMarginHorizontal * 2f);
             float safeHeight = Mathf.Max(0.1f, 1f - settings.SafeMarginVertical * 2f);
-            float aspect = Mathf.Max(0.1f, camera.aspect);
+            float aspect = settings.FramingAspect;
             Quaternion rotation = Quaternion.Euler(settings.CameraAngleX, settings.CameraAngleY, 0f);
             Quaternion inverseRotation = Quaternion.Inverse(rotation);
             float tanVertical = Mathf.Tan(settings.FieldOfView * Mathf.Deg2Rad * 0.5f) * safeHeight;
@@ -543,7 +548,8 @@ namespace InTheArena.Camera
                 requiredOrthoSize,
                 settings.MinOrthographicSize,
                 settings.MaxOrthographicSize);
-            Vector3 position = center - rotation * Vector3.forward * distance;
+            Vector3 targetCenter = center + new Vector3(settings.FramingCenterOffset.x, 0f, settings.FramingCenterOffset.y);
+            Vector3 position = targetCenter - rotation * Vector3.forward * distance;
 
             return new CameraPose(position, rotation, settings.FieldOfView, orthoSize);
         }
