@@ -630,6 +630,22 @@ namespace InTheArena.Unit
                 this);
         }
 
+        internal void LogDefenseReduction(
+            string actionName,
+            Unit target,
+            float amount,
+            float previousDefense,
+            float currentDefense)
+        {
+            if (amount <= 0f) return;
+
+            string sourceLabel = BuildCombatLogLabel();
+            string targetLabel = target != null ? target.BuildCombatLogLabel() : "대상 없음";
+            Debug.Log(
+                $"{sourceLabel}이(가) {targetLabel}에게 {actionName}을 사용하여 방어력을 {amount:0.##} 감소시킴. ({previousDefense:0.##} -> {currentDefense:0.##})",
+                this);
+        }
+
         internal void LogHunterModeChange(string modeName)
         {
             string teamName = m_Team == 0 ? "Red" : "Blue";

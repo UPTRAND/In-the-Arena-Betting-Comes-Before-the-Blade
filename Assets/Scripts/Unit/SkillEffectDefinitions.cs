@@ -1,4 +1,4 @@
-#if UNITY_6000_0_OR_NEWER
+﻿#if UNITY_6000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -80,6 +80,59 @@ namespace InTheArena.Unit
             }
 
             return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
+        }
+    }
+
+    [Serializable]
+    public sealed class FixedDamageSkillEffect : SkillEffectDefinition
+    {
+        [SerializeField, Min(0f)] private float m_Damage = 10f;
+        [SerializeField, Min(0f)] private float m_DefenseReduction;
+
+        public override SkillExecutionResult Apply(in SkillEffectContext context)
+        {
+            bool applied = false;
+            for (int i = 0; i < context.Targets.Count; i++)
+            {
+                Unit target = context.Targets[i].Unit;
+                if (target == null || target.IsDead || target.Team == context.Owner.Team) continue;
+
+                var damage = new DamageContext
+                {
+                    Source = new UnitHandle(context.Owner),
+                    Target = target,
+                    Amount = m_Damage + target.CurrentDefense,
+                    IsCritical = false,
+                    IsSkill = true,
+                    IsReaction = context.IsReaction
+                };
+
+                float actualDamage = target.ApplyDamage(in damage);
+                if (actualDamage <= 0f) continue;
+                string skillName = SkillCombatLogUtility.GetSkillLogName(context.Runtime);
+                context.Owner.LogCombatAction(
+                    skillName,
+                    target,
+                    actualDamage,
+                    "피해");
+                ApplyDefenseReduction(context.Owner, target, skillName);
+                applied = true;
+            }
+
+            return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
+        }
+
+        private void ApplyDefenseReduction(Unit source, Unit target, string skillName)
+        {
+            if (target == null || target.IsDead || m_DefenseReduction <= 0f) return;
+
+            float previousDefense = target.CurrentDefense;
+            target.ApplyStatModifier(
+                new UnitStat { defense = m_DefenseReduction },
+                isBuff: false);
+            float currentDefense = target.CurrentDefense;
+            float actualReduction = Mathf.Max(0f, previousDefense - currentDefense);
+            source?.LogDefenseReduction(skillName, target, actualReduction, previousDefense, currentDefense);
         }
     }
 
