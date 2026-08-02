@@ -354,13 +354,14 @@ namespace InTheArena.Editor.Unit
         {
             var plans = new[]
             {
-                new SpawnPlan(null, Team.Red, 2, new Vector3(1f, 0f, 3f))
+                new SpawnPlan(null, Team.Red, 2, 4, new Vector3(1f, 0f, 3f))
             };
             var config = new BattleConfig(plans, RoundRule.None);
-            plans[0] = new SpawnPlan(null, Team.Blue, 5, Vector3.zero);
+            plans[0] = new SpawnPlan(null, Team.Blue, 5, 1, Vector3.zero);
 
             Assert.That(config.SpawnPlans[0].Team, Is.EqualTo(Team.Red));
             Assert.That(config.SpawnPlans[0].CellIndex, Is.EqualTo(2));
+            Assert.That(config.SpawnPlans[0].UnitNumber, Is.EqualTo(4));
             Assert.That(config.SpawnPlans[0].Position, Is.EqualTo(new Vector3(1f, 0f, 3f)));
         }
 

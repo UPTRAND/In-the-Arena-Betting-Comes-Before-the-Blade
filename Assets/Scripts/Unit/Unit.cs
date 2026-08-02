@@ -16,7 +16,7 @@ namespace InTheArena.Unit
     {
         private const string RedTeamTag = "RedTeam";
         private const string BlueTeamTag = "BlueTeam";
-        private const float AttackAnimationLock = 0.3f;
+        private const float MinimumAttackAnimationLock = 0.3f;
         private const float DefaultCastHeight = 0.75f;
         private const float DefaultHitHeight = 0.5f;
 
@@ -70,6 +70,7 @@ namespace InTheArena.Unit
         private int m_Team;
         private int m_InstanceId;
         private int m_SpawnVersion;
+        private int m_CombatLogNumber;
 
         private Vector3 m_MoveTargetPosition;
         private float m_MoveStopDistance;
@@ -85,6 +86,7 @@ namespace InTheArena.Unit
         private SkillRuntime m_RuntimeSkill;
         private SkillRuntime m_CastingSkill;
         private float m_CastRemaining;
+        private float m_AttackAnimationLock = MinimumAttackAnimationLock;
         private UnitDecisionAgent m_RuntimeAI;
 
         private SpriteRenderer m_SourceSpriteRenderer;
@@ -206,6 +208,7 @@ namespace InTheArena.Unit
             m_ActionController.Reset();
             m_AnimationPresenter ??= new UnitAnimationPresenter(m_Animator);
             m_AnimationPresenter.Reset();
+            m_AttackAnimationLock = ResolveAttackAnimationLock();
             m_PreviousSimulationPosition = transform.position;
             m_SimulationPosition = transform.position;
             m_FacingDirection = transform.forward;
@@ -274,6 +277,11 @@ namespace InTheArena.Unit
             m_InstanceId = unitId;
         }
 
+        internal void AssignCombatLogNumber(int number)
+        {
+            m_CombatLogNumber = Mathf.Max(1, number);
+        }
+
         internal void PrepareForPool()
         {
             SetAIActive(false);
@@ -288,6 +296,7 @@ namespace InTheArena.Unit
             m_RuntimeAI = null;
             m_RuntimeSkill = null;
             m_CastingSkill = null;
+            m_CombatLogNumber = 0;
             m_CastingTargets.Clear();
             m_HitFlashRemaining = 0f;
             ResetMaterialFlash();
@@ -538,12 +547,12 @@ namespace InTheArena.Unit
         public bool TryAttack(Unit target)
         {
             if (!CanAttack || target == null || target.IsDead || target.Team == Team) return false;
-            if (!m_ActionController.TryBeginAttack(AttackAnimationLock)) return false;
+            if (!m_ActionController.TryBeginAttack(m_AttackAnimationLock)) return false;
 
             BasicAttackData attackData = m_UnitData != null ? m_UnitData.BasicAttackData : null;
             if (attackData == null || !attackData.TryExecute(this, target))
             {
-                m_ActionController.Tick(AttackAnimationLock);
+                m_ActionController.Tick(m_AttackAnimationLock);
                 m_AttackCooldown = attackData != null
                     ? attackData.FailureRetryDelay
                     : 0.25f;
@@ -557,6 +566,25 @@ namespace InTheArena.Unit
             return true;
         }
 
+        private float ResolveAttackAnimationLock()
+        {
+            RuntimeAnimatorController controller = m_Animator != null ? m_Animator.runtimeAnimatorController : null;
+            if (controller == null) return MinimumAttackAnimationLock;
+
+            AnimationClip[] clips = controller.animationClips;
+            float bestLength = 0f;
+            for (int i = 0; clips != null && i < clips.Length; i++)
+            {
+                AnimationClip clip = clips[i];
+                if (clip == null) continue;
+                string clipName = clip.name;
+                if (!clipName.StartsWith("Attack", StringComparison.OrdinalIgnoreCase)) continue;
+                bestLength = Mathf.Max(bestLength, clip.length);
+            }
+
+            return Mathf.Max(MinimumAttackAnimationLock, bestLength);
+        }
+
         internal void NotifyBasicAttackHit(
             Unit target,
             float actualDamage,
@@ -564,6 +592,7 @@ namespace InTheArena.Unit
             bool isReaction)
         {
             if (target == null || actualDamage <= 0f) return;
+            LogCombatAction("기본 공격", target, actualDamage, "피해");
             EnqueueSkillEvent(
                 SkillTriggerType.OnAttack,
                 this,
@@ -573,6 +602,25 @@ namespace InTheArena.Unit
                 false,
                 critical,
                 isReaction);
+        }
+
+        internal void LogCombatAction(string actionName, Unit target, float amount, string resultType)
+        {
+            string sourceLabel = BuildCombatLogLabel();
+            string targetLabel = target != null ? target.BuildCombatLogLabel() : "대상 없음";
+            Debug.Log(
+                $"{sourceLabel}이(가) {targetLabel}에게 {actionName}을 사용하여 {amount:0.##}의 {resultType}을(를) 줌.",
+                this);
+        }
+
+        private string BuildCombatLogLabel()
+        {
+            string teamName = m_Team == 0 ? "Red" : "Blue";
+            string unitName = !string.IsNullOrWhiteSpace(m_UnitData?.UnitName)
+                ? m_UnitData.UnitName
+                : name;
+            int logNumber = m_CombatLogNumber > 0 ? m_CombatLogNumber : 1;
+            return $"팀 {teamName} 유닛 {unitName} (n : {logNumber})";
         }
 
         public bool TryUseSkill(Unit target = null)

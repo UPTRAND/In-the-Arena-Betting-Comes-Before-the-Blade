@@ -126,7 +126,12 @@ namespace InTheArena.MainGame
                         UnityEngine.Random.Range(-0.3f, 0.3f),
                         0f,
                         UnityEngine.Random.Range(-0.3f, 0.3f));
-                    plans.Add(new SpawnPlan(unitData, team, deployment.CellIndex, position));
+                    plans.Add(new SpawnPlan(
+                        unitData,
+                        team,
+                        deployment.CellIndex,
+                        unitIndex + 1,
+                        position));
                 }
             }
         }
@@ -148,6 +153,7 @@ namespace InTheArena.MainGame
                     false);
                 if (unit == null) continue;
 
+                unit.AssignCombatLogNumber(plan.UnitNumber);
                 if (unit.AI == null)
                     Debug.LogError($"[CombatPhase] {plan.UnitData.UnitName} has no runtime AI.");
 

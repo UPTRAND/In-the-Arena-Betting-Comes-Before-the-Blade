@@ -9,13 +9,15 @@ namespace InTheArena.MainGame
         public readonly UnitData UnitData;
         public readonly Team Team;
         public readonly int CellIndex;
+        public readonly int UnitNumber;
         public readonly Vector3 Position;
 
-        public SpawnPlan(UnitData unitData, Team team, int cellIndex, Vector3 position)
+        public SpawnPlan(UnitData unitData, Team team, int cellIndex, int unitNumber, Vector3 position)
         {
             UnitData = unitData;
             Team = team;
             CellIndex = cellIndex;
+            UnitNumber = unitNumber;
             Position = position;
         }
     }

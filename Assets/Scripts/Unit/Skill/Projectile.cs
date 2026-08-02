@@ -19,6 +19,7 @@ namespace InTheArena.Unit
         public readonly bool IsCritical;
         public readonly bool IsSkill;
         public readonly bool IsReaction;
+        public readonly string ActionName;
         private readonly IProjectileImpactResolver m_Resolver;
 
         public ProjectileImpactPayload(
@@ -29,6 +30,19 @@ namespace InTheArena.Unit
             bool isSkill,
             bool isReaction,
             IProjectileImpactResolver resolver)
+            : this(source, sourceTeam, damage, isCritical, isSkill, isReaction, resolver, null)
+        {
+        }
+
+        public ProjectileImpactPayload(
+            UnitHandle source,
+            int sourceTeam,
+            float damage,
+            bool isCritical,
+            bool isSkill,
+            bool isReaction,
+            IProjectileImpactResolver resolver,
+            string actionName)
         {
             Source = source;
             SourceTeam = sourceTeam;
@@ -36,6 +50,7 @@ namespace InTheArena.Unit
             IsCritical = isCritical;
             IsSkill = isSkill;
             IsReaction = isReaction;
+            ActionName = actionName;
             m_Resolver = resolver;
         }
 

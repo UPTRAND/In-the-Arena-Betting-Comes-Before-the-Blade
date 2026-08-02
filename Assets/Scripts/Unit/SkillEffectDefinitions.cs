@@ -29,7 +29,14 @@ namespace InTheArena.Unit
                     IsSkill = true,
                     IsReaction = context.IsReaction
                 };
-                applied |= target.ApplyDamage(in damage) > 0f;
+                float actualDamage = target.ApplyDamage(in damage);
+                if (actualDamage <= 0f) continue;
+                context.Owner.LogCombatAction(
+                    SkillCombatLogUtility.GetSkillLogName(context.Runtime),
+                    target,
+                    actualDamage,
+                    "피해");
+                applied = true;
             }
             return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
         }
@@ -59,10 +66,29 @@ namespace InTheArena.Unit
                     IsSkill = true,
                     IsReaction = context.IsReaction
                 };
-                applied |= target.Heal(in heal) > 0f;
+                float actualHeal = target.Heal(in heal);
+                context.Owner.LogCombatAction(
+                    SkillCombatLogUtility.GetSkillLogName(context.Runtime),
+                    target,
+                    actualHeal,
+                    "회복");
+                applied = true;
             }
             return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
         }
+    }
+
+    internal static class SkillCombatLogUtility
+    {
+        public static string GetSkillLogName(SkillRuntime runtime)
+            => !string.IsNullOrWhiteSpace(runtime?.Data?.SkillName)
+                ? runtime.Data.SkillName
+                : "스킬";
+
+        public static string GetProjectileSkillLogName(in ProjectileImpactPayload payload)
+            => !string.IsNullOrWhiteSpace(payload.ActionName)
+                ? payload.ActionName
+                : "스킬";
     }
 
     [Serializable]
@@ -198,7 +224,8 @@ namespace InTheArena.Unit
                 UnityEngine.Random.value < m_CriticalChance,
                 true,
                 context.IsReaction,
-                this);
+                this,
+                SkillCombatLogUtility.GetSkillLogName(context.Runtime));
 
             ProjectilePoolService projectiles = PoolManager.Require().Projectiles;
             bool spawned = m_ProjectileData != null
@@ -263,7 +290,17 @@ namespace InTheArena.Unit
                 IsSkill = true,
                 IsReaction = payload.IsReaction
             };
-            bool applied = target.ApplyDamage(in damage) > 0f;
+            float actualDamage = target.ApplyDamage(in damage);
+            bool applied = actualDamage > 0f;
+            if (applied && payload.IsSkill)
+            {
+                Unit source = payload.Source.Unit;
+                source?.LogCombatAction(
+                    SkillCombatLogUtility.GetProjectileSkillLogName(in payload),
+                    target,
+                    actualDamage,
+                    "피해");
+            }
             if (m_ImpactStatus != null && !target.IsDead)
                 applied |= target.ApplyStatusEffect(m_ImpactStatus, payload.Source.Unit) != null;
             return applied;

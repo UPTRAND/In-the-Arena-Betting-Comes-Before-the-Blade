@@ -19,6 +19,7 @@ namespace InTheArena.Unit
         private static readonly int HitState = Animator.StringToHash("Hit");
         private static readonly int DeathState = Animator.StringToHash("Death");
         private static readonly int ShieldState = Animator.StringToHash("Shield");
+        private static readonly int DrinkState = Animator.StringToHash("Drink");
 
         private readonly Animator m_Animator;
         private readonly bool m_HasIsMoving;
@@ -66,7 +67,8 @@ namespace InTheArena.Unit
 
         public void PlayCast()
         {
-            if (!TryCrossFade(SkillState)) TryCrossFade(ShieldState);
+            if (!TryCrossFade(SkillState) && !TryCrossFade(ShieldState))
+                TryCrossFade(DrinkState);
         }
 
         public void PlayDeath() => TryCrossFade(DeathState);
@@ -83,13 +85,13 @@ namespace InTheArena.Unit
 
             AnimatorStateInfo current = m_Animator.GetCurrentAnimatorStateInfo(0);
             if (current.shortNameHash == AttackState || current.shortNameHash == SkillState ||
-                current.shortNameHash == ShieldState)
+                current.shortNameHash == ShieldState || current.shortNameHash == DrinkState)
                 return true;
 
             if (!m_Animator.IsInTransition(0)) return false;
             AnimatorStateInfo next = m_Animator.GetNextAnimatorStateInfo(0);
             return next.shortNameHash == AttackState || next.shortNameHash == SkillState ||
-                   next.shortNameHash == ShieldState;
+                   next.shortNameHash == ShieldState || next.shortNameHash == DrinkState;
         }
 
         private bool TryCrossFade(int shortStateHash)
@@ -104,7 +106,9 @@ namespace InTheArena.Unit
                         ? Animator.StringToHash("Base Layer.Death")
                         : shortStateHash == SkillState
                             ? Animator.StringToHash("Base Layer.Skill")
-                            : Animator.StringToHash("Base Layer.Shield");
+                            : shortStateHash == ShieldState
+                                ? Animator.StringToHash("Base Layer.Shield")
+                                : Animator.StringToHash("Base Layer.Drink");
 
             if (!m_Animator.HasState(0, fullPathHash)) return false;
             m_Animator.CrossFade(fullPathHash, CrossFadeDuration, 0, 0f);
