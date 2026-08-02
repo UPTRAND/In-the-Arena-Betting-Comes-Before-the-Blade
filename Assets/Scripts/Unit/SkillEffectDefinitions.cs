@@ -43,6 +43,47 @@ namespace InTheArena.Unit
     }
 
     [Serializable]
+    public sealed class MultiHitDamageSkillEffect : SkillEffectDefinition
+    {
+        [SerializeField] private float[] m_Damages = { 4f, 5f, 6f };
+
+        public override SkillExecutionResult Apply(in SkillEffectContext context)
+        {
+            Unit target = context.Targets.Count > 0 ? context.Targets[0].Unit : null;
+            if (target == null || target.IsDead || target.Team == context.Owner.Team)
+                return SkillExecutionResult.InvalidTarget;
+
+            bool applied = false;
+            for (int i = 0; m_Damages != null && i < m_Damages.Length; i++)
+            {
+                float amount = Mathf.Max(0f, m_Damages[i]);
+                if (amount <= 0f || target.IsDead) continue;
+
+                var damage = new DamageContext
+                {
+                    Source = new UnitHandle(context.Owner),
+                    Target = target,
+                    Amount = amount + target.CurrentDefense,
+                    IsCritical = false,
+                    IsSkill = true,
+                    IsReaction = context.IsReaction
+                };
+
+                float actualDamage = target.ApplyDamage(in damage);
+                if (actualDamage <= 0f) continue;
+                context.Owner.LogCombatAction(
+                    SkillCombatLogUtility.GetSkillLogName(context.Runtime),
+                    target,
+                    actualDamage,
+                    "피해");
+                applied = true;
+            }
+
+            return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
+        }
+    }
+
+    [Serializable]
     public sealed class HealSkillEffect : SkillEffectDefinition
     {
         [SerializeField, Min(0f)] private float m_BaseHeal = 10f;

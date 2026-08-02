@@ -67,8 +67,9 @@ namespace InTheArena.Unit
 
         public void PlayCast()
         {
-            if (!TryCrossFade(SkillState) && !TryCrossFade(ShieldState))
-                TryCrossFade(DrinkState);
+            if (TryCrossFade(SkillState)) return;
+            if (TryCrossFade(ShieldState)) return;
+            TryCrossFade(DrinkState);
         }
 
         public void PlayDeath() => TryCrossFade(DeathState);
