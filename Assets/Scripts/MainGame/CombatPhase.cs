@@ -33,7 +33,7 @@ namespace InTheArena.MainGame
         [Header("Speed Control")]
         [SerializeField] private float m_NormalSpeed = 1f;
         [SerializeField] private float m_FastSpeed = 2f;
-        [SerializeField] private UI_CombatHUD m_CombatHud;
+        [SerializeField] private UI_BattlePhaseHUD m_CombatHud;
         private float m_CurrentSpeed = 1f;
 
         [Header("Final Elimination")]
@@ -42,12 +42,15 @@ namespace InTheArena.MainGame
         [Header("Item Effect References")]
         [SerializeField] private UnitData m_MercenaryKnightData;
         [SerializeField] private UnitData m_MercenaryArcherData;
+        [SerializeField] private UnitData m_MercenaryWizardData;
         [SerializeField] private InTheArena.Unit.StatusEffectData m_MeteorStunEffect;
         [SerializeField] [Min(0f)] private float m_FinalEliminationDuration = 1.5f;
 
         private CancellationTokenSource m_CombatCts;
         private bool m_IsCombatEnded = false;
         private float m_RemainingCombatTime;
+        private int m_InitialRedUnitCount;
+        private int m_InitialBlueUnitCount;
         private readonly Dictionary<UnitType, UnitSlotKey> m_UnitSlots = new Dictionary<UnitType, UnitSlotKey>();
         private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
@@ -63,7 +66,13 @@ namespace InTheArena.MainGame
             await ActivateUnitsAsync(m_CombatCts.Token);
             if (m_CombatCts.IsCancellationRequested) return;
 
-            m_CombatHud?.BindAndShow(this);
+            m_InitialRedUnitCount = RedAliveCount;
+            m_InitialBlueUnitCount = BlueAliveCount;
+            m_CombatHud?.BindAndShow(
+                this,
+                Context,
+                StageManager.Instance?.PlayerState,
+                SaveManager.Instance?.InventoryService);
             await RunCombatLoopAsync(m_CombatCts.Token);
         }
 
@@ -72,6 +81,8 @@ namespace InTheArena.MainGame
             IsPhaseCompleted = false;
             m_IsCombatEnded = false;
             m_RemainingCombatTime = m_CombatTimeout;
+            m_InitialRedUnitCount = 0;
+            m_InitialBlueUnitCount = 0;
             m_CurrentSpeed = m_NormalSpeed;
             Time.timeScale = m_CurrentSpeed;
             Context.CombatWinner = Team.None;
@@ -538,6 +549,8 @@ namespace InTheArena.MainGame
         public float CombatTimeout => m_CombatTimeout;
         public int RedAliveCount => CountLivingUnits(Context?.TeamAUnits);
         public int BlueAliveCount => CountLivingUnits(Context?.TeamBUnits);
+        public int InitialRedUnitCount => m_InitialRedUnitCount;
+        public int InitialBlueUnitCount => m_InitialBlueUnitCount;
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
@@ -630,7 +643,9 @@ namespace InTheArena.MainGame
             }
             else if (itemData.ItemType == ItemType.Mercenary)
             {
-                if (m_MercenaryKnightData == null || m_MercenaryArcherData == null)
+                if (m_MercenaryKnightData == null ||
+                    m_MercenaryArcherData == null ||
+                    m_MercenaryWizardData == null)
                 {
                     message = "용병 데이터가 없습니다.";
                     return false;
@@ -648,7 +663,9 @@ namespace InTheArena.MainGame
 
                 SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
                 Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
+                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
                 SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
+                SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
 
                 success = true;
                 message = "용병을 고용했습니다.";
@@ -724,18 +741,17 @@ namespace InTheArena.MainGame
         private void ApplyMeteorEffect(Vector3 center)
         {
             float radius = 2f;
-            float damage = 10f;
             float stunDuration = 3f;
             float radiusSqr = radius * radius;
 
             if (Context != null)
             {
-                ApplyDamageAndStun(Context.TeamAUnits, center, radiusSqr, damage, stunDuration);
-                ApplyDamageAndStun(Context.TeamBUnits, center, radiusSqr, damage, stunDuration);
+                ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
+                ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
             }
         }
 
-        private void ApplyDamageAndStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float damage, float stunDuration)
+        private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
         {
             if (units == null)
             {
@@ -752,7 +768,6 @@ namespace InTheArena.MainGame
                         float distSqr = (unit.GroundPosition - center).sqrMagnitude;
                         if (distSqr <= radiusSqr)
                         {
-                            unit.ApplyDamage(damage);
                             if (m_MeteorStunEffect != null)
                             {
                                 unit.ApplyStatusEffect(m_MeteorStunEffect, null, stunDuration);

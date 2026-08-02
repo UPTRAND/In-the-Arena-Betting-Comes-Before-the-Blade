@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c0e0a2c389abe04c93d96b5243d69a9, type: 3}
+  m_Name: ItemData_Mercenary
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.ItemData
+  m_ItemType: 12
+  m_Category: 1
+  m_ItemName: "\uC6A9\uBCD1\uACE0\uC6A9"
+  m_PriceGold: 700
+  m_Icon: {fileID: 21300000, guid: 8ed16223767b99340aaf089b29e31874, type: 3}
+  m_Description: "\uC120\uD0DD\uD55C \uD300\uC5D0 \uAE30\uC0AC, \uAD81\uC218, \uB9C8\uBC95\uC0AC\uB97C
+    \uAC01\uAC01 1\uB9C8\uB9AC\uC529 \uCD94\uAC00\uD55C\uB2E4."
