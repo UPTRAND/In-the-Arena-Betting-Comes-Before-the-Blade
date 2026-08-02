@@ -54,6 +54,23 @@ namespace InTheArena.MainGame
         [SerializeField] private TMP_Text m_ValidationText;
         [SerializeField] private Button m_ConfirmBetButton;
 
+        [Header("New Betting UI (optional)")]
+        [SerializeField] private TMP_InputField m_WagerInput;
+        [SerializeField] private TMP_Dropdown m_WinningTeamDropdown;
+        [SerializeField] private TMP_Dropdown m_GameEndTimeDropdown;
+        [SerializeField] private TMP_Dropdown m_OddEvenDropdown;
+        [SerializeField] private TMP_Dropdown m_FirstAnnihilatedDropdown;
+        [SerializeField] private GameObject m_GameEndTimeDropdownRoot;
+        [SerializeField] private GameObject m_OddEvenDropdownRoot;
+        [SerializeField] private GameObject m_FirstAnnihilatedDropdownRoot;
+        [SerializeField] private Button[] m_RedSurvivingSlotButtons = new Button[6];
+        [SerializeField] private TMP_Text[] m_RedSurvivingSlotTexts = new TMP_Text[6];
+        [SerializeField] private Button[] m_BlueSurvivingSlotButtons = new Button[6];
+        [SerializeField] private TMP_Text[] m_BlueSurvivingSlotTexts = new TMP_Text[6];
+        [SerializeField] private TMP_Text m_NewRoundText;
+        [SerializeField] private TMP_Text m_NewCurrentCallText;
+        [SerializeField] private TMP_Text m_NewMultiplierText;
+
         private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
@@ -222,11 +239,37 @@ namespace InTheArena.MainGame
                 m_WagerSlider.value = Mathf.Max(1, Context.CurrentCall);
             }
 
+            SetupNewUi();
+
             StageData stageData = Context.CurrentStageData;
             SetActive(m_FactionBetRoot, stageData != null && stageData.EnableFactionBet);
             RefreshSpecialBetAvailability();
             UpdateSurvivingSlotAvailability();
+            RefreshUnitSlotTexts();
             RefreshBetSummary();
+        }
+
+        private void SetupNewUi()
+        {
+            if (m_NewRoundText != null) m_NewRoundText.text = $"Round {Context.CurrentRound}";
+            if (m_WagerInput != null)
+            {
+                m_WagerInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+                m_WagerInput.SetTextWithoutNotify(m_DraftTicket.WagerCall.ToString());
+            }
+
+            SetOptions(m_WinningTeamDropdown, "Select winning team", "Red", "Blue", "Draw");
+            SetOptions(m_GameEndTimeDropdown, "Select game end time", "0-5 sec", "5-10 sec", "10-15 sec", "15-20 sec", "20+ sec");
+            SetOptions(m_OddEvenDropdown, "Select odd / even", "Odd", "Even");
+            SetOptions(m_FirstAnnihilatedDropdown, "Select first annihilated", "Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5", "Slot 6");
+        }
+
+        private static void SetOptions(TMP_Dropdown dropdown, params string[] options)
+        {
+            if (dropdown == null) return;
+            dropdown.ClearOptions();
+            dropdown.AddOptions(new List<string>(options));
+            dropdown.SetValueWithoutNotify(0);
         }
 
         private bool HasSpecial(SpecialBetType type)
@@ -237,9 +280,12 @@ namespace InTheArena.MainGame
         private void RefreshSpecialBetAvailability()
         {
             SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
+            SetActive(m_GameEndTimeDropdownRoot, HasSpecial(SpecialBetType.RemainingTime));
             SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
             SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
+            SetActive(m_OddEvenDropdownRoot, HasSpecial(SpecialBetType.OddEven));
             SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
+            SetActive(m_FirstAnnihilatedDropdownRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
         }
 
         private static void SetActive(GameObject target, bool active)
@@ -289,6 +335,11 @@ namespace InTheArena.MainGame
         private void SubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.AddListener(OnWagerChanged);
+            if (m_WagerInput != null) m_WagerInput.onEndEdit.AddListener(OnWagerInputEnded);
+            if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.AddListener(OnWinningTeamChanged);
+            if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.AddListener(OnGameEndTimeChanged);
+            if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.AddListener(OnOddEvenChanged);
+            if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.onValueChanged.AddListener(OnFirstAnnihilatedChanged);
             AddClick(m_RedButton, () => SetFaction(FactionPrediction.Red));
             AddClick(m_BlueButton, () => SetFaction(FactionPrediction.Blue));
             AddClick(m_DrawButton, () => SetFaction(FactionPrediction.Draw));
@@ -314,7 +365,18 @@ namespace InTheArena.MainGame
                 int slot = i + 1;
                 AddClick(m_SurvivingSlotButtons[i], () => ToggleSurvivingSlot(slot));
             }
+            AddSurvivingSlotClicks(m_RedSurvivingSlotButtons);
+            AddSurvivingSlotClicks(m_BlueSurvivingSlotButtons);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
+        }
+
+        private void AddSurvivingSlotClicks(Button[] buttons)
+        {
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                int slot = i + 1;
+                AddClick(buttons[i], () => ToggleSurvivingSlot(slot));
+            }
         }
 
         private static void AddClick(Button button, UnityEngine.Events.UnityAction action)
@@ -325,11 +387,18 @@ namespace InTheArena.MainGame
         private void UnsubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.RemoveAllListeners();
+            if (m_WagerInput != null) m_WagerInput.onEndEdit.RemoveListener(OnWagerInputEnded);
+            if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.RemoveListener(OnWinningTeamChanged);
+            if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.RemoveListener(OnGameEndTimeChanged);
+            if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.RemoveListener(OnOddEvenChanged);
+            if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.onValueChanged.RemoveListener(OnFirstAnnihilatedChanged);
             RemoveClicks(m_RedButton, m_BlueButton, m_DrawButton, m_ClearFactionButton, m_ConfirmBetButton);
             RemoveClicks(m_RemainingTimeButtons);
             RemoveClicks(m_OddEvenButtons);
             RemoveClicks(m_FirstEliminatedSlotButtons);
             RemoveClicks(m_SurvivingSlotButtons);
+            RemoveClicks(m_RedSurvivingSlotButtons);
+            RemoveClicks(m_BlueSurvivingSlotButtons);
         }
 
         private static void RemoveClicks(params Button[] buttons)
@@ -344,6 +413,39 @@ namespace InTheArena.MainGame
         private void OnWagerChanged(float value)
         {
             m_DraftTicket.SetWager(Mathf.Clamp(Mathf.RoundToInt(value), 1, Mathf.Max(1, Context.CurrentCall)));
+            RefreshBetSummary();
+        }
+
+        private void OnWagerInputEnded(string value)
+        {
+            if (!int.TryParse(value, out int wager)) wager = 1;
+            m_DraftTicket.SetWager(Mathf.Clamp(wager, 1, Mathf.Max(1, Context.CurrentCall)));
+            RefreshBetSummary();
+        }
+
+        private void OnWinningTeamChanged(int value) => SetFaction(value switch
+        {
+            1 => FactionPrediction.Red,
+            2 => FactionPrediction.Blue,
+            3 => FactionPrediction.Draw,
+            _ => FactionPrediction.NotSelected
+        });
+
+        private void OnGameEndTimeChanged(int value)
+        {
+            m_DraftTicket.SetRemainingTime(value == 0 ? null : (RemainingTimePrediction)(value - 1));
+            RefreshBetSummary();
+        }
+
+        private void OnOddEvenChanged(int value)
+        {
+            m_DraftTicket.SetOddEven(value == 0 ? null : (OddEvenPrediction)(value - 1));
+            RefreshBetSummary();
+        }
+
+        private void OnFirstAnnihilatedChanged(int value)
+        {
+            m_DraftTicket.SetFirstEliminatedSlot(value == 0 ? null : value);
             RefreshBetSummary();
         }
 
@@ -408,6 +510,35 @@ namespace InTheArena.MainGame
                 Button button = m_SurvivingSlotButtons[i];
                 if (button != null) button.interactable = team != Team.None && IsOccupiedSlot(team, i + 1);
             }
+            UpdateNewSurvivingSlotAvailability(m_RedSurvivingSlotButtons, Team.Red);
+            UpdateNewSurvivingSlotAvailability(m_BlueSurvivingSlotButtons, Team.Blue);
+        }
+
+        private void UpdateNewSurvivingSlotAvailability(Button[] buttons, Team buttonTeam)
+        {
+            Team selectedTeam = GetSelectedTeam();
+            bool isAvailable = HasSpecial(SpecialBetType.SurvivingSlots);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                if (buttons[i] != null)
+                    buttons[i].interactable = isAvailable && selectedTeam == buttonTeam && IsOccupiedSlot(buttonTeam, i + 1);
+            }
+        }
+
+        private void RefreshUnitSlotTexts()
+        {
+            SetUnitSlotTexts(m_RedSurvivingSlotTexts, Context.TeamADeployments);
+            SetUnitSlotTexts(m_BlueSurvivingSlotTexts, Context.TeamBDeployments);
+        }
+
+        private static void SetUnitSlotTexts(TMP_Text[] texts, List<TeamUnitDeployment> deployments)
+        {
+            for (int i = 0; i < texts.Length; i++)
+            {
+                if (texts[i] == null) continue;
+                TeamUnitDeployment deployment = deployments.Find(item => item.CellIndex == i);
+                texts[i].text = deployment == null ? "-" : DescribeUnits(deployment.Units);
+            }
         }
 
         private bool IsOccupiedSlot(Team team, int slot)
@@ -423,7 +554,10 @@ namespace InTheArena.MainGame
             RefreshSelectionVisuals();
             int wager = Mathf.Clamp(m_DraftTicket.WagerCall, 1, Mathf.Max(1, Context.CurrentCall));
             if (m_CurrentCallText != null) m_CurrentCallText.text = $"{Context.CurrentCall} Call";
+            if (m_NewCurrentCallText != null) m_NewCurrentCallText.text = $"{Context.CurrentCall} Call";
             if (m_WagerCallText != null) m_WagerCallText.text = $"{wager} Call";
+            if (m_WagerInput != null) m_WagerInput.SetTextWithoutNotify(wager.ToString());
+            if (m_NewMultiplierText != null) m_NewMultiplierText.text = $"x{m_DraftTicket.Multiplier}";
             if (m_MultiplierText != null) m_MultiplierText.text = $"×{m_DraftTicket.Multiplier}";
             if (m_EstimatedPayoutText != null)
             {
@@ -440,6 +574,16 @@ namespace InTheArena.MainGame
             SetSelected(m_RedButton, m_DraftTicket.Faction == FactionPrediction.Red);
             SetSelected(m_BlueButton, m_DraftTicket.Faction == FactionPrediction.Blue);
             SetSelected(m_DrawButton, m_DraftTicket.Faction == FactionPrediction.Draw);
+            if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.SetValueWithoutNotify(m_DraftTicket.Faction switch
+            {
+                FactionPrediction.Red => 1,
+                FactionPrediction.Blue => 2,
+                FactionPrediction.Draw => 3,
+                _ => 0
+            });
+            if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.SetValueWithoutNotify(m_DraftTicket.RemainingTime.HasValue ? (int)m_DraftTicket.RemainingTime.Value + 1 : 0);
+            if (m_OddEvenDropdown != null) m_OddEvenDropdown.SetValueWithoutNotify(m_DraftTicket.OddEven.HasValue ? (int)m_DraftTicket.OddEven.Value + 1 : 0);
+            if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.SetValueWithoutNotify(m_DraftTicket.FirstEliminatedSlot ?? 0);
 
             for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
                 SetSelected(m_RemainingTimeButtons[i], m_DraftTicket.RemainingTime == (RemainingTimePrediction)i);
@@ -449,6 +593,14 @@ namespace InTheArena.MainGame
                 SetSelected(m_FirstEliminatedSlotButtons[i], m_DraftTicket.FirstEliminatedSlot == i + 1);
             for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
                 SetSelected(m_SurvivingSlotButtons[i], m_SelectedSurvivingSlots.Contains(i + 1));
+            RefreshNewSlotSelection(m_RedSurvivingSlotButtons);
+            RefreshNewSlotSelection(m_BlueSurvivingSlotButtons);
+        }
+
+        private void RefreshNewSlotSelection(Button[] buttons)
+        {
+            for (int i = 0; i < buttons.Length; i++)
+                SetSelected(buttons[i], m_SelectedSurvivingSlots.Contains(i + 1));
         }
 
         private static void SetSelected(Button button, bool selected)

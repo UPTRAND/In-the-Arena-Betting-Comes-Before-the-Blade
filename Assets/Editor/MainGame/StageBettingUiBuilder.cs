@@ -17,6 +17,7 @@ namespace InTheArena.MainGame.Editor
     public static class StageBettingUiBuilder
     {
         private const string BettingPrefabPath = "Assets/Prefabs/UI/Panel/BettingPhaseUI.prefab";
+        private const string NewBettingPrefabPath = "Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab";
         private const string ResultPrefabPath = "Assets/Prefabs/UI/Panel/UI_StageResultPanel.prefab";
 
         [MenuItem("Tools/In The Arena/Rebuild Stage Betting UI")]
@@ -29,6 +30,191 @@ namespace InTheArena.MainGame.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[StageBettingUiBuilder] Stage/Betting UI 생성 및 씬 연결 완료");
+        }
+
+        [MenuItem("Tools/In The Arena/Install New MainGame Betting UI")]
+        public static void InstallNewMainGameBettingUi()
+        {
+            BuildNewBettingPrefab();
+            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/MainGame.unity", OpenSceneMode.Single);
+            BettingPhase phase = Object.FindAnyObjectByType<BettingPhase>(FindObjectsInactive.Include);
+            GameObject oldUi = GameObject.Find("BettingPhaseUI");
+            GameObject newUi = GameObject.Find("UI_BettingPhase");
+            if (phase == null || (oldUi == null && newUi == null))
+            {
+                Debug.LogError("[StageBettingUiBuilder] MainGame betting phase or legacy UI was not found.");
+                return;
+            }
+
+            if (oldUi != null)
+            {
+                Transform parent = oldUi.transform.parent;
+                int siblingIndex = oldUi.transform.GetSiblingIndex();
+                bool active = oldUi.activeSelf;
+                newUi = (GameObject)PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(NewBettingPrefabPath), parent);
+                newUi.name = "UI_BettingPhase";
+                newUi.transform.SetSiblingIndex(siblingIndex);
+                newUi.SetActive(active);
+                Object.DestroyImmediate(oldUi);
+            }
+
+            EnsureNewControls(newUi.transform);
+            BindNewBettingPhase(phase, newUi.transform);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[StageBettingUiBuilder] New MainGame betting UI installed.");
+        }
+
+        private static void BuildNewBettingPrefab()
+        {
+            GameObject root = PrefabUtility.LoadPrefabContents(NewBettingPrefabPath);
+            try
+            {
+                EnsureNewControls(root.transform);
+                PrefabUtility.SaveAsPrefabAsset(root, NewBettingPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void EnsureNewControls(Transform root)
+        {
+            Transform details = FindDescendant(root, "BettingDetails_Area") ?? root;
+            Transform oddEven = FindDescendant(root, "OddEven_Group");
+            if (oddEven == null)
+            {
+                Transform firstGroup = FindDescendant(root, "FirstAnnihilated_Group");
+                if (firstGroup != null)
+                {
+                    oddEven = Object.Instantiate(firstGroup.gameObject, details).transform;
+                    oddEven.name = "OddEven_Group";
+                    TMP_Text label = FindDescendant(oddEven, "Label_Text")?.GetComponent<TMP_Text>();
+                    if (label != null) label.text = "ODD / EVEN";
+                }
+            }
+
+            Transform stamp = FindDescendant(root, "ConfirmStamp_Group") ?? FindDescendant(root, "BottomBar");
+            if (stamp != null && FindDescendant(stamp, "Validation_Text") == null)
+            {
+                GameObject validation = new GameObject("Validation_Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+                validation.transform.SetParent(stamp, false);
+                RectTransform rect = (RectTransform)validation.transform;
+                rect.anchorMin = new Vector2(0.5f, 0f);
+                rect.anchorMax = new Vector2(0.5f, 0f);
+                rect.anchoredPosition = new Vector2(0f, -24f);
+                rect.sizeDelta = new Vector2(620f, 36f);
+                TMP_Text text = validation.GetComponent<TMP_Text>();
+                text.font = TMP_Settings.defaultFontAsset;
+                text.fontSize = 20f;
+                text.alignment = TextAlignmentOptions.Center;
+                text.color = new Color(1f, 0.4f, 0.35f);
+            }
+
+            foreach (Button itemButton in root.GetComponentsInChildren<Button>(true))
+            {
+                if (itemButton.name.StartsWith("ItemSlot_")) itemButton.interactable = false;
+            }
+
+            EnsureUnitSlots(FindDescendant(root, "RedFaction_Group"));
+            EnsureUnitSlots(FindDescendant(root, "BlueFaction_Group"));
+        }
+
+        private static void EnsureUnitSlots(Transform factionGroup)
+        {
+            if (factionGroup == null) return;
+            foreach (Transform slot in factionGroup.GetComponentsInChildren<Transform>(true))
+            {
+                if (!slot.name.StartsWith("UnitSlot_")) continue;
+                Image image = slot.GetComponent<Image>();
+                Button button = slot.GetComponent<Button>() ?? slot.gameObject.AddComponent<Button>();
+                button.targetGraphic = image;
+                if (slot.GetComponentInChildren<TMP_Text>(true) != null) continue;
+
+                GameObject label = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+                label.transform.SetParent(slot, false);
+                RectTransform rect = (RectTransform)label.transform;
+                Stretch(rect, 4f, 4f, 4f, 4f);
+                TMP_Text text = label.GetComponent<TMP_Text>();
+                text.font = TMP_Settings.defaultFontAsset;
+                text.fontSize = 14f;
+                text.alignment = TextAlignmentOptions.Center;
+                text.textWrappingMode = TextWrappingModes.Normal;
+                text.color = Color.black;
+            }
+        }
+
+        private static void BindNewBettingPhase(BettingPhase phase, Transform root)
+        {
+            Transform redGroup = FindDescendant(root, "RedFaction_Group");
+            Transform blueGroup = FindDescendant(root, "BlueFaction_Group");
+            Button[] redSlots = FindDescendantButtons(redGroup, "UnitSlot_", 6);
+            Button[] blueSlots = FindDescendantButtons(blueGroup, "UnitSlot_", 6);
+
+            var serialized = new SerializedObject(phase);
+            SetObject(serialized, "m_BettingCanvasGroup", root.GetComponent<CanvasGroup>());
+            SetObject(serialized, "m_WagerInput", FindDescendant(root, "BetAmount_InputField")?.GetComponent<TMP_InputField>());
+            SetObject(serialized, "m_WinningTeamDropdown", FindDescendant(root, "WinningTeam_Dropdown")?.GetComponent<TMP_Dropdown>());
+            SetObject(serialized, "m_GameEndTimeDropdown", FindDescendant(root, "GameEndTime_Dropdown")?.GetComponent<TMP_Dropdown>());
+            SetObject(serialized, "m_OddEvenDropdown", FindDescendant(root, "OddEven_Group")?.GetComponentInChildren<TMP_Dropdown>(true));
+            SetObject(serialized, "m_FirstAnnihilatedDropdown", FindDescendant(root, "FirstAnnihilated_Dropdown")?.GetComponent<TMP_Dropdown>());
+            SetObject(serialized, "m_GameEndTimeDropdownRoot", FindDescendant(root, "GameEndTime_Group")?.gameObject);
+            SetObject(serialized, "m_OddEvenDropdownRoot", FindDescendant(root, "OddEven_Group")?.gameObject);
+            SetObject(serialized, "m_FirstAnnihilatedDropdownRoot", FindDescendant(root, "FirstAnnihilated_Group")?.gameObject);
+            SetObject(serialized, "m_NewRoundText", FindDescendant(root, "RoundInfo_Text")?.GetComponent<TMP_Text>());
+            SetObject(serialized, "m_NewCurrentCallText", FindDescendant(root, "Money_Text")?.GetComponent<TMP_Text>());
+            SetObject(serialized, "m_NewMultiplierText", FindDescendant(root, "Multiplier_Text")?.GetComponent<TMP_Text>());
+            SetObject(serialized, "m_ValidationText", FindDescendant(root, "Validation_Text")?.GetComponent<TMP_Text>());
+            SetObject(serialized, "m_ConfirmBetButton", FindDescendant(root, "ConfirmBet_Button")?.GetComponent<Button>());
+            SetArray(serialized, "m_RedSurvivingSlotButtons", redSlots);
+            SetArray(serialized, "m_BlueSurvivingSlotButtons", blueSlots);
+            SetTextArray(serialized, "m_RedSurvivingSlotTexts", FindSlotTexts(redSlots));
+            SetTextArray(serialized, "m_BlueSurvivingSlotTexts", FindSlotTexts(blueSlots));
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Transform FindDescendant(Transform root, string name)
+        {
+            if (root == null) return null;
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == name) return child;
+            }
+            return null;
+        }
+
+        private static TMP_Text[] FindSlotTexts(IReadOnlyList<Button> buttons)
+        {
+            var texts = new TMP_Text[buttons.Count];
+            for (int i = 0; i < buttons.Count; i++)
+                texts[i] = buttons[i] != null ? buttons[i].GetComponentInChildren<TMP_Text>(true) : null;
+            return texts;
+        }
+
+        private static Button[] FindDescendantButtons(Transform root, string prefix, int count)
+        {
+            var buttons = new Button[count];
+            if (root == null) return buttons;
+            foreach (Button button in root.GetComponentsInChildren<Button>(true))
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    if (button.name == $"{prefix}{i + 1}") buttons[i] = button;
+                }
+            }
+            return buttons;
+        }
+
+        private static void SetTextArray(SerializedObject serialized, string propertyName, IReadOnlyList<TMP_Text> texts)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property == null) return;
+            property.arraySize = texts.Count;
+            for (int i = 0; i < texts.Count; i++)
+                property.GetArrayElementAtIndex(i).objectReferenceValue = texts[i];
         }
 
         private static void BuildBettingPrefab()
