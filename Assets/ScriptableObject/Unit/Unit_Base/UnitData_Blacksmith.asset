@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5077f3daa6aba1498feb5e069894957, type: 3}
+  m_Name: UnitData_Blacksmith
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
+  m_UnitName: Blacksmith
+  m_AttackType: 0
+  m_BasicAttackData: {fileID: 11400000, guid: bca93f8deeed419f97606b7b2b72045c, type: 2}
+  m_BaseStat:
+    maxHp: 150
+    attackPower: 10
+    defense: 8
+    attackSpeed: 0.35
+    moveSpeed: 1
+    attackRange: 1
+  m_UnitPrefab: {fileID: 3164494858236416527, guid: 13e1cbeafe7d433a8611f0a544828869, type: 3}
+  m_SkillDatas:
+  - {fileID: 11400000, guid: c103410d98b14db1b60fabf1bc31b043, type: 2}
+  m_AIData: {fileID: 11400000, guid: 94733aa653a82d34b8283cfb494cdfa2, type: 2}
+  m_StartingStatusEffects: []
+  m_VisualRadius: 0.5

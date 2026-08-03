@@ -137,6 +137,78 @@ namespace InTheArena.Unit
     }
 
     [Serializable]
+    public sealed class AnvilDropSkillEffect : SkillEffectDefinition
+    {
+        [SerializeField] private GameObject m_AnvilPrefab;
+        [SerializeField, Min(0f)] private float m_Damage = 15f;
+        [SerializeField, Min(0.1f)] private float m_ImpactRadius = 1.25f;
+        [SerializeField, Min(0.1f)] private float m_SpawnHeight = 2.5f;
+        [SerializeField, Min(0f)] private float m_SpawnDepth = 1.25f;
+        [SerializeField, Min(0.05f)] private float m_FallDuration = 0.35f;
+        [SerializeField] private float m_BaseXRotationDegrees = 45f;
+        [SerializeField] private float m_StartZRotationDegrees = -25f;
+        [SerializeField] private float m_ZRotationDegrees = 180f;
+
+        public override SkillExecutionResult Apply(in SkillEffectContext context)
+        {
+            if (context.Owner == null || context.Owner.IsDead || m_AnvilPrefab == null)
+                return SkillExecutionResult.NoEffect;
+
+            Vector3 damageCenter = context.Targets.HasGroundPosition
+                ? context.Targets.GroundPosition
+                : context.Owner.GroundPosition;
+            Vector3 visualImpactPosition = ResolveVisualImpactPosition(context.Targets, damageCenter);
+
+            GameObject anvilObject = UnityEngine.Object.Instantiate(
+                m_AnvilPrefab,
+                visualImpactPosition + Vector3.up * Mathf.Max(0.1f, m_SpawnHeight),
+                Quaternion.identity);
+            AnvilDrop anvilDrop = anvilObject.GetComponent<AnvilDrop>();
+            if (anvilDrop == null)
+            {
+                UnityEngine.Object.Destroy(anvilObject);
+                return SkillExecutionResult.NoEffect;
+            }
+
+            anvilDrop.Initialize(
+                context.Owner,
+                visualImpactPosition,
+                damageCenter,
+                m_ImpactRadius,
+                m_Damage,
+                SkillCombatLogUtility.GetSkillLogName(context.Runtime),
+                m_SpawnHeight,
+                m_SpawnDepth,
+                m_FallDuration,
+                m_BaseXRotationDegrees,
+                m_StartZRotationDegrees,
+                m_ZRotationDegrees);
+            return SkillExecutionResult.Success;
+        }
+
+        private static Vector3 ResolveVisualImpactPosition(SkillTargetSet targets, Vector3 damageCenter)
+        {
+            Unit best = null;
+            float bestDistanceSqr = float.MaxValue;
+            for (int i = 0; targets != null && i < targets.Count; i++)
+            {
+                Unit candidate = targets[i].Unit;
+                if (candidate == null || candidate.IsDead) continue;
+
+                Vector3 delta = candidate.GroundPosition - damageCenter;
+                delta.y = 0f;
+                float distanceSqr = delta.sqrMagnitude;
+                if (distanceSqr >= bestDistanceSqr) continue;
+
+                bestDistanceSqr = distanceSqr;
+                best = candidate;
+            }
+
+            return best != null ? best.HitPosition : damageCenter + Vector3.up * 0.9f;
+        }
+    }
+
+    [Serializable]
     public sealed class HealSkillEffect : SkillEffectDefinition
     {
         [SerializeField, Min(0f)] private float m_BaseHeal = 10f;

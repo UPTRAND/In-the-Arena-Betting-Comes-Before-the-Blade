@@ -1,0 +1,54 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
+  m_Name: Skill_Anvil_Drop_Blacksmith
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
+  m_SkillName: "\uBAA8\uB8E8 \uB099\uD558"
+  m_Description: "\uAC00\uAE4C\uC6B4 \uC801 \uC704\uC5D0 \uBAA8\uB8E8\uB97C \uB5A8\uC5B4\uB728\uB824
+    \uBC94\uC704 \uC548\uC758 \uC801 \uC720\uB2DB\uC5D0\uAC8C 15\uC758 \uD53C\uD574\uB97C
+    \uC900\uB2E4."
+  m_SkillType: 0
+  m_Range: 2.2
+  m_Cooldown: 8
+  m_CastTime: 2.05
+  m_FailureRetryDelay: 0.25
+  m_ExecutionMode: 0
+  m_Targeting:
+    rid: 960000000000000003
+  m_Effects:
+  - rid: 960000000000000004
+  m_Behavior:
+    rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 960000000000000003
+      type: {class: AreaSkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_Relation: 0
+        m_Radius: 1.25
+        m_CenterOnOwner: 0
+    - rid: 960000000000000004
+      type: {class: AnvilDropSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_AnvilPrefab: {fileID: 389397114616511552, guid: 990f920662bf4302968e7f8bc3d2afd6, type: 3}
+        m_Damage: 15
+        m_ImpactRadius: 1.25
+        m_SpawnHeight: 2.5
+        m_SpawnDepth: 1.25
+        m_FallDuration: 0.35
+        m_BaseXRotationDegrees: 45
+        m_StartZRotationDegrees: -25
+        m_ZRotationDegrees: 180
+
