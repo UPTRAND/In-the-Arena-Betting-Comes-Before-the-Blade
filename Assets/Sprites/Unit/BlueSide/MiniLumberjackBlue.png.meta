@@ -146,7 +146,7 @@ TextureImporter:
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -154,7 +154,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100000
       internalID: -282404757
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -168,7 +168,7 @@ TextureImporter:
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -176,7 +176,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100001
       internalID: -144796724
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -190,7 +190,7 @@ TextureImporter:
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -198,7 +198,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100002
       internalID: -491274823
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -212,7 +212,7 @@ TextureImporter:
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -220,21 +220,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100003
       internalID: -12281172
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_4
       rect:
         serializedVersion: 2
-        x: 128
-        y: 224
+        x: 0
+        y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -242,21 +242,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100004
       internalID: 2112302462
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_5
       rect:
         serializedVersion: 2
-        x: 160
-        y: 224
+        x: 32
+        y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -264,21 +264,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100005
       internalID: -2128119557
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_6
       rect:
         serializedVersion: 2
-        x: 192
-        y: 224
+        x: 64
+        y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -286,21 +286,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100006
       internalID: 883423804
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_7
       rect:
         serializedVersion: 2
-        x: 0
+        x: 96
         y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -308,21 +308,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100007
       internalID: -205055519
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_8
       rect:
         serializedVersion: 2
-        x: 32
+        x: 128
         y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -330,21 +330,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100008
       internalID: 462047000
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_9
       rect:
         serializedVersion: 2
-        x: 64
+        x: 160
         y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -352,21 +352,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100009
       internalID: -270185068
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_10
       rect:
         serializedVersion: 2
-        x: 96
+        x: 192
         y: 192
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -374,21 +374,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000a
       internalID: 1129088040
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_11
       rect:
         serializedVersion: 2
-        x: 128
-        y: 192
+        x: 0
+        y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -396,21 +396,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000b
       internalID: 462443633
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_12
       rect:
         serializedVersion: 2
-        x: 160
-        y: 192
+        x: 32
+        y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -418,21 +418,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000c
       internalID: -666979436
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_13
       rect:
         serializedVersion: 2
-        x: 192
-        y: 192
+        x: 64
+        y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -440,21 +440,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000d
       internalID: 2096750191
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_14
       rect:
         serializedVersion: 2
-        x: 0
+        x: 96
         y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -462,21 +462,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000e
       internalID: -1292821400
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_15
       rect:
         serializedVersion: 2
-        x: 32
+        x: 128
         y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -484,21 +484,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010000f
       internalID: -999020704
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_16
       rect:
         serializedVersion: 2
-        x: 64
+        x: 160
         y: 160
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -506,21 +506,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100010
       internalID: -1468603955
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_17
       rect:
         serializedVersion: 2
-        x: 96
-        y: 160
+        x: 0
+        y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -528,21 +528,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100011
       internalID: -1928698844
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_18
       rect:
         serializedVersion: 2
-        x: 128
-        y: 160
+        x: 32
+        y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -550,21 +550,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100012
       internalID: 430027014
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_19
       rect:
         serializedVersion: 2
-        x: 160
-        y: 160
+        x: 64
+        y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -572,21 +572,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100013
       internalID: -82487891
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_20
       rect:
         serializedVersion: 2
-        x: 192
-        y: 160
+        x: 96
+        y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -594,21 +594,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100014
       internalID: 1141870515
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_21
       rect:
         serializedVersion: 2
-        x: 0
+        x: 128
         y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -616,21 +616,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100015
       internalID: -1805544228
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_22
       rect:
         serializedVersion: 2
-        x: 32
+        x: 160
         y: 128
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -638,21 +638,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100016
       internalID: 1299184000
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_23
       rect:
         serializedVersion: 2
-        x: 64
-        y: 128
+        x: 0
+        y: 96
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -660,21 +660,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100017
       internalID: -1064985162
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_24
       rect:
         serializedVersion: 2
-        x: 96
-        y: 128
+        x: 32
+        y: 96
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -682,21 +682,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100018
       internalID: -1420921709
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_25
       rect:
         serializedVersion: 2
-        x: 128
-        y: 128
+        x: 64
+        y: 96
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -704,21 +704,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100019
       internalID: 2064529791
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_26
       rect:
         serializedVersion: 2
-        x: 160
-        y: 128
+        x: 0
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -726,21 +726,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001a
       internalID: -892458374
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_27
       rect:
         serializedVersion: 2
-        x: 192
-        y: 128
+        x: 32
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -748,21 +748,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001b
       internalID: -1257939111
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_28
       rect:
         serializedVersion: 2
-        x: 0
-        y: 96
+        x: 64
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -770,21 +770,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001c
       internalID: -1887065268
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_29
       rect:
         serializedVersion: 2
-        x: 32
-        y: 96
+        x: 96
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -792,21 +792,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001d
       internalID: 1262871223
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_30
       rect:
         serializedVersion: 2
-        x: 64
-        y: 96
+        x: 128
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -814,21 +814,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001e
       internalID: 317351497
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_31
       rect:
         serializedVersion: 2
-        x: 96
-        y: 96
+        x: 160
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -836,21 +836,21 @@ TextureImporter:
       spriteID: 0000000000000000000000000010001f
       internalID: 910758894
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_32
       rect:
         serializedVersion: 2
-        x: 128
-        y: 96
+        x: 192
+        y: 64
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -858,21 +858,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100020
       internalID: 1575810247
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_33
       rect:
         serializedVersion: 2
-        x: 160
-        y: 96
+        x: 0
+        y: 32
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -880,21 +880,21 @@ TextureImporter:
       spriteID: 00000000000000000000000000100021
       internalID: 1960732608
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
       name: MiniLumberjackBlue_34
       rect:
         serializedVersion: 2
-        x: 192
-        y: 96
+        x: 32
+        y: 32
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -902,7 +902,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100022
       internalID: -1946884473
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -910,13 +910,13 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 0
-        y: 64
+        y: 0
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -924,7 +924,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100023
       internalID: -75632104
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -932,13 +932,13 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 32
-        y: 64
+        y: 0
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -946,7 +946,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100024
       internalID: -1809023028
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -954,13 +954,13 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 64
-        y: 64
+        y: 0
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -968,7 +968,7 @@ TextureImporter:
       spriteID: 00000000000000000000000000100025
       internalID: -2013753770
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     - serializedVersion: 2
@@ -976,13 +976,13 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 96
-        y: 64
+        y: 0
         width: 32
         height: 32
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
-      customData:
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
@@ -990,33 +990,27 @@ TextureImporter:
       spriteID: 00000000000000000000000000100026
       internalID: -1448930553
       vertices: []
-      indices:
+      indices: 
       edges: []
       weights: []
     outline: []
-    customData:
+    customData: 
     physicsShape: []
     bones: []
-    spriteID:
+    spriteID: 8448aee5e7e2b6c41a73b5e7f50bd8ea
     internalID: 0
     vertices: []
-    indices:
+    indices: 
     edges: []
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":32.0,"y":32.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       MiniLumberjackBlue_0: -282404757
       MiniLumberjackBlue_1: -144796724
-      MiniLumberjackBlue_2: -491274823
-      MiniLumberjackBlue_3: -12281172
-      MiniLumberjackBlue_4: 2112302462
-      MiniLumberjackBlue_5: -2128119557
-      MiniLumberjackBlue_6: 883423804
-      MiniLumberjackBlue_7: -205055519
-      MiniLumberjackBlue_8: 462047000
-      MiniLumberjackBlue_9: -270185068
       MiniLumberjackBlue_10: 1129088040
       MiniLumberjackBlue_11: 462443633
       MiniLumberjackBlue_12: -666979436
@@ -1027,6 +1021,7 @@ TextureImporter:
       MiniLumberjackBlue_17: -1928698844
       MiniLumberjackBlue_18: 430027014
       MiniLumberjackBlue_19: -82487891
+      MiniLumberjackBlue_2: -491274823
       MiniLumberjackBlue_20: 1141870515
       MiniLumberjackBlue_21: -1805544228
       MiniLumberjackBlue_22: 1299184000
@@ -1037,6 +1032,7 @@ TextureImporter:
       MiniLumberjackBlue_27: -1257939111
       MiniLumberjackBlue_28: -1887065268
       MiniLumberjackBlue_29: 1262871223
+      MiniLumberjackBlue_3: -12281172
       MiniLumberjackBlue_30: 317351497
       MiniLumberjackBlue_31: 910758894
       MiniLumberjackBlue_32: 1575810247
@@ -1046,8 +1042,14 @@ TextureImporter:
       MiniLumberjackBlue_36: -1809023028
       MiniLumberjackBlue_37: -2013753770
       MiniLumberjackBlue_38: -1448930553
-  mipmapLimitGroupName:
+      MiniLumberjackBlue_4: 2112302462
+      MiniLumberjackBlue_5: -2128119557
+      MiniLumberjackBlue_6: 883423804
+      MiniLumberjackBlue_7: -205055519
+      MiniLumberjackBlue_8: 462047000
+      MiniLumberjackBlue_9: -270185068
+  mipmapLimitGroupName: 
   pSDRemoveMatte: 0
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
