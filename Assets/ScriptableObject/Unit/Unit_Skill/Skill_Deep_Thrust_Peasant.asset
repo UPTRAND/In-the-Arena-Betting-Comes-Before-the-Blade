@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
+  m_Name: Skill_Deep_Thrust_Peasant
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
+  m_SkillName: "\uAE4A\uAC8C \uCC0C\uB974\uAE30"
+  m_Description: "\uB18D\uAE30\uAD6C\uB97C \uD798\uAECF \uB0B4\uC9C8\uB7EC \uC804\uBC29\uC758
+    \uC801\uC5D0\uAC8C 30\uC758 \uD53C\uD574\uB97C \uC900\uB2E4."
+  m_SkillType: 0
+  m_Range: 1.7
+  m_Cooldown: 8
+  m_CastTime: 0.6
+  m_FailureRetryDelay: 0.25
+  m_ExecutionMode: 0
+  m_Targeting:
+    rid: 960000000000000003
+  m_Effects:
+  - rid: 960000000000000004
+  m_Behavior:
+    rid: -2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 960000000000000003
+      type: {class: SingleUnitSkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_Relation: 0
+        m_Priority: 0
+        m_IncludeSelf: 1
+    - rid: 960000000000000004
+      type: {class: FixedDamageSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_Damage: 30
+        m_DefenseReduction: 0
