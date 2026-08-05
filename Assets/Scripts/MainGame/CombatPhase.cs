@@ -718,6 +718,12 @@ namespace InTheArena.MainGame
         internal bool TrySpawnMercenaries(Vector3 dropPosition, out string message)
         {
             message = "";
+            if (Context == null || IsCombatEnded)
+            {
+                message = "유효하지 않은 전투 상태입니다.";
+                return false;
+            }
+
             if (m_MercenaryKnightData == null || m_MercenaryArcherData == null || m_MercenaryWizardData == null)
             {
                 message = "용병 데이터가 없습니다.";
@@ -737,19 +743,27 @@ namespace InTheArena.MainGame
             List<UnitType> spawnedUnits = new List<UnitType>(3);
             try
             {
-                UnitType knight = SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
+                UnitType knight = SpawnMercenary(m_MercenaryKnightData, team, dropPosition, spawnedUnits);
                 if (knight == null) throw new Exception("기사 소환 실패");
-                spawnedUnits.Add(knight);
 
                 Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
-                UnitType archer = SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
+                UnitType archer = SpawnMercenary(m_MercenaryArcherData, team, archerPosition, spawnedUnits);
                 if (archer == null) throw new Exception("궁수 소환 실패");
-                spawnedUnits.Add(archer);
 
                 Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
-                UnitType wizard = SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
+                UnitType wizard = SpawnMercenary(m_MercenaryWizardData, team, wizardPosition, spawnedUnits);
                 if (wizard == null) throw new Exception("마법사 소환 실패");
-                spawnedUnits.Add(wizard);
+
+                for (int i = 0; i < spawnedUnits.Count; i++)
+                {
+                    spawnedUnits[i].gameObject.SetActive(true);
+                }
+
+                for (int i = 0; i < spawnedUnits.Count; i++)
+                {
+                    spawnedUnits[i].NotifyBattleStarted();
+                    spawnedUnits[i].SetAIActive(true);
+                }
 
                 message = "용병을 고용했습니다.";
                 return true;
@@ -781,7 +795,7 @@ namespace InTheArena.MainGame
             }
         }
 
-        private UnitType SpawnMercenary(UnitData unitData, Team team, Vector3 position)
+        private UnitType SpawnMercenary(UnitData unitData, Team team, Vector3 position, List<UnitType> spawnedUnits)
         {
             if (unitData == null || Context == null) return null;
 
@@ -795,7 +809,8 @@ namespace InTheArena.MainGame
 
             if (unit != null)
             {
-                unit.SetAIActive(true);
+                spawnedUnits.Add(unit);
+
                 List<UnitType> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
                 runtimeUnits.Add(unit);
 
@@ -808,16 +823,25 @@ namespace InTheArena.MainGame
 
         internal bool TryApplyMeteorEffect(Vector3 center, out string message)
         {
+            message = "";
+            if (Context == null || IsCombatEnded)
+            {
+                message = "유효하지 않은 전투 상태입니다.";
+                return false;
+            }
+
+            if (m_MeteorStunEffect == null)
+            {
+                message = "메테오 데이터가 없습니다.";
+                return false;
+            }
+
             float radius = 2f;
             float stunDuration = 3f;
             float radiusSqr = radius * radius;
-            message = "";
 
-            if (Context != null)
-            {
-                ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
-                ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
-            }
+            ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
+            ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
 
             message = "메테오를 사용했습니다.";
             return true;

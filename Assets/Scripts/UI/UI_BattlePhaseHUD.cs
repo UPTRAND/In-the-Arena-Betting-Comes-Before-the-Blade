@@ -46,15 +46,19 @@ namespace InTheArena.UI
         private RoundContext m_RoundContext;
         private StagePlayerState m_PlayerState;
         private ItemInventoryService m_InventoryService;
+
         private ItemData m_DraggedItem;
+        private ItemData m_ActiveTargetingItemData;
         private bool m_IsSubscribed;
         private CancellationTokenSource m_ItemUseLifetimeCancellation;
+        private CancellationTokenSource m_TargetingLifetimeCancellation;
         private long m_ActiveTargetingRequestVersion = -1;
 
         protected override void Awake()
         {
             base.Awake();
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+            m_TargetingLifetimeCancellation = new CancellationTokenSource();
             ApplyItemIcons();
             ResetDisplay();
         }
@@ -91,6 +95,8 @@ namespace InTheArena.UI
 
         public void UnbindAndHide()
         {
+            m_TargetingLifetimeCancellation?.Cancel();
+
             if (BIsOpened)
             {
                 Close();
@@ -113,9 +119,11 @@ namespace InTheArena.UI
 
         public override void OnClosed()
         {
+            m_TargetingLifetimeCancellation?.Cancel();
             CancelTargetingRequest();
             UnsubscribeEvents();
             m_DraggedItem = null;
+            m_ActiveTargetingItemData = null;
             ResetDisplay();
             base.OnClosed();
         }
@@ -132,11 +140,6 @@ namespace InTheArena.UI
         {
             m_DraggedItem = ResolveDraggedItem(eventData);
             if (m_DraggedItem == null) return;
-
-            if (CanUseNewTargetingFlow(m_DraggedItem))
-            {
-                RequestTargetedItemUse(m_DraggedItem);
-            }
         }
 
         public void OnDrag(PointerEventData eventData)
@@ -188,16 +191,24 @@ namespace InTheArena.UI
 
             if (coordinator == null || popup == null) return;
 
-            CancelTargetingRequest();
+            if (coordinator.State != ItemPurchaseUseState.Idle)
+            {
+                return;
+            }
+
+            m_TargetingLifetimeCancellation?.Cancel();
+            m_TargetingLifetimeCancellation?.Dispose();
+            m_TargetingLifetimeCancellation = new CancellationTokenSource();
 
             long requestVersion = await coordinator.RequestTargetedUseAsync(
                 itemData,
                 popup,
-                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
+                m_TargetingLifetimeCancellation.Token);
 
             if (requestVersion != -1 && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
             {
                 m_ActiveTargetingRequestVersion = requestVersion;
+                m_ActiveTargetingItemData = itemData;
                 InputManager.Instance.ArmSkillTargeting(0, (int)requestVersion);
                 InputManager.Instance.OnSkillDragEnded += OnSkillDragEnded;
             }
@@ -224,17 +235,25 @@ namespace InTheArena.UI
         {
             long requestVersion = m_ActiveTargetingRequestVersion;
             DetachTargetingInput();
+            m_ActiveTargetingItemData = null;
 
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
             if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
             {
                 coordinator.CancelActiveRequest();
             }
+
+            m_TargetingLifetimeCancellation?.Cancel();
         }
 
-        private void OnSkillDragEnded(int skillId, Vector2 screenPos, Vector3 worldPos, bool isCanceled, bool isValid)
+        private void OnSkillDragEnded(int skillId, int sessionId, Vector2 screenPos, Vector3 worldPos, bool isCanceled, bool isValid)
         {
-            if (m_CombatPhase == null || m_DraggedItem == null)
+            if (sessionId != m_ActiveTargetingRequestVersion)
+            {
+                return;
+            }
+
+            if (m_CombatPhase == null || m_ActiveTargetingItemData == null)
             {
                 CancelTargetingRequest();
                 return;
@@ -251,7 +270,8 @@ namespace InTheArena.UI
 
             DetachTargetingInput();
 
-            IItemPurchaseUseExecutor executor = CreateExecutor(m_DraggedItem, worldPos);
+            IItemPurchaseUseExecutor executor = CreateExecutor(m_ActiveTargetingItemData, worldPos);
+            m_ActiveTargetingItemData = null;
 
             bool success = coordinator.TryCompleteTargetUse(
                 targetVersion,
@@ -343,20 +363,23 @@ namespace InTheArena.UI
             RefreshCombatState();
         }
 
-        private void OnItemSlot1Clicked()
+        private void RequestItemUse(ItemData itemData)
         {
-            RequestImmediateItemUse(m_ItemSlot1Data);
+            if (CanUseNewImmediateFlow(itemData))
+            {
+                RequestImmediateItemUse(itemData);
+                return;
+            }
+
+            if (CanUseNewTargetingFlow(itemData))
+            {
+                RequestTargetedItemUse(itemData);
+            }
         }
 
-        private void OnItemSlot2Clicked()
-        {
-            RequestImmediateItemUse(m_ItemSlot2Data);
-        }
-
-        private void OnItemSlot3Clicked()
-        {
-            RequestImmediateItemUse(m_ItemSlot3Data);
-        }
+        private void OnItemSlot1Clicked() => RequestItemUse(m_ItemSlot1Data);
+        private void OnItemSlot2Clicked() => RequestItemUse(m_ItemSlot2Data);
+        private void OnItemSlot3Clicked() => RequestItemUse(m_ItemSlot3Data);
 
         private void RequestImmediateItemUse(ItemData itemData)
         {
@@ -514,7 +537,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (CanUseNewImmediateFlow(itemData))
+            if (CanUseNewImmediateFlow(itemData) || CanUseNewTargetingFlow(itemData))
             {
                 button.interactable = CanAcceptCombatInput() &&
                     !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
@@ -665,15 +688,23 @@ namespace InTheArena.UI
             m_PlayerState = null;
             m_InventoryService = null;
             m_DraggedItem = null;
+            m_ActiveTargetingItemData = null;
         }
 
         protected override void OnDestroy()
         {
+            m_ItemUseLifetimeCancellation?.Cancel();
+            m_TargetingLifetimeCancellation?.Cancel();
+            DetachTargetingInput();
+
             UnsubscribeEvents();
             ClearBindings();
-            m_ItemUseLifetimeCancellation?.Cancel();
+
             m_ItemUseLifetimeCancellation?.Dispose();
             m_ItemUseLifetimeCancellation = null;
+            m_TargetingLifetimeCancellation?.Dispose();
+            m_TargetingLifetimeCancellation = null;
+
             base.OnDestroy();
         }
     }

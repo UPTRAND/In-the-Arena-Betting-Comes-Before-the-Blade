@@ -36,17 +36,17 @@ public class InputManager : Manager_Base
     /// <summary>
     /// 스킬 드래그 타겟팅 시작 (스킬 ID, 화면 좌표)
     /// </summary>
-    public event Action<int, Vector2> OnSkillDragBegan;
+    public event Action<int, int, Vector2> OnSkillDragBegan;
 
     /// <summary>
     /// 스킬 드래그 위치 업데이트 (스킬 ID, 화면 좌표, 3D 월드 지면 좌표, Valid 여부)
     /// </summary>
-    public event Action<int, Vector2, Vector3, bool> OnSkillDragUpdated;
+    public event Action<int, int, Vector2, Vector3, bool> OnSkillDragUpdated;
 
     /// <summary>
     /// 스킬 드래그 종료/발동 (스킬 ID, 화면 좌표, 3D 월드 지면 좌표, 취소 여부)
     /// </summary>
-    public event Action<int, Vector2, Vector3, bool, bool> OnSkillDragEnded;
+    public event Action<int, int, Vector2, Vector3, bool, bool> OnSkillDragEnded;
     #endregion
 
     public Camera MainCamera
@@ -119,7 +119,7 @@ public class InputManager : Manager_Base
             }
 
             // 2. 스킬 드래그 타겟팅 상태 업데이트
-            if (m_IsTargetingArmed && !IsPointerOverUIObject(touch.screenPosition))
+            if (m_IsTargetingArmed && touch.phase == UnityEngine.InputSystem.TouchPhase.Began && !IsPointerOverUIObject(touch.screenPosition))
             {
                 m_IsTargetingArmed = false;
                 StartSkillDrag(m_CurrentDraggingSkillId, touch.screenPosition);
@@ -205,7 +205,7 @@ public class InputManager : Manager_Base
         m_IsDraggingSkill = true;
         m_CurrentDraggingSkillId = skillId;
 
-        OnSkillDragBegan?.Invoke(skillId, screenPosition);
+        OnSkillDragBegan?.Invoke(skillId, m_ArmedSessionId, screenPosition);
         UpdateSkillDrag(screenPosition);
     }
 
@@ -215,7 +215,7 @@ public class InputManager : Manager_Base
 
         bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
         bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
-        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, isValid);
+        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, m_ArmedSessionId, screenPosition, worldPos, isValid);
     }
 
     private void EndSkillDrag(Vector2 screenPosition, bool isCanceled)
@@ -224,10 +224,16 @@ public class InputManager : Manager_Base
 
         bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
         bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
-        OnSkillDragEnded?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, isCanceled, isValid);
+
+        int skillId = m_CurrentDraggingSkillId;
+        int sessionId = m_ArmedSessionId;
 
         m_IsDraggingSkill = false;
+        m_IsTargetingArmed = false;
         m_CurrentDraggingSkillId = -1;
+        m_ArmedSessionId = -1;
+
+        OnSkillDragEnded?.Invoke(skillId, sessionId, screenPosition, worldPos, isCanceled, isValid);
     }
 
     /// <summary>
