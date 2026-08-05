@@ -1024,7 +1024,7 @@ MonoBehaviour:
   m_InitializationOrder: 20
   m_GroundLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   m_TouchFxKey: FX_TouchPoint
   m_EnableTouchFx: 1
 --- !u!4 &1818288465
