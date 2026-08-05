@@ -57,13 +57,13 @@ namespace InTheArena.MainGame
         private int m_FirstEliminatedSlot = -1;
         private bool m_IsFinalEliminationPlaying;
 
-        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+        public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
             InitializeCombat();
 
             m_CombatCts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
-            await ActivateUnitsAsync(m_CombatCts.Token);
+            await PrepareUnitsAsync(m_CombatCts.Token);
             if (m_CombatCts.IsCancellationRequested) return;
 
             m_InitialRedUnitCount = RedAliveCount;
@@ -73,6 +73,11 @@ namespace InTheArena.MainGame
                 Context,
                 StageManager.Instance?.PlayerState,
                 SaveManager.Instance?.InventoryService);
+        }
+
+        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+        {
+            StartUnitAI();
             await RunCombatLoopAsync(m_CombatCts.Token);
         }
 
@@ -243,9 +248,9 @@ namespace InTheArena.MainGame
             return new Vector3(centerX, 0f, centerZ);
         }
 
-        private async Awaitable ActivateUnitsAsync(CancellationToken token)
+        private async Awaitable PrepareUnitsAsync(CancellationToken token)
         {
-            // 풀에서 준비된 유닛은 한 프레임에 활성화하고, 모두 배치된 후 동시에 AI를 시작합니다.
+            // 풀에서 준비된 유닛은 한 프레임에 활성화합니다.
             foreach (var unit in Context.TeamAUnits)
             {
                 if (token.IsCancellationRequested) break;
@@ -265,8 +270,11 @@ namespace InTheArena.MainGame
                     InTheArena.Camera.CameraPhase.Combat,
                     token);
             if (token.IsCancellationRequested) return;
+        }
 
-            // 모든 유닛이 배치된 뒤 동시에 AI 전투를 시작한다.
+        private void StartUnitAI()
+        {
+            // 모든 유닛이 배치되고 화면이 밝아진 뒤 동시에 AI 전투를 시작한다.
             foreach (var unit in Context.TeamAUnits)
             {
                 if (unit == null || unit.IsDead) continue;

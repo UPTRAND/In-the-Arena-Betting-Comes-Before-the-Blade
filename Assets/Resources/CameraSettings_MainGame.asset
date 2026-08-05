@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6ba603ddbb12d24692a26adce379518, type: 3}
   m_Name: CameraSettings_MainGame
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraSettings
-  m_UsePerspective: 1
+  m_UsePerspective: 0
   m_ClearFlags: 2
   m_BackgroundColor: {r: 0.1, g: 0.1, b: 0.12, a: 1}
   m_FieldOfView: 30
@@ -24,13 +24,13 @@ MonoBehaviour:
   m_OrthoAspect: 1.7777778
   m_CombatAreaCenter: {x: 0, y: 0, z: 0}
   m_CombatAreaSize: {x: 28, y: 0, z: 12}
-  m_SafeMarginHorizontal: 0.05
-  m_SafeMarginVertical: 0.12
+  m_SafeMarginHorizontal: 0.025
+  m_SafeMarginVertical: 0.06
   m_BoundsRefreshInterval: 0.1
   m_DefaultVisualRadius: 0.65
   m_MinFramingDistance: 14
   m_MaxFramingDistance: 60
-  m_MinOrthographicSize: 8
+  m_MinOrthographicSize: 3
   m_MaxOrthographicSize: 30
   m_MinHeight: 8
   m_MaxHeight: 25
@@ -39,12 +39,13 @@ MonoBehaviour:
   m_ZoomLerpSpeed: 10
   m_BoostZoomSpeed: 20
   m_DeadZoneRadius: 0.1
-  m_FramingPadding: 1.5
+  m_FramingPadding: 0.75
   m_CenterDeadZone: 0.25
-  m_DistanceDeadZone: 0.5
+  m_DistanceDeadZone: 0.1
   m_AutoZoomInSpeed: 4
   m_AutoZoomOutSpeed: 10
   m_FinalEliminationDistance: 8
+  m_FinalEliminationOrthographicSize: 4
   m_FinalEliminationFocusDuration: 0.35
   m_DefaultShakeIntensity: 0.5
   m_DefaultShakeDuration: 0.3

@@ -1711,7 +1711,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21a1ba1d7e4ab864b9e198d82368a884, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_BattlePhaseHUD
-  m_HasControl: 0
+  m_HasControl: 1
   m_CanCloseControlWithBackButton: 0
   m_BIsPlayerUI: 0
   m_RoundInfoText: {fileID: 1464049910770985453}

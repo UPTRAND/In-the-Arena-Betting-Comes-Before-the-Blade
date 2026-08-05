@@ -25,15 +25,27 @@ namespace InTheArena.UI
             EnsureReferences();
         }
 
+        private InTheArena.Util.LoadingProgressService _progressService;
+
         private void OnEnable()
         {
             EnsureReferences();
-            UpdateProgress(AsyncSceneLoader.LoadingProgress);
+            
+            _progressService = InTheArena.Util.LoadingProgressService.Instance;
+            if (_progressService != null)
+            {
+                _progressService.ProgressChanged += UpdateProgress;
+                UpdateProgress(_progressService.Progress);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            UpdateProgress(AsyncSceneLoader.LoadingProgress);
+            if (_progressService != null)
+            {
+                _progressService.ProgressChanged -= UpdateProgress;
+                _progressService = null;
+            }
         }
 
         /// <summary>

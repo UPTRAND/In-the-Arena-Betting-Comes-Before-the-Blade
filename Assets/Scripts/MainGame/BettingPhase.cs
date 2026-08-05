@@ -114,7 +114,7 @@ namespace InTheArena.MainGame
             } 
         }
 
-        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+        public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
             var cameraController = InTheArena.Camera.CameraController.Instance;
             if (cameraController != null)
@@ -130,8 +130,20 @@ namespace InTheArena.MainGame
             if (canvasGroup != null)
             {
                 canvasGroup.gameObject.SetActive(true);
-                canvasGroup.alpha = 0f;
-                await AwaitTweenAsync(canvasGroup.DOFade(1f, 0.3f).SetEase(Ease.OutQuad), token);
+                canvasGroup.alpha = 1f;
+                canvasGroup.interactable = false;
+                canvasGroup.blocksRaycasts = false;
+            }
+        }
+
+        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+        {
+            CanvasGroup canvasGroup = m_BettingCanvasGroup;
+            if (canvasGroup != null)
+            {
+                canvasGroup.DOKill();
+                canvasGroup.interactable = true;
+                canvasGroup.blocksRaycasts = true;
             }
 
             m_PhaseCompletionSource = new AwaitableCompletionSource();

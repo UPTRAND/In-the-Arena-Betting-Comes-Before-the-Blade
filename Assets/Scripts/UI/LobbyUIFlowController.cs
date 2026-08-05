@@ -13,11 +13,11 @@ public sealed class LobbyUIFlowController : MonoBehaviour
     {
         yield return null;
 
-        UI_LobbyHeader header = UIManager.Instance?.GetElement<UI_LobbyHeader>() ?? FindFirstObjectByType<UI_LobbyHeader>(FindObjectsInactive.Include);
-        m_Navigation = UIManager.Instance?.GetElement<UI_LobbyNavigationBar>() ?? FindFirstObjectByType<UI_LobbyNavigationBar>(FindObjectsInactive.Include);
-        UI_LobbyStagePanel stage = UIManager.Instance?.GetElement<UI_LobbyStagePanel>() ?? FindFirstObjectByType<UI_LobbyStagePanel>(FindObjectsInactive.Include);
-        UI_LobbyUnitPanel units = UIManager.Instance?.GetElement<UI_LobbyUnitPanel>() ?? FindFirstObjectByType<UI_LobbyUnitPanel>(FindObjectsInactive.Include);
-        UI_LobbySocialPanel social = UIManager.Instance?.GetElement<UI_LobbySocialPanel>() ?? FindFirstObjectByType<UI_LobbySocialPanel>(FindObjectsInactive.Include);
+        UI_LobbyHeader header = UIManager.Instance?.GetElement<UI_LobbyHeader>() ?? FindAnyObjectByType<UI_LobbyHeader>(FindObjectsInactive.Include);
+        m_Navigation = UIManager.Instance?.GetElement<UI_LobbyNavigationBar>() ?? FindAnyObjectByType<UI_LobbyNavigationBar>(FindObjectsInactive.Include);
+        UI_LobbyStagePanel stage = UIManager.Instance?.GetElement<UI_LobbyStagePanel>() ?? FindAnyObjectByType<UI_LobbyStagePanel>(FindObjectsInactive.Include);
+        UI_LobbyUnitPanel units = UIManager.Instance?.GetElement<UI_LobbyUnitPanel>() ?? FindAnyObjectByType<UI_LobbyUnitPanel>(FindObjectsInactive.Include);
+        UI_LobbySocialPanel social = UIManager.Instance?.GetElement<UI_LobbySocialPanel>() ?? FindAnyObjectByType<UI_LobbySocialPanel>(FindObjectsInactive.Include);
 
         header?.Open();
         yield return null;

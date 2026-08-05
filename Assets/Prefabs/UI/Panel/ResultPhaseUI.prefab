@@ -212,7 +212,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72f22b82987a1274ab74ab5742fc46f6, type: 3}
   m_Name: UI_ResultPhase
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_ResultPhase
-  m_HasControl: 0
+  m_HasControl: 1
   m_CanCloseControlWithBackButton: 1
   m_BIsPlayerUI: 0
   m_ResultText: {fileID: 8659682498034722918}

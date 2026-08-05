@@ -4,6 +4,7 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
+using InTheArena.Util;
 
 [DisallowMultipleComponent]
 public class AsyncSceneLoader : MonoBehaviour
@@ -14,16 +15,14 @@ public class AsyncSceneLoader : MonoBehaviour
     public const string LOADING_SCENE_NAME = "Loading";
 
     /// <summary>
-    /// ÇöÀç ºñµ¿±â ¾À ·ÎµùÀÌ ÁøÇà ÁßÀÎÁö ¿©ºÎ
+    /// ë¡œë”© ìƒíƒœ. í•˜ìœ„ í˜¸í™˜ì„±ì„ ìœ„í•´ LoadingProgressServiceì˜ ê°’ì„ ë°˜í™˜í•©ë‹ˆë‹¤.
     /// </summary>
-    public static bool IsLoading { get; private set; }
+    public static bool IsLoading => LoadingProgressService.Instance != null && LoadingProgressService.Instance.IsLoading;
 
     /// <summary>
-    /// ·Îµù ÁøÇà·ü (0.0 ~ 1.0) - Loading ¾ÀÀÇ ÇÁ·Î±×·¹½º ¹Ù UI¿Í ¿¬µ¿ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    /// ë¡œë”© ì§„í–‰ë„. í•˜ìœ„ í˜¸í™˜ì„±ì„ ìœ„í•´ LoadingProgressServiceì˜ ê°’ì„ ë°˜í™˜í•©ë‹ˆë‹¤.
     /// </summary>
-    public static float LoadingProgress { get; private set; }
-
-    private CancellationTokenSource _cts;
+    public static float LoadingProgress => LoadingProgressService.Instance != null ? LoadingProgressService.Instance.Progress : 0f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void AutoInitialize()
@@ -33,7 +32,6 @@ public class AsyncSceneLoader : MonoBehaviour
 
     private static void EnsureInstanceExists()
     {
-        // [High Safety] À¯´ÏÆ¼ °¡Â¥ Null ¹× ¼ø¼ö C# ÂüÁ¶ µ¿½Ã °Ë»ç
         if (!ReferenceEquals(_instance, null) && _instance != null) return;
 
         var go = new GameObject("[SceneLoader]");
@@ -51,129 +49,156 @@ public class AsyncSceneLoader : MonoBehaviour
 
         _instance = this;
         DontDestroyOnLoad(gameObject);
-        _cts = new CancellationTokenSource();
     }
 
     #region Single-Line Public API
     /// <summary>
-    /// [ÇÑ ÁÙ ÆíÀÇ¼º API] ¾À ÀÌ¸§À» Àü´ŞÇÏ¿© Áï½Ã ºñµ¿±â ·Îµù ÀüÈ¯À» ¼öÇàÇÕ´Ï´Ù.
-    /// »ç¿ë ¿¹: SceneLoader.LoadScene("DungeonScene");
+    /// ê¸°ì¡´ í•˜ìœ„ í˜¸í™˜ìš© ë‹¨ì¼ í˜¸ì¶œ API. ë‚´ë¶€ì ìœ¼ë¡œ LoadSceneAsyncì˜ ì˜ˆì™¸ë¥¼ ê´€ì°°í•˜ëŠ” Fire-and-forget ë˜í¼ì…ë‹ˆë‹¤.
     /// </summary>
     public static void LoadScene(string targetSceneName)
     {
+        LoadSceneInternal(targetSceneName);
+    }
+
+    private static async void LoadSceneInternal(string targetSceneName)
+    {
+        try
+        {
+            await LoadSceneAsync(targetSceneName, CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Log("[SceneLoader] ì”¬ ë¡œë”©ì´ ì·¨ì†Œë˜ì—ˆìŠµë‹ˆë‹¤.");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[SceneLoader] ì”¬ ë¡œë”© ì¤‘ ì˜ˆì™¸ ë°œìƒ: {ex.Message}");
+            Debug.LogException(ex);
+        }
+    }
+    #endregion
+
+    /// <summary>
+    /// í•µì‹¬ ë¹„ë™ê¸° ë¡œë”© ë¡œì§. Awaitableì„ ë°˜í™˜í•©ë‹ˆë‹¤.
+    /// ì·¨ì†ŒëŠ” ì”¬ ì „í™˜ ì‹œí€€ìŠ¤ ì‹œì‘ ì „ ë˜ëŠ” ì•ˆì „í•œ ë°ì´í„° ì²˜ë¦¬ êµ¬ê°„ì—ì„œë§Œ ì ìš©ë˜ë©°, ì”¬ ë¹„ë™ê¸° ì‘ì—…ì´ ì‹œì‘ëœ ì´í›„ì—ëŠ” ì „í™˜ ì™„ë£Œë¥¼ ìš°ì„ í•©ë‹ˆë‹¤.
+    /// </summary>
+    public static async Awaitable LoadSceneAsync(string targetSceneName, CancellationToken token = default)
+    {
         if (string.IsNullOrEmpty(targetSceneName))
         {
-            Debug.LogError("[SceneLoader] ·ÎµùÇÒ Å¸°Ù ¾À ÀÌ¸§ÀÌ ¿Ã¹Ù¸£Áö ¾Ê½À´Ï´Ù.");
-            return;
+            throw new ArgumentException("[SceneLoader] ëŒ€ìƒ ì”¬ ì´ë¦„ì´ ì˜¬ë°”ë¥´ì§€ ì•ŠìŠµë‹ˆë‹¤.");
         }
 
-        if (IsLoading)
+        if (LoadingProgressService.Instance.IsLoading)
         {
-            Debug.LogWarning("[SceneLoader] ÀÌ¹Ì ´Ù¸¥ ¾À ·ÎµùÀÌ ÁøÇà ÁßÀÔ´Ï´Ù.");
+            Debug.LogWarning("[SceneLoader] ì´ë¯¸ ë‹¤ë¥¸ ë¡œë”©ì´ ì§„í–‰ ì¤‘ì…ë‹ˆë‹¤.");
             return;
         }
 
         EnsureInstanceExists();
 
-        // ¾À Á¸Àç ¿©ºÎ ¿¹¿Ü ¹æ¾î
         if (!Application.CanStreamedLevelBeLoaded(targetSceneName))
         {
-            Debug.LogError($"[SceneLoader] Build Settings¿¡ µî·ÏµÇÁö ¾ÊÀº ¾ÀÀÔ´Ï´Ù: {targetSceneName}");
-            return;
+            throw new InvalidOperationException($"[SceneLoader] Build Settingsì— ì—†ëŠ” ì”¬ì…ë‹ˆë‹¤: {targetSceneName}");
         }
 
         if (!Application.CanStreamedLevelBeLoaded(LOADING_SCENE_NAME))
         {
-            Debug.LogError($"[SceneLoader] Áß°£ ·Îµù ¾À({LOADING_SCENE_NAME})ÀÌ Build Settings¿¡ ¾ø½À´Ï´Ù.");
-            return;
+            throw new InvalidOperationException($"[SceneLoader] ì¤‘ê°„ ë¡œë”© ì”¬({LOADING_SCENE_NAME})ì´ Build Settingsì— ì—†ìŠµë‹ˆë‹¤.");
         }
 
-        _instance.StartLoadSequenceAsync(targetSceneName, _instance._cts.Token);
+        await _instance.StartLoadSequenceAsync(targetSceneName, token);
     }
-    #endregion
 
-    /// <summary>
-    /// Unity 6000 Awaitable ±â¹İ ºñµ¿±â ¾À ·Îµù ½ÃÄö½º
-    /// </summary>
-    private async void StartLoadSequenceAsync(string targetSceneName, CancellationToken token)
+    private async Awaitable StartLoadSequenceAsync(string targetSceneName, CancellationToken token)
     {
-        IsLoading = true;
-        LoadingProgress = 0f;
+        using var session = LoadingProgressService.Instance.BeginSession();
+        AsyncOperation targetSceneOp = null;
 
         try
         {
-            // 1. ¾À ÀüÈ¯ Àü ±âÁ¸ ¾ÀÀÇ ¸ğµç DOTween ¾Ö´Ï¸ŞÀÌ¼Ç ¾ÈÀü ÇØÁ¦ (¸Ş¸ğ¸® ´©¼ö ¹æÁö)
+            // 1. ì”¬ ì „í™˜ ì „ í•„ìš”ì‹œ DOTween KillAll ë“± ì •ë¦¬
+            // (ì£¼ì˜: DDOL ì”¬ ìš”ì†Œì— ì˜í–¥ì´ ê°ˆ ìˆ˜ ìˆìœ¼ë‚˜ ë ˆê±°ì‹œ í˜¸í™˜ì„ ìœ„í•´ ìœ ì§€)
             DOTween.KillAll();
 
-            // 2. "Loading" Áß°£ ¾ÀÀ¸·Î ¿ì¼± ºñµ¿±â ÀÌµ¿
+            // 2. "Loading" ì”¬ ë¹„ë™ê¸° ë¡œë“œ
             AsyncOperation loadingSceneOp = SceneManager.LoadSceneAsync(LOADING_SCENE_NAME);
+            
+            // Loading ì”¬ìœ¼ë¡œ ì „í™˜ë˜ëŠ” ë„ì¤‘ì—ëŠ” ì·¨ì†Œí•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
             while (!loadingSceneOp.isDone)
             {
-                token.ThrowIfCancellationRequested();
-                await Awaitable.NextFrameAsync(token);
+                await Awaitable.NextFrameAsync();
             }
 
-            // 3. ¸ñÀûÁö ¾À ºñµ¿±â ·Îµù °³½Ã (0.9 ´Ü°è¿¡¼­ ÀÚµ¿ ÀüÈ¯ ´ë±â)
-            AsyncOperation targetSceneOp = SceneManager.LoadSceneAsync(targetSceneName);
+            session.Report(0.1f);
+
+            // 3. ëª©ì ì§€ ì”¬ ë¹„ë™ê¸° ë¡œë“œ (0.9 ë‹¨ê³„ì—ì„œ ëŒ€ê¸°)
+            targetSceneOp = SceneManager.LoadSceneAsync(targetSceneName);
             targetSceneOp.allowSceneActivation = false;
 
             while (targetSceneOp.progress < 0.9f)
             {
                 token.ThrowIfCancellationRequested();
 
-                // 0.0 ~ 0.9 ±¸°£À» 0.0 ~ 1.0 ÁøÇà·ü·Î Á¤±ÔÈ­
-                LoadingProgress = Mathf.Clamp01(targetSceneOp.progress / 0.9f);
+                // 0.0 ~ 0.9 ê°’ì„ 0.1 ~ 1.0ìœ¼ë¡œ ë§¤í•‘ (Loading ì”¬ ì§„ì…ë¶„ 10% ì œì™¸)
+                float normalized = targetSceneOp.progress / 0.9f;
+                session.Report(Mathf.Lerp(0.1f, 1f, normalized));
                 await Awaitable.NextFrameAsync(token);
             }
 
-            // ºñµ¿±â ÁØºñ ¿Ï·á½Ã ÁøÇà·ü 100% µµ´Ş
-            LoadingProgress = 1.0f;
-            await Awaitable.NextFrameAsync(token);
+            // 4. ë¡œë”© ì¤€ë¹„ ì™„ë£Œ í›„ 100% ì§„í–‰ë„ ì ìš© ë° 1í”„ë ˆì„ ì‹œê°ì  ëŒ€ê¸°
+            session.Report(1.0f);
+            await Awaitable.NextFrameAsync(token); // UIì— 100% ë Œë”ë§ë  ê¸°íšŒ ë¶€ì—¬
 
-            // 4. ·Îµù ¿Ï·á Áï½Ã ¾À È°¼ºÈ­
+            // 5. ëª©ì ì§€ ì”¬ í™œì„±í™”
             targetSceneOp.allowSceneActivation = true;
 
+            // ëª©ì ì§€ ì”¬ í™œì„±í™” ì¤‘ì—ë„ ì·¨ì†Œí•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
             while (!targetSceneOp.isDone)
             {
-                token.ThrowIfCancellationRequested();
-                await Awaitable.NextFrameAsync(token);
+                await Awaitable.NextFrameAsync();
             }
 
-            // 5. ÀüÈ¯ ¿Ï·á ÈÄ DOTween ÀÜ¿© »óÅÂ Á¤¸®
+            // 6. ì „í™˜ ì™„ë£Œ ì‹œ ì¶”ê°€ ì •ë¦¬
             DOTween.KillAll();
+
+            // 7. ì„±ê³µì  ì™„ë£Œ
+            session.Complete();
         }
         catch (OperationCanceledException)
         {
-            Debug.Log("[SceneLoader] ¾À ·Îµù ÀÛ¾÷ÀÌ Ãë¼ÒµÇ¾ú½À´Ï´Ù.");
+            // ë°ì´í„° ë¡œë”© ë° `allowSceneActivation = false` ì§„ì… ì´ì „ì—ëŠ” ì •ìƒ ì·¨ì†Œë¨.
+            // ë‹¨, ì´ë¯¸ `targetSceneOp` ê°€ ì‹œì‘ë˜ì—ˆë‹¤ë©´ ê°•ì œë¡œ í™œì„±í™”ë¥¼ ë§ˆë¬´ë¦¬í•©ë‹ˆë‹¤.
+            if (targetSceneOp != null && !targetSceneOp.isDone && !targetSceneOp.allowSceneActivation)
+            {
+                Debug.LogWarning("[SceneLoader] ì”¬ ë¡œë“œ ì§„í–‰ ì¤‘ ì·¨ì†Œê°€ ë°œìƒí•˜ì—¬ ê°•ì œë¡œ ì”¬ í™œì„±í™”ë¥¼ ë§ˆë¬´ë¦¬í•©ë‹ˆë‹¤.");
+                targetSceneOp.allowSceneActivation = true;
+                while (!targetSceneOp.isDone)
+                {
+                    await Awaitable.NextFrameAsync(); // ì´ë¯¸ ì·¨ì†Œëœ í† í° ì „ë‹¬ ì•ˆ í•¨
+                }
+                session.Complete();
+            }
+            
+            throw; // ì·¨ì†Œ ë°œìƒ ì‚¬ì‹¤ì€ ìƒìœ„ í˜¸ì¶œìì— ì „ë‹¬
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[SceneLoader] ¾À ·Îµù Áß ¿¹¿Ü ¹ß»ı: {ex.Message}");
-            Debug.LogException(ex);
+            Debug.LogError($"[SceneLoader] ì”¬ ë¡œë”© ì¤‘ ì˜¤ë¥˜ ë°œìƒ: {ex.Message}");
+            throw;
         }
-        finally
-        {
-            IsLoading = false;
-            LoadingProgress = 0f;
-        }
+        // finallyëŠ” using var session ë¸”ë¡ì— ì˜í•´ Dispose ë¨
     }
 
     private void OnDestroy()
     {
-        if (_cts != null)
-        {
-            _cts.Cancel();
-            _cts.Dispose();
-            _cts = null;
-        }
-
+        // ì¤‘ë³µ ì¸ìŠ¤í„´ìŠ¤ê°€ íŒŒê´´ë  ë•ŒëŠ” ì „ì—­ KillAllì„ ìˆ˜í–‰í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
         if (ReferenceEquals(_instance, this))
         {
             _instance = null;
+            // [High Safety] DOTween í‚¬
+            DOTween.KillAll();
         }
-
-        // [High Safety] DOTween Å³
-        DOTween.KillAll();
     }
 }
 #endif

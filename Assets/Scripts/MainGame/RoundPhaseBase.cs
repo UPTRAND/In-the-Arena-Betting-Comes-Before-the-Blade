@@ -25,7 +25,18 @@ namespace InTheArena.MainGame
         }
 
         /// <summary>
-        /// 페이즈 진입 시 비동기 처리
+        /// 페이즈 준비 비동기 처리 (화면 전환 전 대기)
+        /// </summary>
+        /// <param name="token">취소 토큰</param>
+#pragma warning disable 1998
+        public virtual async Awaitable PreparePhaseAsync(CancellationToken token)
+        {
+            // 빈 구현체로 즉시 완료 반환
+        }
+#pragma warning restore 1998
+
+        /// <summary>
+        /// 페이즈 진입 및 실행 비동기 처리
         /// </summary>
         /// <param name="token">취소 토큰</param>
         public abstract Awaitable EnterPhaseAsync(CancellationToken token);

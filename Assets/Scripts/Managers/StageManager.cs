@@ -96,16 +96,22 @@ namespace InTheArena.MainGame
         }
 
         /// <summary>
-        /// 스테이지 시작 파이프라인
-        /// 1. Lobby에서 Stage 선택 시 Loading 씬으로 이동
+        /// 스테이지 시작 코루틴
+        /// 1. Lobby에서 Stage 선택 후 Loading 씬으로 이동
         /// 2. Loading 씬에서 MainGame 씬 비동기 로딩 + 데이터 로드
-        /// 3. 로드 완료 시 MainGame으로 전환
+        /// 3. 로드 완료 후 MainGame으로 전환
         /// </summary>
         public async Awaitable StartStageAsync(StageData stageData, CancellationToken token = default)
         {
             if (stageData == null || !stageData.IsValid())
             {
                 Debug.LogError("[StageManager] 유효하지 않은 스테이지 데이터입니다.");
+                return;
+            }
+
+            if (InTheArena.Util.LoadingProgressService.Instance != null && InTheArena.Util.LoadingProgressService.Instance.IsLoading)
+            {
+                Debug.LogWarning("[StageManager] 이미 다른 로딩이 진행 중입니다.");
                 return;
             }
 
@@ -119,11 +125,17 @@ namespace InTheArena.MainGame
             m_IsStageRunning = true;
             m_CurrentRoundIndex = 0;
 
+            using var session = InTheArena.Util.LoadingProgressService.Instance?.BeginSession();
+
             try
             {
+                session?.Report(0f);
+
                 // 1. Loading 씬으로 이동
                 Debug.Log($"[StageManager] {stageData.FullStageName} 스테이지 시작 - Loading 씬 로드 중...");
                 await SceneManager.LoadSceneAsync(m_LoadingSceneName, LoadSceneMode.Single).ToAwaitable();
+
+                session?.Report(0.1f);
 
                 // 2. 데이터 로드 (Loading 씬에서 진행 표시)
                 m_Context.Clear();
@@ -136,11 +148,33 @@ namespace InTheArena.MainGame
                 }
 
                 // 로딩 진행도 시뮬레이션 (실제로는 AssetBundle/Addressables 로드)
-                await LoadStageDataAsync(m_StageCts.Token);
+                await LoadStageDataAsync(new Progress<float>(p => {
+                    session?.Report(Mathf.Lerp(0.1f, 0.8f, p));
+                }), m_StageCts.Token);
 
                 // 3. MainGame 씬 로드
                 Debug.Log("[StageManager] MainGame 씬 로드 중...");
-                await SceneManager.LoadSceneAsync(m_MainGameSceneName, LoadSceneMode.Single).ToAwaitable();
+                AsyncOperation mainGameOp = SceneManager.LoadSceneAsync(m_MainGameSceneName, LoadSceneMode.Single);
+                mainGameOp.allowSceneActivation = false;
+
+                // MainGame 로드 시작 시점부터는 취소를 검사하지 않습니다 (무조건 진입 보장)
+                while (mainGameOp.progress < 0.9f)
+                {
+                    float normalized = mainGameOp.progress / 0.9f;
+                    session?.Report(Mathf.Lerp(0.8f, 1f, normalized));
+                    await Awaitable.NextFrameAsync(); // token 미전달
+                }
+
+                session?.Report(1f);
+                await Awaitable.NextFrameAsync(); // token 미전달
+
+                mainGameOp.allowSceneActivation = true;
+                while (!mainGameOp.isDone)
+                {
+                    await Awaitable.NextFrameAsync(); // token 미전달
+                }
+
+                session?.Complete();
 
                 // 4. MainGame 씬 초기화 완료 대기
                 await WaitForMainGameReadyAsync(m_StageCts.Token);
@@ -150,11 +184,13 @@ namespace InTheArena.MainGame
             }
             catch (OperationCanceledException)
             {
-                Debug.Log("[StageManager] 스테이지 취소됨");
+                Debug.LogWarning("[StageManager] 스테이지 취소됨");
+                await RecoverToLobbyAsync();
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+                await RecoverToLobbyAsync();
             }
             finally
             {
@@ -162,11 +198,30 @@ namespace InTheArena.MainGame
             }
         }
 
-        private async Awaitable LoadStageDataAsync(CancellationToken token)
+        private async Awaitable RecoverToLobbyAsync()
+        {
+            try
+            {
+                if (SceneManager.GetActiveScene().name != m_LobbySceneName)
+                {
+                    Debug.LogWarning("[StageManager] 오류/취소 복구를 위해 Lobby로 이동합니다.");
+                    var op = SceneManager.LoadSceneAsync(m_LobbySceneName, LoadSceneMode.Single);
+                    if (op != null)
+                    {
+                        await op.ToAwaitable();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        private async Awaitable LoadStageDataAsync(IProgress<float> progressReporter, CancellationToken token)
         {
             // StageData, RoundData, UnitData 등 로드
             // 실제로는 Addressables/AssetBundle 사용 권장
-            float progress = 0f;
             
             // StageData 검증
             if (!m_CurrentStageData.IsValid())
@@ -174,8 +229,15 @@ namespace InTheArena.MainGame
                 throw new InvalidOperationException("스테이지 데이터 검증 실패");
             }
 
+            int roundCount = m_CurrentStageData.RoundDatas.Count;
+            if (roundCount == 0)
+            {
+                progressReporter?.Report(1f);
+                return;
+            }
+
             // 각 라운드 데이터 검증
-            for (int i = 0; i < m_CurrentStageData.RoundDatas.Count; i++)
+            for (int i = 0; i < roundCount; i++)
             {
                 token.ThrowIfCancellationRequested();
                 
@@ -185,9 +247,10 @@ namespace InTheArena.MainGame
                     throw new InvalidOperationException($"라운드 {i + 1} 데이터 검증 실패");
                 }
 
-                progress = (float)(i + 1) / m_CurrentStageData.RoundDatas.Count;
+                float currentProgress = (float)(i + 1) / roundCount;
+                progressReporter?.Report(currentProgress);
                 // Loading UI 업데이트 이벤트 발생 가능
-                await Awaitable.NextFrameAsync();
+                await Awaitable.NextFrameAsync(token);
             }
 
             Debug.Log("[StageManager] 모든 데이터 로드 완료");
@@ -229,7 +292,7 @@ namespace InTheArena.MainGame
                 // 라운드 진행 (RoundManager가 처리)
                 await RoundManager.Instance.RunRoundAsync(m_CurrentRoundIndex, token);
 
-                // 게임 클리어/오버 체크
+                // 게임 클리어/게임 오버 체크
                 if (CheckStageClear())
                 {
                     SaveManager.Instance?.GrantStageClearReward(m_CurrentStageData.StageNum);
@@ -249,8 +312,8 @@ namespace InTheArena.MainGame
                 // 다음 라운드로
                 m_CurrentRoundIndex++;
 
-                // Result -> next Betting: total 2-second fade-out/fade-in transition.
-                await ScreenFaderTransition.PlayAsync(2f, token);
+                // Result -> next Betting: 1-second fade-out transition.
+                await ScreenFaderTransition.FadeOutAsync(1f, token);
             }
 
             // 로비로 돌아가기
@@ -284,14 +347,30 @@ namespace InTheArena.MainGame
 
         private async Awaitable ShowResultPanelAsync(bool isClear, CancellationToken token)
         {
-            // UIManager를 통해 결과 패널 표시
-            if (UIManager.Instance != null)
+            if (UIManager.Instance == null) return;
+            var panel = UIManager.Instance.GetStageResultPanel();
+            if (panel == null)
             {
-                await UIManager.Instance.ShowStageResultAsync(
-                    isClear,
-                    m_Context.CurrentCall,
-                    m_CurrentStageData.TargetCall,
-                    token);
+                Debug.LogError("[StageManager] StageResultPanel을 찾을 수 없습니다.");
+                return;
+            }
+
+            Debug.Log($"[StageManager] Stage Result - Clear: {isClear}, CurrentCall: {m_Context.CurrentCall}, TargetCall: {m_CurrentStageData.TargetCall}");
+            
+            panel.Prepare(isClear, m_Context.CurrentCall, m_CurrentStageData.TargetCall);
+
+            try
+            {
+                await ScreenFaderTransition.FadeInAsync(1f, token);
+                panel.EnableInput();
+                await panel.WaitForCompletionAsync(token);
+            }
+            finally
+            {
+                if (panel != null)
+                {
+                    panel.Close();
+                }
             }
         }
 

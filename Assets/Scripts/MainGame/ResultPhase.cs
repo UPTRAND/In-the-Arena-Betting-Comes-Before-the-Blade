@@ -23,7 +23,8 @@ namespace InTheArena.MainGame
         private bool m_IsWin;
         private int m_RewardCall;
 
-        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+#pragma warning disable 1998
+        public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
             InitializeResult();
 
@@ -46,7 +47,14 @@ namespace InTheArena.MainGame
                     m_ResultUi.CanvasGroup.blocksRaycasts = true;
                     m_ResultUi.CanvasGroup.interactable = true;
                 }
+            }
+        }
+#pragma warning restore 1998
 
+        public override async Awaitable EnterPhaseAsync(CancellationToken token)
+        {
+            if (m_ResultUi != null)
+            {
                 await Awaitable.WaitForSecondsAsync(m_ResultDelay);
                 token.ThrowIfCancellationRequested();
 
@@ -106,10 +114,10 @@ namespace InTheArena.MainGame
 
             if (m_ResultUi != null && m_ResultUi.BIsOpened)
             {
-                var tween = m_ResultUi.CanvasGroup != null
-                    ? m_ResultUi.CanvasGroup.DOFade(0f, m_FadeDuration).SetEase(Ease.InQuad)
-                    : null;
-                await AwaitTweenAsync(tween, token);
+                if (m_ResultUi.CanvasGroup != null)
+                {
+                    m_ResultUi.CanvasGroup.DOKill();
+                }
                 m_ResultUi.Close();
             }
 

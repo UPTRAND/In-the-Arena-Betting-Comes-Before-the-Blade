@@ -24,11 +24,16 @@ namespace InTheArena.UI
                 m_ReturnToLobbyButton.onClick.AddListener(OnReturnToLobbyClicked);
         }
 
-        public async Awaitable ShowAsync(
+        private void OnReturnToLobbyClicked()
+        {
+            DisableInput();
+            m_CompletionSource?.TrySetResult();
+        }
+
+        public void Prepare(
             bool isClear,
             int currentCall,
-            int targetCall,
-            CancellationToken token)
+            int targetCall)
         {
             if (m_TitleText != null)
             {
@@ -39,28 +44,50 @@ namespace InTheArena.UI
             if (m_TargetCallText != null) m_TargetCallText.text = $"Target  {targetCall} Call";
 
             m_CompletionSource = new AwaitableCompletionSource();
+            
             if (!gameObject.activeSelf)
                 Open();
             else
                 Enable();
 
-            try
+            if (CanvasGroup != null)
             {
-                using (token.Register(() => m_CompletionSource?.TrySetResult()))
-                {
-                    await m_CompletionSource.Awaitable;
-                }
-                token.ThrowIfCancellationRequested();
-            }
-            finally
-            {
-                if (this != null && gameObject.activeSelf) Close();
+                CanvasGroup.alpha = 1f;
+                CanvasGroup.interactable = false;
+                CanvasGroup.blocksRaycasts = false;
             }
         }
 
-        private void OnReturnToLobbyClicked()
+        public void EnableInput()
         {
-            m_CompletionSource?.TrySetResult();
+            if (CanvasGroup != null)
+            {
+                CanvasGroup.interactable = true;
+                CanvasGroup.blocksRaycasts = true;
+            }
+        }
+
+        public void DisableInput()
+        {
+            if (CanvasGroup != null)
+            {
+                CanvasGroup.interactable = false;
+                CanvasGroup.blocksRaycasts = false;
+            }
+        }
+
+        public async Awaitable WaitForCompletionAsync(CancellationToken token)
+        {
+            AwaitableCompletionSource source = m_CompletionSource 
+                ?? throw new System.InvalidOperationException("Prepare must be called before waiting.");
+
+            using CancellationTokenRegistration registration = token.Register(static state =>
+            {
+                ((AwaitableCompletionSource)state).TrySetResult();
+            }, source);
+
+            await source.Awaitable;
+            token.ThrowIfCancellationRequested();
         }
 
         public override void OnClosed()

@@ -1269,6 +1269,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 8864917965621903810, guid: f1b779ac641dbb046a60461a3d34aa27, type: 3}
   m_PrefabInstance: {fileID: 326530271}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &326530273 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7176526958263241457, guid: f1b779ac641dbb046a60461a3d34aa27, type: 3}
+  m_PrefabInstance: {fileID: 326530271}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72f22b82987a1274ab74ab5742fc46f6, type: 3}
+  m_Name: UI_ResultPhase
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_ResultPhase
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -1282,6 +1293,7 @@ GameObject:
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
   - component: {fileID: 330585548}
+  - component: {fileID: 330585549}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1421,9 +1433,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraController
   m_CameraSettings: {fileID: 11400000, guid: 0cca6479f37da8345a06864a09bb4bb5, type: 2}
   m_MainCamera: {fileID: 330585545}
+  m_SafeArea: {fileID: 840885952}
+  m_ViewportProvider: {fileID: 330585549}
   m_CurrentPhase: 0
   m_ShakeStrength: 0.5
   m_ShakeDuration: 0.3
+--- !u!114 &330585549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2eaffd4798b7bc542b557cb06ed0e67e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraViewportProvider
+  m_UIRect: {fileID: 0}
+  m_Camera: {fileID: 330585545}
 --- !u!1 &334894529
 GameObject:
   m_ObjectHideFlags: 0
@@ -1971,7 +1999,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e0dc975dee7a804e9baf862dfe9ccec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.ResultPhase
-  m_ResultUi: {fileID: 0}
+  m_ResultUi: {fileID: 326530273}
   m_ResultDelay: 1
   m_FadeDuration: 0.5
 --- !u!4 &498285542
@@ -2237,6 +2265,17 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &648030066 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5857469248141111866, guid: bc1ea841b2db555498f2003f5fc09bb1, type: 3}
+  m_PrefabInstance: {fileID: 218072485}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfceb768708025848be514398293476e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_BettingPhase
 --- !u!1 &774960112
 GameObject:
   m_ObjectHideFlags: 0
@@ -2485,6 +2524,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &840885950
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 840885951}
+  - component: {fileID: 840885952}
+  m_Layer: 0
+  m_Name: BackgroundCoverageRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &840885951
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 840885950}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.38268343, y: -0, z: -0, w: 0.92387956}
+  m_LocalPosition: {x: 0.53004, y: -6.3100004, z: 5.199999}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1564198033}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &840885952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 840885950}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb2cdd949860b7499701d65aa08c91a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.BackgroundCameraSafeArea
+  m_Center: {x: 0, y: 0}
+  m_Size: {x: 19.2, y: 10.8}
+  m_InnerPadding: 0.05
 --- !u!1001 &848273777
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3341,6 +3427,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.BettingPhase
   m_BettingCanvasGroup: {fileID: 218072499}
+  m_BettingUi: {fileID: 648030066}
   m_RoundText: {fileID: 0}
   m_TeamANameText: {fileID: 0}
   m_TeamAUnitInfoText: {fileID: 0}
@@ -3472,6 +3559,7 @@ Transform:
   - {fileID: 774960114}
   - {fileID: 1864431924}
   - {fileID: 636966093}
+  - {fileID: 840885951}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1567314195

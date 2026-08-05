@@ -21,7 +21,7 @@ public class ScreenFader : MonoBehaviour
     [Header("UI Components")]
     [SerializeField] private CanvasGroup m_CanvasGroup;
     [SerializeField] private Image m_FadeScreenImage;
-    [SerializeField] private Color m_DefaultFadeScreenColor = new Color32(34, 32, 52, 255);
+    [SerializeField] private Color m_DefaultFadeScreenColor = new Color32(0, 0, 0, 255);
     [SerializeField] private Image m_SaveProgressImage;
 
     [Header("Loading Screen Components")]

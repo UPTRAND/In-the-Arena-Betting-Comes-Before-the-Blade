@@ -4,6 +4,12 @@ using UnityEngine.Serialization;
 
 namespace InTheArena.Camera
 {
+    public enum ProjectionMode
+    {
+        PerspectiveLegacy = 0,
+        Orthographic = 1
+    }
+
     /// <summary>
     /// 카메라 설정 데이터 ScriptableObject
     /// 45도 탑다운 뷰를 위한 카메라 설정 데이터 관리
@@ -12,7 +18,7 @@ namespace InTheArena.Camera
     public class CameraSettings : ScriptableObject
     {
         [Header("카메라 투영 설정")]
-        [Tooltip("투영 모드: true = Perspective(45도), false = Orthographic")]
+        [Tooltip("투영 모드 (기존 bool 방식, true = Perspective)")]
         [SerializeField] private bool m_UsePerspective = true;
 
         [Tooltip("카메라 클리어 플래그")]
@@ -53,10 +59,10 @@ namespace InTheArena.Camera
 
         [Header("모바일 안전 프레이밍")]
         [Tooltip("화면 좌우 안전 여백 비율")]
-        [SerializeField] [Range(0f, 0.25f)] private float m_SafeMarginHorizontal = 0.05f;
+        [SerializeField] [Range(0f, 0.25f)] private float m_SafeMarginHorizontal = 0.025f;
 
         [Tooltip("화면 상하 안전 여백 비율")]
-        [SerializeField] [Range(0f, 0.3f)] private float m_SafeMarginVertical = 0.12f;
+        [SerializeField] [Range(0f, 0.3f)] private float m_SafeMarginVertical = 0.06f;
 
         [Tooltip("생존 유닛 Bounds를 다시 계산하는 주기")]
         [SerializeField] [Range(0.05f, 0.5f)] private float m_BoundsRefreshInterval = 0.1f;
@@ -73,7 +79,7 @@ namespace InTheArena.Camera
         [FormerlySerializedAs("m_MaxZoom")]
         [SerializeField] [Range(20f, 100f)] private float m_MaxFramingDistance = 60f;
 
-        [SerializeField] [Range(1f, 30f)] private float m_MinOrthographicSize = 8f;
+        [SerializeField] [Range(1f, 30f)] private float m_MinOrthographicSize = 3f;
         [SerializeField] [Range(5f, 60f)] private float m_MaxOrthographicSize = 30f;
 
         [Tooltip("최소 높이")]
@@ -105,14 +111,15 @@ namespace InTheArena.Camera
         [SerializeField] private Vector2 m_FramingCenterOffset = Vector2.zero;
         [Tooltip("자동 Bounds 갱신 토글")]
         [SerializeField] private bool m_EnableAutoFraming = true;
-        [SerializeField] [Range(0f, 5f)] private float m_FramingPadding = 1.5f;
+        [SerializeField] [Range(0f, 5f)] private float m_FramingPadding = 0.75f;
         [SerializeField] [Range(0f, 2f)] private float m_CenterDeadZone = 0.25f;
-        [SerializeField] [Range(0f, 5f)] private float m_DistanceDeadZone = 0.5f;
+        [SerializeField] [Range(0f, 5f)] private float m_DistanceDeadZone = 0.1f;
         [SerializeField] [Range(0.1f, 20f)] private float m_AutoZoomInSpeed = 4f;
         [SerializeField] [Range(0.1f, 30f)] private float m_AutoZoomOutSpeed = 10f;
 
         [Header("Final Elimination")]
         [SerializeField] [Range(2f, 20f)] private float m_FinalEliminationDistance = 8f;
+        [SerializeField] [Range(1f, 30f)] private float m_FinalEliminationOrthographicSize = 4f;
         [SerializeField] [Range(0f, 2f)] private float m_FinalEliminationFocusDuration = 0.35f;
 
         [Header("카메라 쉐이크")]
@@ -125,7 +132,12 @@ namespace InTheArena.Camera
         [Tooltip("쉐이크가 다시 발생할 수 있는 최소 간격")]
         [SerializeField] [Range(0f, 1f)] private float m_ShakeCooldown = 0.15f;
 
-        /// <summary> Perspective 모드 사용 여부 </summary>
+        public ProjectionMode ProjMode
+        {
+            get => m_UsePerspective ? ProjectionMode.PerspectiveLegacy : ProjectionMode.Orthographic;
+            set => m_UsePerspective = (value == ProjectionMode.PerspectiveLegacy);
+        }
+
         public bool UsePerspective
         {
             get => m_UsePerspective;
@@ -212,6 +224,7 @@ namespace InTheArena.Camera
         public float AutoZoomInSpeed => m_AutoZoomInSpeed;
         public float AutoZoomOutSpeed => m_AutoZoomOutSpeed;
         public float FinalEliminationDistance => m_FinalEliminationDistance;
+        public float FinalEliminationOrthographicSize => m_FinalEliminationOrthographicSize;
         public float FinalEliminationFocusDuration => m_FinalEliminationFocusDuration;
 
         /// <summary> 기본 쉐이크 강도 </summary>
@@ -251,8 +264,8 @@ namespace InTheArena.Camera
             Vector3 targetPos = targetPosition;
             targetPos.y = 0f;
 
-            Quaternion rotation = Quaternion.Euler(90f, 0f, 0f); // Top-down
-            Vector3 cameraPos = targetPos + new Vector3(0f, m_CameraHeight, 0f);
+            Quaternion rotation = Quaternion.Euler(m_CameraAngleX, m_CameraAngleY, 0f);
+            Vector3 cameraPos = targetPos - rotation * Vector3.forward * m_CameraDistance;
 
             return (cameraPos, rotation);
         }
@@ -291,6 +304,15 @@ namespace InTheArena.Camera
             if (m_FinalEliminationDistance >= m_MinFramingDistance)
             {
                 Debug.LogError($"[CameraSettings] {name}: FinalEliminationDistance must be smaller than MinFramingDistance.");
+                isValid = false;
+            }
+
+            if (float.IsNaN(m_FinalEliminationOrthographicSize) ||
+                float.IsInfinity(m_FinalEliminationOrthographicSize) ||
+                m_FinalEliminationOrthographicSize <= 0f ||
+                m_FinalEliminationOrthographicSize > m_MaxOrthographicSize)
+            {
+                Debug.LogError($"[CameraSettings] {name}: FinalEliminationOrthographicSize must be positive and no larger than MaxOrthographicSize.");
                 isValid = false;
             }
 

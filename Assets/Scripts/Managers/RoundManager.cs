@@ -57,6 +57,7 @@ namespace InTheArena.MainGame
         private CancellationTokenSource m_RoundCts;
         private int m_CurrentRoundIndex = 0;
         private bool m_IsRoundRunning = false;
+        private RoundPhaseBase m_ActivePhase;
 
         public RoundContext Context => m_Context;
         public StageData CurrentStageData => m_CurrentStageData;
@@ -110,39 +111,57 @@ namespace InTheArena.MainGame
             m_IsRoundRunning = true;
 
             try
-                        {
-                            // 1. 라운드 데이터 설정
-                            SetupRoundData(roundIndex);
+            {
+                // 1. 라운드 데이터 설정
+                SetupRoundData(roundIndex);
 
-                            // 2. Betting Phase
-                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
-                            m_BettingPhase.InitializePhase(m_Context);
-                            await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
-                            await m_BettingPhase.ExitPhaseAsync(m_RoundCts.Token);
+                // 2. Betting Phase
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
+                m_ActivePhase = m_BettingPhase;
+                m_BettingPhase.InitializePhase(m_Context);
+                
+                await m_BettingPhase.PreparePhaseAsync(m_RoundCts.Token);
+                await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
+                await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
+                await ScreenFaderTransition.FadeOutAsync(1f, m_RoundCts.Token);
+                
+                token.ThrowIfCancellationRequested();
 
-                            token.ThrowIfCancellationRequested();
+                await CleanupActivePhaseAsync();
 
-                            // Betting -> Combat: total 2-second fade-out/fade-in transition.
-                            await ScreenFaderTransition.PlayAsync(2f, m_RoundCts.Token);
-                            token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
-                            // 3. Combat Phase
-                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
-                            m_CombatPhase.InitializePhase(m_Context);
-                            await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
-                            await m_CombatPhase.ExitPhaseAsync(m_RoundCts.Token);
+                // 3. Combat Phase
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
+                m_ActivePhase = m_CombatPhase;
+                m_CombatPhase.InitializePhase(m_Context);
+                
+                await m_CombatPhase.PreparePhaseAsync(m_RoundCts.Token);
+                await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
+                await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
+                
+                await CleanupActivePhaseAsync();
 
-                            token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested();
 
-                            // 4. 베팅 정산 - StageSession만 Call을 변경한다.
-                            SettleRound();
+                // 4. 베팅 정산 - StageSession만 Call을 변경한다.
+                SettleRound();
 
-                            // 5. Result Phase (표시 전용)
-                            Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase 시작");
-                            m_ResultPhase.InitializePhase(m_Context);
-                            await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
-                            await m_ResultPhase.ExitPhaseAsync(m_RoundCts.Token);
-                            m_Context.IsRoundCompleted = true;
+                // 5. Result Phase (표시 전용)
+                Debug.Log($"[RoundManager] Round {roundIndex + 1} - Result Phase 시작");
+                m_ActivePhase = m_ResultPhase;
+                m_ResultPhase.InitializePhase(m_Context);
+                
+                await m_ResultPhase.PreparePhaseAsync(m_RoundCts.Token);
+                await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
+                await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
+                
+                // 다음 라운드를 위해 화면을 완전히 어둡게 만듭니다.
+                await ScreenFaderTransition.FadeOutAsync(1f, m_RoundCts.Token);
+                
+                await CleanupActivePhaseAsync();
+                
+                m_Context.IsRoundCompleted = true;
             }
             catch (OperationCanceledException)
             {
@@ -154,6 +173,7 @@ namespace InTheArena.MainGame
             }
             finally
             {
+                await CleanupActivePhaseAsync();
                 m_IsRoundRunning = false;
                 PoolManager.Instance?.ClearRound();
                 
@@ -162,6 +182,25 @@ namespace InTheArena.MainGame
                     m_RoundCts.Dispose();
                     m_RoundCts = null;
                 }
+            }
+        }
+
+        private async Awaitable CleanupActivePhaseAsync()
+        {
+            RoundPhaseBase activePhase = m_ActivePhase;
+            m_ActivePhase = null;
+            if (activePhase == null)
+            {
+                return;
+            }
+
+            try
+            {
+                await activePhase.ExitPhaseAsync(CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
             }
         }
 

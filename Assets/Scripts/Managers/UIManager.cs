@@ -393,7 +393,7 @@ public class UIManager : Manager_Base
     /// <summary>
     /// 스테이지 결과 패널 표시 (클리어/실패)
     /// </summary>
-    public async Awaitable ShowStageResultAsync(bool isClear, int currentCall, int targetCall, CancellationToken token)
+    public UI_StageResultPanel GetStageResultPanel()
     {
         var panel = GetElement<UI_StageResultPanel>();
         if (panel == null)
@@ -405,11 +405,9 @@ public class UIManager : Manager_Base
         if (panel == null)
         {
             Debug.LogError("[UIManager] MainGame 씬에서 UI_StageResultPanel을 찾을 수 없습니다.");
-            return;
         }
 
-        Debug.Log($"[UIManager] Stage Result - Clear: {isClear}, CurrentCall: {currentCall}, TargetCall: {targetCall}");
-        await panel.ShowAsync(isClear, currentCall, targetCall, token);
+        return panel;
     }
 
     public void Hide()

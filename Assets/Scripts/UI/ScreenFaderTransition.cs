@@ -15,7 +15,7 @@ public static class ScreenFaderTransition
     private static readonly FieldInfo FadeImageField = typeof(ScreenFader).GetField(
         "m_FadeScreenImage", BindingFlags.Instance | BindingFlags.NonPublic);
 
-    public static async Awaitable PlayAsync(float duration, CancellationToken token = default)
+    public static async Awaitable FadeOutAsync(float duration, CancellationToken token = default)
     {
         if (duration <= 0f) return;
 
@@ -27,13 +27,36 @@ public static class ScreenFaderTransition
         }
 
         var completionSource = new AwaitableCompletionSource();
+        try
+        {
+            // 알파 0 -> 1이 되도록 설정합니다.
+            fader.FadeOut(() => completionSource.TrySetResult(), false, 0f, 1f / duration);
+            using (token.Register(() => completionSource.TrySetResult()))
+            {
+                await completionSource.Awaitable;
+            }
+            token.ThrowIfCancellationRequested();
+        }
+        finally
+        {
+        }
+    }
+
+    public static async Awaitable FadeInAsync(float duration, CancellationToken token = default)
+    {
+        if (duration <= 0f) return;
+
+        ScreenFader fader = GetOrCreateFader();
+        if (fader == null) return;
+        if (fader.FadingState == ScreenFader.EFadingState.None) return;
+
+        var completionSource = new AwaitableCompletionSource();
         void OnFadeClosed() => completionSource.TrySetResult();
 
         fader.OnClosed += OnFadeClosed;
         try
         {
-            // 알파 0 -> 1 -> 0의 전체 시간이 duration이 되도록 설정합니다.
-            fader.FadeOut(null, true, 0f, 2f / duration);
+            fader.FadeIn(1f / duration);
             using (token.Register(() => completionSource.TrySetResult()))
             {
                 await completionSource.Awaitable;
@@ -78,7 +101,7 @@ public static class ScreenFaderTransition
 
         var canvasGroup = root.GetComponent<CanvasGroup>();
         var image = root.GetComponent<Image>();
-        image.color = new Color32(34, 32, 52, 255);
+        image.color = new Color32(0, 0, 0, 255);
         image.raycastTarget = true;
 
         var fader = root.AddComponent<ScreenFader>();
