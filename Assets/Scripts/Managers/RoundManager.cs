@@ -54,6 +54,8 @@ namespace InTheArena.MainGame
 
         private RoundContext m_Context;
         private StageData m_CurrentStageData;
+        private StagePlayerState m_PlayerState;
+        private ItemPurchaseUseCoordinator m_ItemPurchaseUseCoordinator;
         private CancellationTokenSource m_RoundCts;
         private int m_CurrentRoundIndex = 0;
         private bool m_IsRoundRunning = false;
@@ -61,6 +63,7 @@ namespace InTheArena.MainGame
 
         public RoundContext Context => m_Context;
         public StageData CurrentStageData => m_CurrentStageData;
+        public ItemPurchaseUseCoordinator ItemPurchaseUseCoordinator => m_ItemPurchaseUseCoordinator;
         public bool IsRoundRunning => m_IsRoundRunning;
         public int CurrentRoundIndex => m_CurrentRoundIndex;
 
@@ -80,11 +83,17 @@ namespace InTheArena.MainGame
         /// <summary>
         /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
         /// </summary>
-        public void InitializeContext(RoundContext context, StageData stageData)
+        public void InitializeContext(
+            RoundContext context,
+            StageData stageData,
+            StagePlayerState playerState)
         {
+            DisposeItemPurchaseUseCoordinator();
             m_Context = context ?? new RoundContext();
             m_CurrentStageData = stageData;
+            m_PlayerState = playerState;
             m_Context.InitializeStage(stageData);
+            CreateItemPurchaseUseCoordinator();
 
             Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
         }
@@ -106,6 +115,7 @@ namespace InTheArena.MainGame
                 return;
             }
 
+            CreateItemPurchaseUseCoordinator();
             m_CurrentRoundIndex = roundIndex;
             m_RoundCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             m_IsRoundRunning = true;
@@ -174,6 +184,7 @@ namespace InTheArena.MainGame
             finally
             {
                 await CleanupActivePhaseAsync();
+                DisposeItemPurchaseUseCoordinator();
                 m_IsRoundRunning = false;
                 PoolManager.Instance?.ClearRound();
                 
@@ -187,6 +198,7 @@ namespace InTheArena.MainGame
 
         private async Awaitable CleanupActivePhaseAsync()
         {
+            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
             RoundPhaseBase activePhase = m_ActivePhase;
             m_ActivePhase = null;
             if (activePhase == null)
@@ -253,6 +265,7 @@ namespace InTheArena.MainGame
         /// </summary>
         public void ForceEndRound()
         {
+            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
             if (m_RoundCts != null)
             {
                 m_RoundCts.Cancel();
@@ -261,10 +274,36 @@ namespace InTheArena.MainGame
 
         private void OnDestroy()
         {
+            DisposeItemPurchaseUseCoordinator();
             if (ReferenceEquals(_instance, this))
             {
                 _instance = null;
             }
+        }
+
+        private void CreateItemPurchaseUseCoordinator()
+        {
+            if (m_ItemPurchaseUseCoordinator != null || m_Context == null || m_PlayerState == null)
+            {
+                return;
+            }
+
+            var service = new ItemPurchaseUseService(m_Context, m_PlayerState);
+            m_ItemPurchaseUseCoordinator = new ItemPurchaseUseCoordinator(
+                m_Context,
+                m_PlayerState,
+                service);
+        }
+
+        private void DisposeItemPurchaseUseCoordinator()
+        {
+            if (m_ItemPurchaseUseCoordinator == null)
+            {
+                return;
+            }
+
+            m_ItemPurchaseUseCoordinator.Dispose();
+            m_ItemPurchaseUseCoordinator = null;
         }
     }
 }

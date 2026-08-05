@@ -35,6 +35,7 @@ public class UIManager : Manager_Base
     private readonly List<List<UI_Base>> m_ControlStack = new List<List<UI_Base>>();
     private bool m_BindCallbacks;
     private bool m_IsScreenFaderOpened;
+    private Coroutine m_SceneUiRebindRoutine;
 
     public static UIObjectPoolingFactory Pool => Instance != null ? Instance.m_Pool : null;
     // FX ���� �߰� �� ����
@@ -139,6 +140,29 @@ public class UIManager : Manager_Base
     {
         // ���� ����Ǹ� ���� ���� UI ������ ����
         ClearSceneCache();
+
+        if (m_SceneUiRebindRoutine != null)
+        {
+            StopCoroutine(m_SceneUiRebindRoutine);
+        }
+
+        m_SceneUiRebindRoutine = StartCoroutine(RebindSceneUiRootsNextFrame());
+    }
+
+    private IEnumerator RebindSceneUiRootsNextFrame()
+    {
+        yield return null;
+
+        m_SceneUiRebindRoutine = null;
+
+        UI_Root[] sceneRoots = FindObjectsByType<UI_Root>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        foreach (UI_Root sceneRoot in sceneRoots)
+        {
+            RegisterUiRoot(sceneRoot);
+        }
     }
 
     /// <summary>
@@ -218,6 +242,7 @@ public class UIManager : Manager_Base
 
     private void ClearSceneCache()
     {
+        UnbindUiRootCallbacks();
         m_ControlStack.Clear();
         m_AllUiBaseObjects.Clear();
         m_UiElementsByTypename.Clear();
@@ -226,16 +251,21 @@ public class UIManager : Manager_Base
         m_UiRoots.Clear();
     }
 
-    private void UnbindCallbacks()
+    private void UnbindUiRootCallbacks()
     {
-        if (!m_BindCallbacks) return;
-
         foreach (var uiRoot in m_UiRoots)
         {
             if (uiRoot == null) continue;
             uiRoot.OnControlAdded -= OnControlAdded;
             uiRoot.OnControlRemoved -= OnControlRemoved;
         }
+    }
+
+    private void UnbindCallbacks()
+    {
+        if (!m_BindCallbacks) return;
+
+        UnbindUiRootCallbacks();
 
         if (ScreenFader.Instance != null)
         {
@@ -255,6 +285,34 @@ public class UIManager : Manager_Base
     public UI_Root GetRootFromType(EUIObjectPoolingParent parent)
     {
         return m_BakedUiRoots.TryGetValue(parent, out var root) ? root : null;
+    }
+
+    public bool OpenControl(UI_Base control)
+    {
+        if (control == null)
+        {
+            return false;
+        }
+
+        if (control.ParentRoot == null)
+        {
+            Debug.LogError($"[UIManager] {control.name}에 UI_Root가 설정되지 않았습니다.");
+            return false;
+        }
+
+        control.Open();
+        return true;
+    }
+
+    public bool CloseControl(UI_Base control)
+    {
+        if (control == null)
+        {
+            return false;
+        }
+
+        control.Close();
+        return true;
     }
 
     public T GetElement<T>() where T : class, IUIBase

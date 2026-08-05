@@ -76,11 +76,7 @@ namespace InTheArena.MainGame
         private RoundBetTicket m_DraftTicket;
         
         // 아이템 상태 트래킹
-        private bool m_UsedAdditionalBetTicket = false;
-        private bool m_UsedInsurance = false;
-        private bool m_UsedRerollTicket = false;
         private SpecialBetType? m_OverriddenSpecialBet = null;
-        private bool m_HasRerolledThisRound = false;
 
         public RoundBetTicket DraftTicket 
         { 
@@ -102,7 +98,7 @@ namespace InTheArena.MainGame
         { 
             get 
             { 
-                return m_UsedAdditionalBetTicket; 
+                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket);
             } 
         }
 
@@ -110,7 +106,7 @@ namespace InTheArena.MainGame
         { 
             get 
             { 
-                return m_UsedInsurance; 
+                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.Insurance);
             } 
         }
 
@@ -157,11 +153,7 @@ namespace InTheArena.MainGame
         private void InitializePhaseData()
         {
             IsPhaseCompleted = false;
-            m_UsedAdditionalBetTicket = false;
-            m_UsedInsurance = false;
-            m_UsedRerollTicket = false;
             m_OverriddenSpecialBet = null;
-            m_HasRerolledThisRound = false;
 
             Context.AssignUnitsForBetting();
             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
@@ -654,33 +646,31 @@ namespace InTheArena.MainGame
 
             if (itemData.ItemType == ItemType.AdditionalBetTicket)
             {
-                if (m_UsedAdditionalBetTicket)
+                if (UsedAdditionalBetTicket)
                 {
                     message = "추가 배팅권은 라운드당 1회만 사용 가능합니다.";
                 }
                 else
                 {
-                    m_UsedAdditionalBetTicket = true;
                     success = true;
                     message = "추가 배팅권(+500 Call)을 사용했습니다.";
                 }
             }
             else if (itemData.ItemType == ItemType.Insurance)
             {
-                if (m_UsedInsurance)
+                if (UsedInsurance)
                 {
                     message = "보험은 라운드당 1회만 사용 가능합니다.";
                 }
                 else
                 {
-                    m_UsedInsurance = true;
                     success = true;
                     message = "패배 시 원금이 반환되는 보험을 사용했습니다.";
                 }
             }
             else if (itemData.ItemType == ItemType.RerollTicket)
             {
-                if (m_UsedRerollTicket || m_HasRerolledThisRound)
+                if (Context.RoundItemUsage.HasUsed(ItemType.RerollTicket))
                 {
                     message = "리롤권은 라운드당 1회만 사용 가능합니다.";
                 }
@@ -691,8 +681,6 @@ namespace InTheArena.MainGame
                     {
                         int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
                         m_OverriddenSpecialBet = specialBets[randomIndex];
-                        m_HasRerolledThisRound = true;
-                        m_UsedRerollTicket = true;
                         Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
                         RefreshSpecialBetAvailability();
                         UpdateSurvivingSlotAvailability();
@@ -708,20 +696,84 @@ namespace InTheArena.MainGame
                 }
             }
 
-            if (success)
+            if (success && inventoryService.TryUseItemFromStage(itemData, playerState))
             {
-                inventoryService.TryUseItemFromStage(itemData, playerState);
+                Context.RoundItemUsage.TryMarkUsed(itemData.ItemType);
             }
 
             remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
             return success;
         }
 
+        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
+        {
+            message = string.Empty;
+
+            if (itemData == null || Context == null)
+            {
+                message = "유효하지 않은 베팅 아이템입니다.";
+                return false;
+            }
+
+            if (itemData.ItemType == ItemType.AdditionalBetTicket)
+            {
+                message = "추가 배팅권을 사용했습니다. (+500 Call)";
+                return true;
+            }
+
+            if (itemData.ItemType == ItemType.Insurance)
+            {
+                message = "보험을 사용했습니다. 패배 시 배팅 Call을 돌려받습니다.";
+                return true;
+            }
+
+            if (itemData.ItemType != ItemType.RerollTicket)
+            {
+                message = "베팅 아이템이 아닙니다.";
+                return false;
+            }
+
+            IReadOnlyList<SpecialBetType> specialBets = Context.CurrentStageData?.SpecialBetTypes;
+            if (specialBets == null || specialBets.Count == 0)
+            {
+                message = "변경할 특수 베팅 규칙이 없습니다.";
+                return false;
+            }
+
+            int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
+            m_OverriddenSpecialBet = specialBets[randomIndex];
+            Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
+            RefreshSpecialBetAvailability();
+            UpdateSurvivingSlotAvailability();
+            RefreshBetSummary();
+
+            message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
+            return true;
+        }
+
+        internal void RestorePurchasedItemState(
+            IReadOnlyList<SpecialBetType> previousSpecialBets,
+            SpecialBetType? previousOverride)
+        {
+            m_OverriddenSpecialBet = previousOverride;
+            Context?.SetActiveSpecialBets(previousSpecialBets);
+            RefreshSpecialBetAvailability();
+            UpdateSurvivingSlotAvailability();
+            RefreshBetSummary();
+        }
+
+        internal IReadOnlyList<SpecialBetType> GetActiveSpecialBetsForItemUse()
+        {
+            return Context?.ActiveSpecialBets;
+        }
+
         private void OnConfirmBetClicked()
         {
             if (IsPhaseCompleted) return;
 
-            m_DraftTicket.SetItemUsages(m_UsedAdditionalBetTicket, m_UsedInsurance);
+            m_DraftTicket.SetItemUsages(
+                Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket),
+                Context.RoundItemUsage.HasUsed(ItemType.Insurance));
             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
             {
                 if (m_ValidationText != null) m_ValidationText.text = error;

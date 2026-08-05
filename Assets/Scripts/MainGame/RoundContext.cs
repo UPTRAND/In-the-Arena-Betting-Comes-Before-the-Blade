@@ -18,6 +18,8 @@ namespace InTheArena.MainGame
         public int MaxRounds { get; set; } = 5;
         public StageData CurrentStageData { get; set; }
         public StageSession StageSession { get; } = new StageSession();
+        public RoundItemUsageState RoundItemUsage { get; } = new RoundItemUsageState();
+        private int m_ItemUsageRoundIndex = -1;
         public int TargetCall => CurrentStageData != null ? CurrentStageData.TargetCall : 0;
         public int CurrentCall => StageSession.CurrentCall;
 
@@ -75,6 +77,8 @@ namespace InTheArena.MainGame
             MaxRounds = stageData.TotalRounds;
             StageSession.Initialize(stageData);
             CurrentRound = 0;
+            m_ItemUsageRoundIndex = -1;
+            RoundItemUsage.Reset();
             ResetRoundState();
         }
 
@@ -84,15 +88,28 @@ namespace InTheArena.MainGame
         public void SetRoundData(StageData stageData, int roundIndex)
         {
             if (stageData == null) return;
-            if (CurrentStageData != stageData || StageSession.StageData != stageData)
+            bool isNewStage = CurrentStageData != stageData || StageSession.StageData != stageData;
+            if (isNewStage)
             {
                 InitializeStage(stageData);
             }
 
+            if (m_ItemUsageRoundIndex != roundIndex)
+            {
+                if (!isNewStage)
+                {
+                    RoundItemUsage.Reset();
+                }
+
+                m_ItemUsageRoundIndex = roundIndex;
+            }
+
+            int nextRound = roundIndex + 1;
             CurrentStageId = stageData.StageId;
             MaxRounds = stageData.TotalRounds;
-            CurrentRound = roundIndex + 1;
+            CurrentRound = nextRound;
             CurrentStageData = stageData;
+
             ResetRoundState();
 
             if (roundIndex < stageData.RoundDatas.Count)
@@ -193,6 +210,8 @@ namespace InTheArena.MainGame
             IsRoundCompleted = false;
             CombatWinner = Team.None;
             CurrentRoundRule = RoundRule.None;
+            m_ItemUsageRoundIndex = -1;
+            RoundItemUsage.Reset();
             ActiveSpecialBets.Clear();
             OnSpecialBetChanged = null;
         }

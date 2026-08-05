@@ -1,0 +1,2553 @@
+diff --git a/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab b/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
+index 5e33435..aa48597 100644
+--- a/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
++++ b/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
+@@ -11,13 +11,15 @@ GameObject:
+   - component: {fileID: 6949673602519545589}
+   - component: {fileID: 7589781819540602687}
+   - component: {fileID: 5617733952139232662}
++  - component: {fileID: 911234567890123456}
++  - component: {fileID: 911234567890123467}
+   m_Layer: 0
+   m_Name: UI_ItemPurchasePopup
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+-  m_IsActive: 1
++  m_IsActive: 0
+ --- !u!224 &6949673602519545589
+ RectTransform:
+   m_ObjectHideFlags: 0
+@@ -76,6 +78,37 @@ MonoBehaviour:
+   m_FillOrigin: 0
+   m_UseSpriteMesh: 0
+   m_PixelsPerUnitMultiplier: 1
++--- !u!114 &911234567890123456
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 516824395472061953}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 5bfe96adf80a46c89499b6e3b6ca8d48, type: 3}
++  m_Name: UI_ItemPurchasePopupController
++  m_EditorClassIdentifier: InTheArena.UI::InTheArena.UI.UI_ItemPurchasePopupController
++  m_HasControl: 1
++  m_CanCloseControlWithBackButton: 1
++  m_BIsPlayerUI: 0
++  m_BuyButton: {fileID: 4186604419378110383}
++  m_ItemInfoText: {fileID: 1846056050604460840}
++  m_PriceText: {fileID: 9159522990301913938}
++  m_PopupPanel: {fileID: 262617361110753614}
++--- !u!225 &911234567890123467
++CanvasGroup:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 516824395472061953}
++  m_Enabled: 1
++  m_Alpha: 1
++  m_Interactable: 1
++  m_BlocksRaycasts: 1
++  m_IgnoreParentGroups: 0
+ --- !u!1 &1037037022280573194
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -599,7 +632,7 @@ RectTransform:
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0.5, y: 0}
+   m_AnchorMax: {x: 0.5, y: 0}
+-  m_AnchoredPosition: {x: 0, y: 100}
++  m_AnchoredPosition: {x: 0, y: 134}
+   m_SizeDelta: {x: 350, y: 120}
+   m_Pivot: {x: 0.5, y: 0.5}
+ --- !u!222 &38167141668907372
+diff --git a/Assets/Scripts/MainGame/BettingPhase.cs b/Assets/Scripts/MainGame/BettingPhase.cs
+index db70cd8..ac9fc1f 100644
+--- a/Assets/Scripts/MainGame/BettingPhase.cs
++++ b/Assets/Scripts/MainGame/BettingPhase.cs
+@@ -76,11 +76,7 @@ namespace InTheArena.MainGame
+         private RoundBetTicket m_DraftTicket;
+         
+         // 아이템 상태 트래킹
+-        private bool m_UsedAdditionalBetTicket = false;
+-        private bool m_UsedInsurance = false;
+-        private bool m_UsedRerollTicket = false;
+         private SpecialBetType? m_OverriddenSpecialBet = null;
+-        private bool m_HasRerolledThisRound = false;
+ 
+         public RoundBetTicket DraftTicket 
+         { 
+@@ -102,7 +98,7 @@ namespace InTheArena.MainGame
+         { 
+             get 
+             { 
+-                return m_UsedAdditionalBetTicket; 
++                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket);
+             } 
+         }
+ 
+@@ -110,7 +106,7 @@ namespace InTheArena.MainGame
+         { 
+             get 
+             { 
+-                return m_UsedInsurance; 
++                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.Insurance);
+             } 
+         }
+ 
+@@ -157,11 +153,7 @@ namespace InTheArena.MainGame
+         private void InitializePhaseData()
+         {
+             IsPhaseCompleted = false;
+-            m_UsedAdditionalBetTicket = false;
+-            m_UsedInsurance = false;
+-            m_UsedRerollTicket = false;
+             m_OverriddenSpecialBet = null;
+-            m_HasRerolledThisRound = false;
+ 
+             Context.AssignUnitsForBetting();
+             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
+@@ -654,33 +646,31 @@ namespace InTheArena.MainGame
+ 
+             if (itemData.ItemType == ItemType.AdditionalBetTicket)
+             {
+-                if (m_UsedAdditionalBetTicket)
++                if (UsedAdditionalBetTicket)
+                 {
+                     message = "추가 배팅권은 라운드당 1회만 사용 가능합니다.";
+                 }
+                 else
+                 {
+-                    m_UsedAdditionalBetTicket = true;
+                     success = true;
+                     message = "추가 배팅권(+500 Call)을 사용했습니다.";
+                 }
+             }
+             else if (itemData.ItemType == ItemType.Insurance)
+             {
+-                if (m_UsedInsurance)
++                if (UsedInsurance)
+                 {
+                     message = "보험은 라운드당 1회만 사용 가능합니다.";
+                 }
+                 else
+                 {
+-                    m_UsedInsurance = true;
+                     success = true;
+                     message = "패배 시 원금이 반환되는 보험을 사용했습니다.";
+                 }
+             }
+             else if (itemData.ItemType == ItemType.RerollTicket)
+             {
+-                if (m_UsedRerollTicket || m_HasRerolledThisRound)
++                if (Context.RoundItemUsage.HasUsed(ItemType.RerollTicket))
+                 {
+                     message = "리롤권은 라운드당 1회만 사용 가능합니다.";
+                 }
+@@ -691,8 +681,6 @@ namespace InTheArena.MainGame
+                     {
+                         int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
+                         m_OverriddenSpecialBet = specialBets[randomIndex];
+-                        m_HasRerolledThisRound = true;
+-                        m_UsedRerollTicket = true;
+                         Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
+                         RefreshSpecialBetAvailability();
+                         UpdateSurvivingSlotAvailability();
+@@ -708,20 +696,84 @@ namespace InTheArena.MainGame
+                 }
+             }
+ 
+-            if (success)
++            if (success && inventoryService.TryUseItemFromStage(itemData, playerState))
+             {
+-                inventoryService.TryUseItemFromStage(itemData, playerState);
++                Context.RoundItemUsage.TryMarkUsed(itemData.ItemType);
+             }
+ 
+             remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
+             return success;
+         }
+ 
++        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
++        {
++            message = string.Empty;
++
++            if (itemData == null || Context == null)
++            {
++                message = "유효하지 않은 베팅 아이템입니다.";
++                return false;
++            }
++
++            if (itemData.ItemType == ItemType.AdditionalBetTicket)
++            {
++                message = "추가 배팅권을 사용했습니다. (+500 Call)";
++                return true;
++            }
++
++            if (itemData.ItemType == ItemType.Insurance)
++            {
++                message = "보험을 사용했습니다. 패배 시 배팅 Call을 돌려받습니다.";
++                return true;
++            }
++
++            if (itemData.ItemType != ItemType.RerollTicket)
++            {
++                message = "베팅 아이템이 아닙니다.";
++                return false;
++            }
++
++            IReadOnlyList<SpecialBetType> specialBets = Context.CurrentStageData?.SpecialBetTypes;
++            if (specialBets == null || specialBets.Count == 0)
++            {
++                message = "변경할 특수 베팅 규칙이 없습니다.";
++                return false;
++            }
++
++            int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
++            m_OverriddenSpecialBet = specialBets[randomIndex];
++            Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
++            RefreshSpecialBetAvailability();
++            UpdateSurvivingSlotAvailability();
++            RefreshBetSummary();
++
++            message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
++            return true;
++        }
++
++        internal void RestorePurchasedItemState(
++            IReadOnlyList<SpecialBetType> previousSpecialBets,
++            SpecialBetType? previousOverride)
++        {
++            m_OverriddenSpecialBet = previousOverride;
++            Context?.SetActiveSpecialBets(previousSpecialBets);
++            RefreshSpecialBetAvailability();
++            UpdateSurvivingSlotAvailability();
++            RefreshBetSummary();
++        }
++
++        internal IReadOnlyList<SpecialBetType> GetActiveSpecialBetsForItemUse()
++        {
++            return Context?.ActiveSpecialBets;
++        }
++
+         private void OnConfirmBetClicked()
+         {
+             if (IsPhaseCompleted) return;
+ 
+-            m_DraftTicket.SetItemUsages(m_UsedAdditionalBetTicket, m_UsedInsurance);
++            m_DraftTicket.SetItemUsages(
++                Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket),
++                Context.RoundItemUsage.HasUsed(ItemType.Insurance));
+             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
+             {
+                 if (m_ValidationText != null) m_ValidationText.text = error;
+diff --git a/Assets/Scripts/MainGame/CombatPhase.cs b/Assets/Scripts/MainGame/CombatPhase.cs
+index 6e41506..99d5739 100644
+--- a/Assets/Scripts/MainGame/CombatPhase.cs
++++ b/Assets/Scripts/MainGame/CombatPhase.cs
+@@ -615,6 +615,33 @@ namespace InTheArena.MainGame
+ 
+         public event System.Action<ItemData> OnItemUsed;
+ 
++        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
++        {
++            message = string.Empty;
++
++            if (itemData == null)
++            {
++                message = "유효하지 않은 전투 아이템입니다.";
++                return false;
++            }
++
++            if (itemData.ItemType != ItemType.TimeExtension)
++            {
++                message = "Phase 1-B에서 지원하는 전투 아이템이 아닙니다.";
++                return false;
++            }
++
++            m_RemainingCombatTime += 5f;
++            OnItemUsed?.Invoke(itemData);
++            message = "전투 시간이 5초 연장되었습니다.";
++            return true;
++        }
++
++        internal void RollbackPurchasedTimeExtension()
++        {
++            m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - 5f);
++        }
++
+         public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
+         {
+             remainingCount = 0;
+diff --git a/Assets/Scripts/MainGame/RoundContext.cs b/Assets/Scripts/MainGame/RoundContext.cs
+index 7d0ed44..181813a 100644
+--- a/Assets/Scripts/MainGame/RoundContext.cs
++++ b/Assets/Scripts/MainGame/RoundContext.cs
+@@ -18,6 +18,8 @@ namespace InTheArena.MainGame
+         public int MaxRounds { get; set; } = 5;
+         public StageData CurrentStageData { get; set; }
+         public StageSession StageSession { get; } = new StageSession();
++        public RoundItemUsageState RoundItemUsage { get; } = new RoundItemUsageState();
++        private int m_ItemUsageRoundIndex = -1;
+         public int TargetCall => CurrentStageData != null ? CurrentStageData.TargetCall : 0;
+         public int CurrentCall => StageSession.CurrentCall;
+ 
+@@ -75,6 +77,8 @@ namespace InTheArena.MainGame
+             MaxRounds = stageData.TotalRounds;
+             StageSession.Initialize(stageData);
+             CurrentRound = 0;
++            m_ItemUsageRoundIndex = -1;
++            RoundItemUsage.Reset();
+             ResetRoundState();
+         }
+ 
+@@ -84,15 +88,28 @@ namespace InTheArena.MainGame
+         public void SetRoundData(StageData stageData, int roundIndex)
+         {
+             if (stageData == null) return;
+-            if (CurrentStageData != stageData || StageSession.StageData != stageData)
++            bool isNewStage = CurrentStageData != stageData || StageSession.StageData != stageData;
++            if (isNewStage)
+             {
+                 InitializeStage(stageData);
+             }
+ 
++            if (m_ItemUsageRoundIndex != roundIndex)
++            {
++                if (!isNewStage)
++                {
++                    RoundItemUsage.Reset();
++                }
++
++                m_ItemUsageRoundIndex = roundIndex;
++            }
++
++            int nextRound = roundIndex + 1;
+             CurrentStageId = stageData.StageId;
+             MaxRounds = stageData.TotalRounds;
+-            CurrentRound = roundIndex + 1;
++            CurrentRound = nextRound;
+             CurrentStageData = stageData;
++
+             ResetRoundState();
+ 
+             if (roundIndex < stageData.RoundDatas.Count)
+@@ -193,6 +210,8 @@ namespace InTheArena.MainGame
+             IsRoundCompleted = false;
+             CombatWinner = Team.None;
+             CurrentRoundRule = RoundRule.None;
++            m_ItemUsageRoundIndex = -1;
++            RoundItemUsage.Reset();
+             ActiveSpecialBets.Clear();
+             OnSpecialBetChanged = null;
+         }
+diff --git a/Assets/Scripts/Managers/RoundManager.cs b/Assets/Scripts/Managers/RoundManager.cs
+index ad63677..d7bb910 100644
+--- a/Assets/Scripts/Managers/RoundManager.cs
++++ b/Assets/Scripts/Managers/RoundManager.cs
+@@ -54,6 +54,8 @@ namespace InTheArena.MainGame
+ 
+         private RoundContext m_Context;
+         private StageData m_CurrentStageData;
++        private StagePlayerState m_PlayerState;
++        private ItemPurchaseUseCoordinator m_ItemPurchaseUseCoordinator;
+         private CancellationTokenSource m_RoundCts;
+         private int m_CurrentRoundIndex = 0;
+         private bool m_IsRoundRunning = false;
+@@ -61,6 +63,7 @@ namespace InTheArena.MainGame
+ 
+         public RoundContext Context => m_Context;
+         public StageData CurrentStageData => m_CurrentStageData;
++        public ItemPurchaseUseCoordinator ItemPurchaseUseCoordinator => m_ItemPurchaseUseCoordinator;
+         public bool IsRoundRunning => m_IsRoundRunning;
+         public int CurrentRoundIndex => m_CurrentRoundIndex;
+ 
+@@ -80,11 +83,17 @@ namespace InTheArena.MainGame
+         /// <summary>
+         /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
+         /// </summary>
+-        public void InitializeContext(RoundContext context, StageData stageData)
++        public void InitializeContext(
++            RoundContext context,
++            StageData stageData,
++            StagePlayerState playerState)
+         {
++            DisposeItemPurchaseUseCoordinator();
+             m_Context = context ?? new RoundContext();
+             m_CurrentStageData = stageData;
++            m_PlayerState = playerState;
+             m_Context.InitializeStage(stageData);
++            CreateItemPurchaseUseCoordinator();
+ 
+             Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
+         }
+@@ -106,6 +115,7 @@ namespace InTheArena.MainGame
+                 return;
+             }
+ 
++            CreateItemPurchaseUseCoordinator();
+             m_CurrentRoundIndex = roundIndex;
+             m_RoundCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+             m_IsRoundRunning = true;
+@@ -174,6 +184,7 @@ namespace InTheArena.MainGame
+             finally
+             {
+                 await CleanupActivePhaseAsync();
++                DisposeItemPurchaseUseCoordinator();
+                 m_IsRoundRunning = false;
+                 PoolManager.Instance?.ClearRound();
+                 
+@@ -187,6 +198,7 @@ namespace InTheArena.MainGame
+ 
+         private async Awaitable CleanupActivePhaseAsync()
+         {
++            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+             RoundPhaseBase activePhase = m_ActivePhase;
+             m_ActivePhase = null;
+             if (activePhase == null)
+@@ -253,6 +265,7 @@ namespace InTheArena.MainGame
+         /// </summary>
+         public void ForceEndRound()
+         {
++            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+             if (m_RoundCts != null)
+             {
+                 m_RoundCts.Cancel();
+@@ -261,11 +274,37 @@ namespace InTheArena.MainGame
+ 
+         private void OnDestroy()
+         {
++            DisposeItemPurchaseUseCoordinator();
+             if (ReferenceEquals(_instance, this))
+             {
+                 _instance = null;
+             }
+         }
++
++        private void CreateItemPurchaseUseCoordinator()
++        {
++            if (m_ItemPurchaseUseCoordinator != null || m_Context == null || m_PlayerState == null)
++            {
++                return;
++            }
++
++            var service = new ItemPurchaseUseService(m_Context, m_PlayerState);
++            m_ItemPurchaseUseCoordinator = new ItemPurchaseUseCoordinator(
++                m_Context,
++                m_PlayerState,
++                service);
++        }
++
++        private void DisposeItemPurchaseUseCoordinator()
++        {
++            if (m_ItemPurchaseUseCoordinator == null)
++            {
++                return;
++            }
++
++            m_ItemPurchaseUseCoordinator.Dispose();
++            m_ItemPurchaseUseCoordinator = null;
++        }
+     }
+ }
+ #endif
+diff --git a/Assets/Scripts/Managers/StageManager.cs b/Assets/Scripts/Managers/StageManager.cs
+index 36112ea..787e507 100644
+--- a/Assets/Scripts/Managers/StageManager.cs
++++ b/Assets/Scripts/Managers/StageManager.cs
+@@ -275,7 +275,10 @@ namespace InTheArena.MainGame
+             }
+ 
+             // RoundManager에 컨텍스트 전달
+-            RoundManager.Instance.InitializeContext(m_Context, m_CurrentStageData);
++            RoundManager.Instance.InitializeContext(
++                m_Context,
++                m_CurrentStageData,
++                PlayerState);
+         }
+ 
+         private async Awaitable RunStageLoopAsync(CancellationToken token)
+diff --git a/Assets/Scripts/Managers/UIManager.cs b/Assets/Scripts/Managers/UIManager.cs
+index dded3d7..2c438e3 100644
+--- a/Assets/Scripts/Managers/UIManager.cs
++++ b/Assets/Scripts/Managers/UIManager.cs
+@@ -257,6 +257,34 @@ public class UIManager : Manager_Base
+         return m_BakedUiRoots.TryGetValue(parent, out var root) ? root : null;
+     }
+ 
++    public bool OpenControl(UI_Base control)
++    {
++        if (control == null)
++        {
++            return false;
++        }
++
++        if (control.ParentRoot == null)
++        {
++            Debug.LogError($"[UIManager] {control.name}에 UI_Root가 설정되지 않았습니다.");
++            return false;
++        }
++
++        control.Open();
++        return true;
++    }
++
++    public bool CloseControl(UI_Base control)
++    {
++        if (control == null)
++        {
++            return false;
++        }
++
++        control.Close();
++        return true;
++    }
++
+     public T GetElement<T>() where T : class, IUIBase
+     {
+         string typeName = typeof(T).Name;
+diff --git a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+index 3a01d71..d899ac3 100644
+--- a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
++++ b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+@@ -1,4 +1,5 @@
+ #if UNITY_6000_0_OR_NEWER
++using System.Threading;
+ using InTheArena.MainGame;
+ using TMPro;
+ using UnityEngine;
+@@ -39,6 +40,7 @@ namespace InTheArena.UI
+         [SerializeField] private Button m_ItemSlot3Button;
+         [SerializeField] private Image m_ItemSlot3Icon;
+         [SerializeField] private ItemData m_ItemSlot3Data;
++        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
+ 
+         private CombatPhase m_CombatPhase;
+         private RoundContext m_RoundContext;
+@@ -46,10 +48,12 @@ namespace InTheArena.UI
+         private ItemInventoryService m_InventoryService;
+         private ItemData m_DraggedItem;
+         private bool m_IsSubscribed;
++        private CancellationTokenSource m_ItemUseLifetimeCancellation;
+ 
+         protected override void Awake()
+         {
+             base.Awake();
++            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+             ApplyItemIcons();
+             ResetDisplay();
+         }
+@@ -142,6 +146,12 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            if (CanUseNewImmediateFlow(itemData) && itemData.ItemType == ItemType.TimeExtension)
++            {
++                Debug.Log("[UI_BattlePhaseHUD] 시간 연장 아이템은 클릭으로 사용해야 합니다.");
++                return;
++            }
++
+             if (!InputManager.Instance.RaycastGroundPosition(eventData.position, out Vector3 worldPosition))
+             {
+                 Debug.Log("[UI_BattlePhaseHUD] 전장 영역에 아이템을 드롭해야 합니다.");
+@@ -168,6 +178,21 @@ namespace InTheArena.UI
+                 m_SpeedButton.onClick.AddListener(OnSpeedButtonClicked);
+             }
+ 
++            if (m_ItemSlot1Button != null)
++            {
++                m_ItemSlot1Button.onClick.AddListener(OnItemSlot1Clicked);
++            }
++
++            if (m_ItemSlot2Button != null)
++            {
++                m_ItemSlot2Button.onClick.AddListener(OnItemSlot2Clicked);
++            }
++
++            if (m_ItemSlot3Button != null)
++            {
++                m_ItemSlot3Button.onClick.AddListener(OnItemSlot3Clicked);
++            }
++
+             m_CombatPhase.OnItemUsed += OnCombatItemUsed;
+             m_IsSubscribed = true;
+         }
+@@ -184,6 +209,21 @@ namespace InTheArena.UI
+                 m_SpeedButton.onClick.RemoveListener(OnSpeedButtonClicked);
+             }
+ 
++            if (m_ItemSlot1Button != null)
++            {
++                m_ItemSlot1Button.onClick.RemoveListener(OnItemSlot1Clicked);
++            }
++
++            if (m_ItemSlot2Button != null)
++            {
++                m_ItemSlot2Button.onClick.RemoveListener(OnItemSlot2Clicked);
++            }
++
++            if (m_ItemSlot3Button != null)
++            {
++                m_ItemSlot3Button.onClick.RemoveListener(OnItemSlot3Clicked);
++            }
++
+             if (m_CombatPhase != null)
+             {
+                 m_CombatPhase.OnItemUsed -= OnCombatItemUsed;
+@@ -203,6 +243,56 @@ namespace InTheArena.UI
+             RefreshCombatState();
+         }
+ 
++        private void OnItemSlot1Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot1Data);
++        }
++
++        private void OnItemSlot2Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot2Data);
++        }
++
++        private void OnItemSlot3Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot3Data);
++        }
++
++        private void RequestImmediateItemUse(ItemData itemData)
++        {
++            if (!CanUseNewImmediateFlow(itemData) || itemData.ItemType != ItemType.TimeExtension)
++            {
++                return;
++            }
++
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            if (coordinator == null || popup == null || popup.ParentRoot == null)
++            {
++                return;
++            }
++
++            _ = RequestImmediateItemUseAsync(itemData, coordinator, popup);
++        }
++
++        private async Awaitable RequestImmediateItemUseAsync(
++            ItemData itemData,
++            ItemPurchaseUseCoordinator coordinator,
++            UI_ItemPurchasePopupController popup)
++        {
++            await coordinator.RequestImmediateUseAsync(
++                itemData,
++                popup,
++                new CombatTimeExtensionUseExecutor(m_CombatPhase),
++                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
++
++            if (coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded)
++            {
++                RefreshItemButtons();
++            }
++        }
++
+         private void OnCombatItemUsed(ItemData itemData)
+         {
+             RefreshItemButtons();
+@@ -324,12 +414,37 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            if (CanUseNewImmediateFlow(itemData))
++            {
++                button.interactable = CanAcceptCombatInput() &&
++                    !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
++                    itemData.PriceGold >= 0 &&
++                    m_PlayerState.Gold >= itemData.PriceGold;
++                return;
++            }
++
+             int count = m_InventoryService != null && m_PlayerState != null && itemData != null
+                 ? m_InventoryService.GetStageItemCount(itemData, m_PlayerState)
+                 : 0;
+             button.interactable = CanAcceptCombatInput() && count > 0;
+         }
+ 
++        private bool CanUseNewImmediateFlow(ItemData itemData)
++        {
++            if (itemData == null || itemData.ItemType != ItemType.TimeExtension)
++            {
++                return false;
++            }
++
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
++                popup != null &&
++                popup.ParentRoot != null &&
++                m_RoundContext != null &&
++                m_PlayerState != null;
++        }
++
+         private ItemData ResolveDraggedItem(PointerEventData eventData)
+         {
+             if (!CanAcceptCombatInput() || eventData == null)
+@@ -440,6 +555,9 @@ namespace InTheArena.UI
+         {
+             UnsubscribeEvents();
+             ClearBindings();
++            m_ItemUseLifetimeCancellation?.Cancel();
++            m_ItemUseLifetimeCancellation?.Dispose();
++            m_ItemUseLifetimeCancellation = null;
+             base.OnDestroy();
+         }
+     }
+diff --git a/Assets/Scripts/UI/UI_BettingPhase.cs b/Assets/Scripts/UI/UI_BettingPhase.cs
+index 4bc301a..b6ff79c 100644
+--- a/Assets/Scripts/UI/UI_BettingPhase.cs
++++ b/Assets/Scripts/UI/UI_BettingPhase.cs
+@@ -1,4 +1,5 @@
+ #if UNITY_6000_0_OR_NEWER
++using System.Threading;
+ using System.Collections.Generic;
+ using UnityEngine;
+ using UnityEngine.UI;
+@@ -18,6 +19,7 @@ namespace InTheArena.UI
+         [SerializeField] private ItemData m_AdditionalBetData;
+         [SerializeField] private ItemData m_InsuranceData;
+         [SerializeField] private ItemData m_RerollData;
++        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
+ 
+         [Header("UI Feedback")]
+         [SerializeField] private TMP_Text m_FeedbackText;
+@@ -25,9 +27,12 @@ namespace InTheArena.UI
+         [SerializeField] private TMP_Text m_InsuranceCountText;
+         [SerializeField] private TMP_Text m_RerollCountText;
+ 
++        private CancellationTokenSource m_ItemUseLifetimeCancellation;
++
+         protected override void Awake()
+         {
+             base.Awake();
++            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+             RefreshItemCounts();
+             
+             if (m_AdditionalBetButton != null)
+@@ -78,6 +83,15 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance.ItemPurchaseUseCoordinator;
++            if (itemData != null && popup != null && popup.ParentRoot != null && coordinator != null)
++            {
++                _ = TryUseItemThroughPurchaseFlowAsync(itemData, coordinator, popup);
++                return;
++            }
++
+             string message;
+             int remain;
+             bool success = RoundManager.Instance.BettingPhase.UseBettingItem(itemData, out message, out remain);
+@@ -93,6 +107,22 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        private async Awaitable TryUseItemThroughPurchaseFlowAsync(
++            ItemData itemData,
++            ItemPurchaseUseCoordinator coordinator,
++            UI_ItemPurchasePopupController popup)
++        {
++            await coordinator.RequestImmediateUseAsync(
++                itemData,
++                popup,
++                new BettingItemUseExecutor(RoundManager.Instance.BettingPhase),
++                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
++
++            ShowFeedback(coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded
++                ? "베팅 아이템을 사용했습니다."
++                : "베팅 아이템을 사용하지 못했습니다.");
++        }
++
+         private void ShowFeedback(string message)
+         {
+             if (m_FeedbackText != null)
+@@ -118,6 +148,14 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        protected override void OnDestroy()
++        {
++            base.OnDestroy();
++            m_ItemUseLifetimeCancellation?.Cancel();
++            m_ItemUseLifetimeCancellation?.Dispose();
++            m_ItemUseLifetimeCancellation = null;
++        }
++
+         private void HandleSpecialBetChanged()
+         {
+             ShowFeedback("특수 배팅 룰이 갱신되었습니다!");
+diff --git a/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs b/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs
+new file mode 100644
+index 0000000..39ff10d
+--- /dev/null
++++ b/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs
+@@ -0,0 +1,687 @@
++#if UNITY_EDITOR
++using System.Collections;
++using System.Collections.Generic;
++using System.Threading;
++using InTheArena.UI;
++using InTheArena.MainGame;
++using NUnit.Framework;
++using UnityEditor;
++using UnityEngine;
++using UnityEngine.TestTools;
++
++public sealed class ItemPurchaseUseStateTests
++{
++    [Test]
++    public void RoundItemUsageState_RejectsNoneAndAllowsEachItemTypeOnce()
++    {
++        var state = new RoundItemUsageState();
++
++        Assert.That(state.HasUsed(ItemType.None), Is.False);
++        Assert.That(state.TryMarkUsed(ItemType.None), Is.False);
++        Assert.That(state.TryMarkUsed(ItemType.Meteor), Is.True);
++        Assert.That(state.TryMarkUsed(ItemType.Meteor), Is.False);
++        Assert.That(state.TryMarkUsed(ItemType.Mercenary), Is.True);
++        Assert.That(state.HasUsed(ItemType.Meteor), Is.True);
++        Assert.That(state.HasUsed(ItemType.Mercenary), Is.True);
++    }
++
++    [Test]
++    public void RoundItemUsageState_ResetClearsOnlyRoundUsage()
++    {
++        var state = new RoundItemUsageState();
++        state.TryMarkUsed(ItemType.TimeExtension);
++
++        state.Reset();
++
++        Assert.That(state.HasUsed(ItemType.TimeExtension), Is.False);
++    }
++
++    [Test]
++    public void RoundContext_SetRoundDataResetsOncePerRoundBoundary()
++    {
++        var stageData = ScriptableObject.CreateInstance<StageData>();
++        try
++        {
++            SetField(stageData, "m_TotalRounds", 2);
++            SetField(stageData, "m_RoundDatas", new System.Collections.Generic.List<RoundData>
++            {
++                ScriptableObject.CreateInstance<RoundData>(),
++                ScriptableObject.CreateInstance<RoundData>()
++            });
++
++            var context = new RoundContext();
++            context.InitializeStage(stageData);
++
++            context.SetRoundData(stageData, 0);
++            Assert.That(context.RoundItemUsage.TryMarkUsed(ItemType.Meteor), Is.True);
++
++            context.SetRoundData(stageData, 0);
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.Meteor), Is.True);
++
++            context.CurrentRound = 2;
++            context.SetRoundData(stageData, 1);
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.Meteor), Is.False);
++
++            Assert.That(context.RoundItemUsage.TryMarkUsed(ItemType.TimeExtension), Is.True);
++            context.CurrentRound = 99;
++            context.SetRoundData(stageData, 1);
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.TimeExtension), Is.True);
++
++            context.Clear();
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.Meteor), Is.False);
++        }
++        finally
++        {
++            var roundDatas = stageData != null
++                ? GetField<System.Collections.Generic.List<RoundData>>(stageData, "m_RoundDatas")
++                : null;
++            if (roundDatas != null)
++            {
++                for (int i = 0; i < roundDatas.Count; i++)
++                {
++                    if (roundDatas[i] != null)
++                    {
++                        Object.DestroyImmediate(roundDatas[i]);
++                    }
++                }
++            }
++
++            if (stageData != null)
++            {
++                Object.DestroyImmediate(stageData);
++            }
++        }
++    }
++
++    [UnityTest]
++    public IEnumerator Coordinator_RejectsDuplicateRequestAndCancelIsIdempotent()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            var service = new ItemPurchaseUseService(context, playerState);
++            var coordinator = new ItemPurchaseUseCoordinator(context, playerState, service);
++            var popup = new PendingConfirmationView();
++
++            coordinator.RequestImmediatePreviewAsync(
++                itemData,
++                popup,
++                new FakeExecutor(true),
++                CancellationToken.None);
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingPurchase));
++
++            coordinator.RequestImmediatePreviewAsync(
++                itemData,
++                popup,
++                new FakeExecutor(true),
++                CancellationToken.None);
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingPurchase));
++
++            coordinator.CancelActiveRequest();
++            coordinator.CancelActiveRequest();
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
++            coordinator.Dispose();
++            coordinator.Dispose();
++            Assert.That(coordinator.IsDisposed, Is.True);
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void Service_PreviewDoesNotChangeGoldOrRoundUsage()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            int initialGold = playerState.Gold;
++            var executor = new FakeExecutor(true);
++            var service = new ItemPurchaseUseService(context, playerState);
++
++            Assert.That(service.TryPreview(itemData, executor, initialGold, out string message), Is.True, message);
++            Assert.That(executor.CallCount, Is.EqualTo(1));
++            Assert.That(playerState.Gold, Is.EqualTo(initialGold));
++            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void Service_PreviewFailureLeavesGoldAndRoundUsageUnchanged()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            int initialGold = playerState.Gold;
++            var service = new ItemPurchaseUseService(context, playerState);
++
++            Assert.That(service.TryPreview(itemData, new FakeExecutor(false), initialGold, out _), Is.False);
++            Assert.That(playerState.Gold, Is.EqualTo(initialGold));
++            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [UnityTest]
++    public IEnumerator Coordinator_TargetRequestRequiresConfirmedPopup()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            var service = new ItemPurchaseUseService(context, playerState);
++            var coordinator = new ItemPurchaseUseCoordinator(context, playerState, service);
++            var popup = new PendingConfirmationView();
++
++            coordinator.RequestTargetedPreviewAsync(itemData, popup, CancellationToken.None);
++            yield return null;
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingPurchase));
++            Assert.That(popup.ObservedGold, Is.EqualTo(100));
++
++            popup.Complete(ItemPurchaseDecision.Cancelled);
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
++            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
++
++            using var targetingCancellationSource = new CancellationTokenSource();
++            coordinator.RequestTargetedPreviewAsync(itemData, popup, targetingCancellationSource.Token);
++            yield return null;
++            popup.Complete(ItemPurchaseDecision.Confirmed);
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
++            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.AwaitingTarget));
++
++            targetingCancellationSource.Cancel();
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
++            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
++
++            coordinator.RequestTargetedPreviewAsync(itemData, popup, CancellationToken.None);
++            yield return null;
++            popup.Complete(ItemPurchaseDecision.Confirmed);
++            yield return null;
++
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
++            coordinator.CancelActiveRequest();
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
++            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
++
++            coordinator.RequestTargetedPreviewAsync(itemData, popup, CancellationToken.None);
++            yield return null;
++            popup.Complete(ItemPurchaseDecision.Confirmed);
++            yield return null;
++
++            long version = coordinator.ActiveRequestVersion;
++            Assert.That(coordinator.TryCompleteTargetPreview(
++                version,
++                new FakeExecutor(true),
++                out ItemPurchaseUseResult result,
++                out _), Is.True);
++            Assert.That(result, Is.EqualTo(ItemPurchaseUseResult.PreviewSucceeded));
++            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
++            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
++            Assert.That(playerState.Gold, Is.EqualTo(100));
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void ItemPurchaseUseService_CommitsGoldAndUsageOnlyAfterSuccessfulEffect()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            var service = new ItemPurchaseUseService(context, playerState);
++            var executor = new ReversibleExecutor(true);
++
++            Assert.That(service.TryUse(itemData, executor, 100, out _), Is.True, "Item transaction should succeed");
++            Assert.That(playerState.Gold, Is.EqualTo(50));
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.Meteor), Is.True);
++            Assert.That(executor.CallCount, Is.EqualTo(1));
++            Assert.That(executor.RollbackCount, Is.EqualTo(0));
++
++            playerState.Gold = 100;
++            context.RoundItemUsage.Reset();
++            executor = new ReversibleExecutor(false);
++
++            Assert.That(service.TryUse(itemData, executor, 100, out _), Is.False);
++            Assert.That(playerState.Gold, Is.EqualTo(100));
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.Meteor), Is.False);
++            Assert.That(executor.CallCount, Is.EqualTo(1));
++            Assert.That(executor.RollbackCount, Is.EqualTo(1));
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [UnityTest]
++    public IEnumerator Coordinator_CapturesGoldAtPopupOpen()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        try
++        {
++            var service = new ItemPurchaseUseService(context, playerState);
++            var coordinator = new ItemPurchaseUseCoordinator(context, playerState, service);
++            var popup = new PendingConfirmationView();
++            var executor = new FakeExecutor(true);
++
++            coordinator.RequestImmediatePreviewAsync(itemData, popup, executor, CancellationToken.None);
++            yield return null;
++            Assert.That(popup.ObservedGold, Is.EqualTo(100));
++
++            playerState.Gold = 50;
++            popup.Complete(ItemPurchaseDecision.Confirmed);
++            yield return null;
++
++            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Failed));
++            Assert.That(executor.CallCount, Is.EqualTo(0));
++            Assert.That(playerState.Gold, Is.EqualTo(50));
++        }
++        finally
++        {
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void BettingItemExecutor_UsesSharedRoundUsageState()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        GameObject phaseObject = new GameObject("BettingItemExecutorTest");
++        try
++        {
++            SetField(itemData, "m_ItemType", ItemType.AdditionalBetTicket);
++            var bettingPhase = phaseObject.AddComponent<BettingPhase>();
++            bettingPhase.InitializePhase(context);
++
++            var service = new ItemPurchaseUseService(context, playerState);
++            var executor = new BettingItemUseExecutor(bettingPhase);
++
++            Assert.That(service.TryUse(itemData, executor, 100, out _), Is.True, "Reroll transaction should succeed");
++            Assert.That(playerState.Gold, Is.EqualTo(50));
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket), Is.True);
++            Assert.That(bettingPhase.UsedAdditionalBetTicket, Is.True);
++        }
++        finally
++        {
++            Object.DestroyImmediate(phaseObject);
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void RerollItemExecutor_UpdatesActiveSpecialBetAndUsageState()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        GameObject phaseObject = new GameObject("RerollItemExecutorTest");
++        try
++        {
++            SetField(stageData, "m_SpecialBetTypes", new List<SpecialBetType>
++            {
++                SpecialBetType.RemainingTime,
++                SpecialBetType.OddEven
++            });
++            context.InitializeStage(stageData);
++            context.SetRoundData(stageData, 0);
++            SetField(itemData, "m_ItemType", ItemType.RerollTicket);
++            var bettingPhase = phaseObject.AddComponent<BettingPhase>();
++            bettingPhase.InitializePhase(context);
++            SetField(bettingPhase, "m_DraftTicket", new RoundBetTicket());
++
++            var service = new ItemPurchaseUseService(context, playerState);
++            var executor = new BettingItemUseExecutor(bettingPhase);
++
++            Assert.That(service.TryUse(itemData, executor, 100, out _), Is.True);
++            Assert.That(playerState.Gold, Is.EqualTo(50));
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.RerollTicket), Is.True, "Reroll usage should be recorded");
++            Assert.That(context.ActiveSpecialBets.Count, Is.EqualTo(1));
++            Assert.That(bettingPhase.OverriddenSpecialBet.HasValue, Is.True, "Reroll should set an override");
++        }
++        finally
++        {
++            Object.DestroyImmediate(phaseObject);
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void CombatTimeExtensionExecutor_ChangesTimeThroughTransactionalService()
++    {
++        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
++        GameObject phaseObject = new GameObject("CombatTimeExtensionExecutorTest");
++        try
++        {
++            SetField(itemData, "m_ItemType", ItemType.TimeExtension);
++            var combatPhase = phaseObject.AddComponent<CombatPhase>();
++            SetField(combatPhase, "m_RemainingCombatTime", 10f);
++
++            var service = new ItemPurchaseUseService(context, playerState);
++            var executor = new CombatTimeExtensionUseExecutor(combatPhase);
++
++            Assert.That(service.TryUse(itemData, executor, 100, out _), Is.True);
++            Assert.That(playerState.Gold, Is.EqualTo(50));
++            Assert.That(combatPhase.RemainingCombatTime, Is.EqualTo(15f));
++            Assert.That(context.RoundItemUsage.HasUsed(ItemType.TimeExtension), Is.True);
++        }
++        finally
++        {
++            Object.DestroyImmediate(phaseObject);
++            DestroyDependencies(stageData, itemData);
++        }
++    }
++
++    [Test]
++    public void PopupPrefab_PreservesBuyAndUsesUiBaseControl()
++    {
++        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
++            "Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab");
++
++        Assert.That(prefab, Is.Not.Null);
++        Assert.That(prefab.activeSelf, Is.False);
++
++        UI_ItemPurchasePopupController controller = prefab.GetComponent<UI_ItemPurchasePopupController>();
++        Assert.That(controller, Is.Not.Null);
++        Assert.That(prefab.GetComponent<UI_Base>(), Is.Not.Null);
++        Assert.That(controller.HasControl, Is.True);
++        Assert.That(prefab.GetComponent<CanvasGroup>(), Is.Not.Null);
++
++        Transform buyTransform = prefab.transform.Find("PopupPanel/InnerPanel/Btn_Buy");
++        Assert.That(buyTransform, Is.Not.Null);
++        Assert.That(prefab.transform.Find("PopupPanel/InnerPanel/Btn_Cancel"), Is.Null);
++        Assert.That(prefab.transform.Find("PopupPanel/InnerPanel/Btn_Cancel/CancelLabel"), Is.Null);
++
++        Assert.That(GetField<UnityEngine.UI.Button>(controller, "m_BuyButton"),
++            Is.SameAs(buyTransform.GetComponent<UnityEngine.UI.Button>()));
++        Assert.That(GetField<TMPro.TMP_Text>(controller, "m_ItemInfoText"), Is.Not.Null);
++        Assert.That(GetField<TMPro.TMP_Text>(controller, "m_PriceText"), Is.Not.Null);
++        Assert.That(GetField<RectTransform>(controller, "m_PopupPanel"),
++            Is.SameAs(prefab.transform.Find("PopupPanel")));
++    }
++
++    [Test]
++    public void PopupController_BuyClickConfirmsAndRejectedReentryPreservesDecision()
++    {
++        ItemData itemData = CreateItemData();
++        CreatePopupRuntime(
++            out GameObject uiManagerObject,
++            out GameObject rootObject,
++            out GameObject instance);
++
++        try
++        {
++            UI_ItemPurchasePopupController controller = instance.GetComponent<UI_ItemPurchasePopupController>();
++            UnityEngine.UI.Button buyButton = instance.transform
++                .Find("PopupPanel/InnerPanel/Btn_Buy")
++                .GetComponent<UnityEngine.UI.Button>();
++
++            controller.ShowAsync(itemData, 100, CancellationToken.None);
++            buyButton.onClick.Invoke();
++            Assert.That(controller.LastDecision, Is.EqualTo(ItemPurchaseDecision.Confirmed));
++
++            controller.ShowAsync(null, 100, CancellationToken.None);
++            Assert.That(controller.LastDecision, Is.EqualTo(ItemPurchaseDecision.Confirmed));
++        }
++        finally
++        {
++            DestroyPopupRuntime(uiManagerObject, rootObject, instance);
++            Object.DestroyImmediate(itemData);
++        }
++    }
++
++    [Test]
++    public void PopupController_TokenCancellationCompletesCancelled()
++    {
++        ItemData itemData = CreateItemData();
++        CreatePopupRuntime(
++            out GameObject uiManagerObject,
++            out GameObject rootObject,
++            out GameObject instance);
++        using var cancellationSource = new CancellationTokenSource();
++
++        try
++        {
++            UI_ItemPurchasePopupController controller = instance.GetComponent<UI_ItemPurchasePopupController>();
++            controller.ShowAsync(itemData, 100, cancellationSource.Token);
++            cancellationSource.Cancel();
++
++            Assert.That(controller.LastDecision, Is.EqualTo(ItemPurchaseDecision.Cancelled));
++        }
++        finally
++        {
++            DestroyPopupRuntime(uiManagerObject, rootObject, instance);
++            Object.DestroyImmediate(itemData);
++        }
++    }
++
++    private static void CreatePopupRuntime(
++        out GameObject uiManagerObject,
++        out GameObject rootObject,
++        out GameObject instance)
++    {
++        uiManagerObject = null;
++        rootObject = null;
++        instance = null;
++
++        UIManager uiManager = UIManager.Instance;
++        if (uiManager == null)
++        {
++            uiManagerObject = new GameObject("ItemPurchasePopupTestUIManager");
++            uiManager = uiManagerObject.AddComponent<UIManager>();
++            SetStaticField(typeof(UIManager), "<Instance>k__BackingField", uiManager);
++        }
++
++        rootObject = new GameObject(
++            "ItemPurchasePopupTestRoot",
++            typeof(RectTransform),
++            typeof(Canvas),
++            typeof(CanvasGroup),
++            typeof(UI_Root));
++        rootObject.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
++        UI_Root root = rootObject.GetComponent<UI_Root>();
++
++        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
++            "Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab");
++        Assert.That(prefab, Is.Not.Null);
++
++        instance = Object.Instantiate(prefab, root.transform);
++        instance.GetComponent<UI_ItemPurchasePopupController>().SetRoot(root);
++    }
++
++    private static void DestroyPopupRuntime(
++        GameObject uiManagerObject,
++        GameObject rootObject,
++        GameObject instance)
++    {
++        if (instance != null)
++        {
++            Object.DestroyImmediate(instance);
++        }
++
++        if (rootObject != null)
++        {
++            Object.DestroyImmediate(rootObject);
++        }
++
++        if (uiManagerObject != null)
++        {
++            SetStaticField(typeof(UIManager), "<Instance>k__BackingField", null);
++            Object.DestroyImmediate(uiManagerObject);
++        }
++    }
++
++    private static void CreateDependencies(
++        out StageData stageData,
++        out RoundContext context,
++        out StagePlayerState playerState,
++        out ItemData itemData)
++    {
++        stageData = ScriptableObject.CreateInstance<StageData>();
++        SetField(stageData, "m_RoundDatas", new List<RoundData>
++        {
++            ScriptableObject.CreateInstance<RoundData>()
++        });
++
++        context = new RoundContext();
++        context.InitializeStage(stageData);
++        context.SetRoundData(stageData, 0);
++
++        playerState = new StagePlayerState { Gold = 100 };
++        itemData = ScriptableObject.CreateInstance<ItemData>();
++        SetField(itemData, "m_ItemType", ItemType.Meteor);
++        SetField(itemData, "m_ItemName", "Test Meteor");
++        SetField(itemData, "m_PriceGold", 50);
++    }
++
++    private static ItemData CreateItemData()
++    {
++        var itemData = ScriptableObject.CreateInstance<ItemData>();
++        SetField(itemData, "m_ItemType", ItemType.Meteor);
++        SetField(itemData, "m_ItemName", "Test Meteor");
++        SetField(itemData, "m_PriceGold", 50);
++        return itemData;
++    }
++
++    private static void DestroyDependencies(StageData stageData, ItemData itemData)
++    {
++        if (itemData != null)
++        {
++            Object.DestroyImmediate(itemData);
++        }
++
++        if (stageData != null)
++        {
++            var roundDatas = GetField<List<RoundData>>(stageData, "m_RoundDatas");
++            if (roundDatas != null)
++            {
++                for (int i = 0; i < roundDatas.Count; i++)
++                {
++                    if (roundDatas[i] != null)
++                    {
++                        Object.DestroyImmediate(roundDatas[i]);
++                    }
++                }
++            }
++
++            Object.DestroyImmediate(stageData);
++        }
++    }
++
++    private sealed class FakeExecutor : IItemPurchaseUseExecutor
++    {
++        private readonly bool m_Result;
++
++        public FakeExecutor(bool result)
++        {
++            m_Result = result;
++        }
++
++        public int CallCount { get; private set; }
++
++        public bool TryExecute(ItemData itemData, out string message)
++        {
++            CallCount++;
++            message = m_Result ? "preview success" : "preview failure";
++            return m_Result;
++        }
++    }
++
++    private sealed class ReversibleExecutor : IReversibleItemPurchaseUseExecutor
++    {
++        private readonly bool m_Result;
++
++        public ReversibleExecutor(bool result)
++        {
++            m_Result = result;
++        }
++
++        public int CallCount { get; private set; }
++        public int RollbackCount { get; private set; }
++
++        public bool TryExecute(ItemData itemData, out string message)
++        {
++            CallCount++;
++            message = m_Result ? "use success" : "use failure";
++            return m_Result;
++        }
++
++        public void Rollback(ItemData itemData)
++        {
++            RollbackCount++;
++        }
++    }
++
++    private sealed class PendingConfirmationView : IItemPurchaseConfirmationView
++    {
++        private AwaitableCompletionSource m_Source;
++        private bool m_IsCompleted;
++
++        public int ObservedGold { get; private set; }
++        public ItemPurchaseDecision LastDecision { get; private set; } = ItemPurchaseDecision.Cancelled;
++
++        public Awaitable ShowAsync(ItemData itemData, int currentGold, CancellationToken token)
++        {
++            ObservedGold = currentGold;
++            LastDecision = ItemPurchaseDecision.Cancelled;
++            m_IsCompleted = false;
++            m_Source = new AwaitableCompletionSource();
++            return m_Source.Awaitable;
++        }
++
++        public void Complete(ItemPurchaseDecision decision)
++        {
++            if (m_IsCompleted || m_Source == null)
++            {
++                return;
++            }
++
++            m_IsCompleted = true;
++            LastDecision = decision;
++            m_Source.TrySetResult();
++        }
++
++        public void Cancel()
++        {
++            Complete(ItemPurchaseDecision.Cancelled);
++        }
++    }
++
++    private static void SetField(Object target, string name, object value)
++    {
++        target.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
++            ?.SetValue(target, value);
++    }
++
++    private static void SetStaticField(System.Type type, string name, object value)
++    {
++        type.GetField(name, System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
++            ?.SetValue(null, value);
++    }
++
++    private static T GetField<T>(Object target, string name)
++    {
++        return (T)target.GetType().GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
++            ?.GetValue(target);
++    }
++}
++#endif
+diff --git a/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs.meta b/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs.meta
+new file mode 100644
+index 0000000..d47f8ec
+--- /dev/null
++++ b/Assets/Editor/Debug/ItemPurchaseUseStateTests.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: d1d55883680640f08214596cce5cacb0
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs b/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs
+new file mode 100644
+index 0000000..3a83a88
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs
+@@ -0,0 +1,445 @@
++#if UNITY_6000_0_OR_NEWER
++using System;
++using System.Threading;
++using UnityEngine;
++
++namespace InTheArena.MainGame
++{
++    public enum ItemPurchaseUseState
++    {
++        Idle,
++        ConfirmingPurchase,
++        AwaitingTarget,
++        Committing
++    }
++
++    public enum ItemPurchaseUseMode
++    {
++        Immediate,
++        Targeted
++    }
++
++    public enum ItemPurchaseDecision
++    {
++        Confirmed,
++        Cancelled
++    }
++
++    public enum ItemPurchaseUseResult
++    {
++        Rejected,
++        Cancelled,
++        Failed,
++        AwaitingTarget,
++        PreviewSucceeded,
++        UseSucceeded
++    }
++
++    public interface IItemPurchaseConfirmationView
++    {
++        Awaitable ShowAsync(
++            ItemData itemData,
++            int currentGold,
++            CancellationToken token);
++
++        ItemPurchaseDecision LastDecision { get; }
++
++        void Cancel();
++    }
++
++    /// <summary>
++    /// 팝업·타기팅 입력 순서와 요청 수명만 관리하는 비전역 Coordinator입니다.
++    /// 골드와 효과 변경은 ItemPurchaseUseService에 위임합니다.
++    /// </summary>
++    public sealed class ItemPurchaseUseCoordinator : IDisposable
++    {
++        private readonly RoundContext m_Context;
++        private readonly StagePlayerState m_PlayerState;
++        private readonly ItemPurchaseUseService m_Service;
++
++        private ItemPurchaseUseState m_State = ItemPurchaseUseState.Idle;
++        private ItemPurchaseUseMode m_Mode;
++        private ItemData m_ActiveItem;
++        private IItemPurchaseConfirmationView m_ActivePopup;
++        private CancellationTokenSource m_ActiveCancellationSource;
++        private CancellationTokenRegistration m_ActiveRequestCancellationRegistration;
++        private bool m_HasActiveRequestCancellationRegistration;
++        private int m_ObservedGold;
++        private int m_ObservedRound;
++        private long m_RequestVersion;
++        private long m_ActiveRequestVersion;
++        private bool m_IsDisposed;
++        private ItemPurchaseUseResult m_LastResult = ItemPurchaseUseResult.Rejected;
++
++        public ItemPurchaseUseCoordinator(
++            RoundContext context,
++            StagePlayerState playerState,
++            ItemPurchaseUseService service)
++        {
++            m_Context = context ?? throw new ArgumentNullException(nameof(context));
++            m_PlayerState = playerState ?? throw new ArgumentNullException(nameof(playerState));
++            m_Service = service ?? throw new ArgumentNullException(nameof(service));
++        }
++
++        public ItemPurchaseUseState State => m_State;
++        public long ActiveRequestVersion => m_ActiveRequestVersion;
++        public bool IsDisposed => m_IsDisposed;
++        public ItemPurchaseUseResult LastResult => m_LastResult;
++
++        private bool TryBeginRequest(
++            ItemData itemData,
++            ItemPurchaseUseMode mode,
++            out long requestVersion)
++        {
++            requestVersion = 0;
++
++            if (m_IsDisposed || m_State != ItemPurchaseUseState.Idle)
++            {
++                return false;
++            }
++
++            if (itemData == null || itemData.ItemType == ItemType.None || m_Context.CurrentRound <= 0)
++            {
++                return false;
++            }
++
++            m_RequestVersion++;
++            m_ActiveRequestVersion = m_RequestVersion;
++            m_ActiveItem = itemData;
++            m_Mode = mode;
++            m_ObservedGold = m_PlayerState.Gold;
++            m_ObservedRound = m_Context.CurrentRound;
++            m_State = ItemPurchaseUseState.ConfirmingPurchase;
++            requestVersion = m_ActiveRequestVersion;
++            return true;
++        }
++
++        public async Awaitable RequestImmediatePreviewAsync(
++            ItemData itemData,
++            IItemPurchaseConfirmationView popup,
++            IItemPurchaseUseExecutor executor,
++            CancellationToken token)
++        {
++            m_LastResult = ItemPurchaseUseResult.Rejected;
++
++            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
++            {
++                return;
++            }
++
++            m_ActivePopup = popup;
++            m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
++            RegisterRequestCancellation(token);
++
++            if (!IsCurrentRequest(requestVersion))
++            {
++                return;
++            }
++
++            try
++            {
++                await popup.ShowAsync(
++                    itemData,
++                    m_ObservedGold,
++                    m_ActiveCancellationSource.Token);
++
++                ItemPurchaseDecision decision = popup.LastDecision;
++
++                if (!IsActiveRequest(requestVersion))
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_ActivePopup = null;
++
++                if (decision != ItemPurchaseDecision.Confirmed)
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_State = ItemPurchaseUseState.Committing;
++                bool success = m_Service.TryPreview(
++                    itemData,
++                    executor,
++                    m_ObservedGold,
++                    out _);
++
++                m_LastResult = success
++                    ? ItemPurchaseUseResult.PreviewSucceeded
++                    : ItemPurchaseUseResult.Failed;
++
++                FinishRequest(requestVersion);
++                return;
++            }
++            catch (OperationCanceledException)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Cancelled;
++                return;
++            }
++            catch (Exception)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Failed;
++                return;
++            }
++        }
++
++        public async Awaitable RequestImmediateUseAsync(
++            ItemData itemData,
++            IItemPurchaseConfirmationView popup,
++            IItemPurchaseUseExecutor executor,
++            CancellationToken token)
++        {
++            m_LastResult = ItemPurchaseUseResult.Rejected;
++
++            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
++            {
++                return;
++            }
++
++            m_ActivePopup = popup;
++            m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
++            RegisterRequestCancellation(token);
++
++            if (!IsCurrentRequest(requestVersion))
++            {
++                return;
++            }
++
++            try
++            {
++                await popup.ShowAsync(
++                    itemData,
++                    m_ObservedGold,
++                    m_ActiveCancellationSource.Token);
++
++                ItemPurchaseDecision decision = popup.LastDecision;
++
++                if (!IsActiveRequest(requestVersion))
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_ActivePopup = null;
++
++                if (decision != ItemPurchaseDecision.Confirmed)
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_State = ItemPurchaseUseState.Committing;
++                bool success = m_Service.TryUse(
++                    itemData,
++                    executor,
++                    m_ObservedGold,
++                    out _);
++
++                m_LastResult = success
++                    ? ItemPurchaseUseResult.UseSucceeded
++                    : ItemPurchaseUseResult.Failed;
++
++                FinishRequest(requestVersion);
++            }
++            catch (OperationCanceledException)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Cancelled;
++            }
++            catch (Exception)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Failed;
++            }
++        }
++
++        public async Awaitable RequestTargetedPreviewAsync(
++            ItemData itemData,
++            IItemPurchaseConfirmationView popup,
++            CancellationToken token)
++        {
++            m_LastResult = ItemPurchaseUseResult.Rejected;
++
++            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
++            {
++                return;
++            }
++
++            m_ActivePopup = popup;
++            m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
++            RegisterRequestCancellation(token);
++
++            if (!IsCurrentRequest(requestVersion))
++            {
++                return;
++            }
++
++            try
++            {
++                await popup.ShowAsync(
++                    itemData,
++                    m_ObservedGold,
++                    m_ActiveCancellationSource.Token);
++
++                ItemPurchaseDecision decision = popup.LastDecision;
++
++                if (!IsActiveRequest(requestVersion))
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_ActivePopup = null;
++
++                if (decision != ItemPurchaseDecision.Confirmed)
++                {
++                    FinishRequest(requestVersion);
++                    m_LastResult = ItemPurchaseUseResult.Cancelled;
++                    return;
++                }
++
++                m_State = ItemPurchaseUseState.AwaitingTarget;
++                m_LastResult = ItemPurchaseUseResult.AwaitingTarget;
++            }
++            catch (OperationCanceledException)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Cancelled;
++            }
++            catch (Exception)
++            {
++                FinishRequest(requestVersion);
++                m_LastResult = ItemPurchaseUseResult.Failed;
++            }
++        }
++
++        private bool TryBeginTargetCommit(long requestVersion)
++        {
++            if (!IsActiveRequest(requestVersion) ||
++                m_Mode != ItemPurchaseUseMode.Targeted ||
++                m_State != ItemPurchaseUseState.AwaitingTarget)
++            {
++                return false;
++            }
++
++            m_State = ItemPurchaseUseState.Committing;
++            return true;
++        }
++
++        public bool TryCompleteTargetPreview(
++            long requestVersion,
++            IItemPurchaseUseExecutor executor,
++            out ItemPurchaseUseResult result,
++            out string message)
++        {
++            result = ItemPurchaseUseResult.Rejected;
++            message = string.Empty;
++
++            if (!TryBeginTargetCommit(requestVersion))
++            {
++                return false;
++            }
++
++            bool success = m_Service.TryPreview(
++                m_ActiveItem,
++                executor,
++                m_ObservedGold,
++                out message);
++
++            result = success
++                ? ItemPurchaseUseResult.PreviewSucceeded
++                : ItemPurchaseUseResult.Failed;
++
++            m_LastResult = result;
++
++            FinishRequest(requestVersion);
++            return success;
++        }
++
++        public void CancelActiveRequest()
++        {
++            if (m_IsDisposed)
++            {
++                return;
++            }
++
++            m_RequestVersion++;
++            m_ActiveRequestVersion = m_RequestVersion;
++            m_LastResult = ItemPurchaseUseResult.Cancelled;
++            m_ActiveCancellationSource?.Cancel();
++            m_ActivePopup?.Cancel();
++            ClearActiveRequest();
++        }
++
++        public void Dispose()
++        {
++            if (m_IsDisposed)
++            {
++                return;
++            }
++
++            CancelActiveRequest();
++            m_IsDisposed = true;
++        }
++
++        private bool IsActiveRequest(long requestVersion)
++        {
++            return IsCurrentRequest(requestVersion) &&
++                   m_Context.CurrentRound == m_ObservedRound;
++        }
++
++        private bool IsCurrentRequest(long requestVersion)
++        {
++            return !m_IsDisposed &&
++                   m_State != ItemPurchaseUseState.Idle &&
++                   requestVersion == m_ActiveRequestVersion;
++        }
++
++        private void FinishRequest(long requestVersion)
++        {
++            if (!IsCurrentRequest(requestVersion))
++            {
++                return;
++            }
++
++            m_RequestVersion++;
++            m_ActiveRequestVersion = m_RequestVersion;
++            ClearActiveRequest();
++        }
++
++        private void ClearActiveRequest()
++        {
++            if (m_HasActiveRequestCancellationRegistration)
++            {
++                m_ActiveRequestCancellationRegistration.Dispose();
++                m_HasActiveRequestCancellationRegistration = false;
++            }
++
++            m_ActiveCancellationSource?.Dispose();
++            m_ActiveCancellationSource = null;
++            m_ActivePopup = null;
++            m_ActiveItem = null;
++            m_ObservedGold = 0;
++            m_ObservedRound = 0;
++            m_State = ItemPurchaseUseState.Idle;
++        }
++
++        private void RegisterRequestCancellation(CancellationToken token)
++        {
++            m_ActiveRequestCancellationRegistration = token.Register(
++                static state => ((ItemPurchaseUseCoordinator)state).CancelActiveRequest(),
++                this);
++            m_HasActiveRequestCancellationRegistration = true;
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs.meta b/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs.meta
+new file mode 100644
+index 0000000..2a950af
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseCoordinator.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: 0cfbc0bc8bca4c228618b17dfb7e91a1
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs b/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs
+new file mode 100644
+index 0000000..36480a7
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs
+@@ -0,0 +1,74 @@
++#if UNITY_6000_0_OR_NEWER
++using System.Collections.Generic;
++
++namespace InTheArena.MainGame
++{
++    public sealed class BettingItemUseExecutor : IReversibleItemPurchaseUseExecutor
++    {
++        private readonly BettingPhase m_BettingPhase;
++        private List<SpecialBetType> m_PreviousSpecialBets;
++        private SpecialBetType? m_PreviousOverride;
++        private bool m_HasSnapshot;
++
++        public BettingItemUseExecutor(BettingPhase bettingPhase)
++        {
++            m_BettingPhase = bettingPhase;
++        }
++
++        public bool TryExecute(ItemData itemData, out string message)
++        {
++            message = string.Empty;
++            if (m_BettingPhase == null)
++            {
++                message = "베팅 페이즈가 없습니다.";
++                return false;
++            }
++
++            IReadOnlyList<SpecialBetType> activeSpecialBets = m_BettingPhase.GetActiveSpecialBetsForItemUse();
++            m_PreviousSpecialBets = activeSpecialBets != null
++                ? new List<SpecialBetType>(activeSpecialBets)
++                : new List<SpecialBetType>();
++            m_PreviousOverride = m_BettingPhase.OverriddenSpecialBet;
++            m_HasSnapshot = true;
++            return m_BettingPhase.TryApplyPurchasedItemEffect(itemData, out message);
++        }
++
++        public void Rollback(ItemData itemData)
++        {
++            if (!m_HasSnapshot || m_BettingPhase == null)
++            {
++                return;
++            }
++
++            m_BettingPhase.RestorePurchasedItemState(m_PreviousSpecialBets, m_PreviousOverride);
++            m_HasSnapshot = false;
++        }
++    }
++
++    public sealed class CombatTimeExtensionUseExecutor : IReversibleItemPurchaseUseExecutor
++    {
++        private readonly CombatPhase m_CombatPhase;
++
++        public CombatTimeExtensionUseExecutor(CombatPhase combatPhase)
++        {
++            m_CombatPhase = combatPhase;
++        }
++
++        public bool TryExecute(ItemData itemData, out string message)
++        {
++            if (m_CombatPhase == null)
++            {
++                message = "전투 페이즈가 없습니다.";
++                return false;
++            }
++
++            return m_CombatPhase.TryApplyPurchasedItemEffect(itemData, out message);
++        }
++
++        public void Rollback(ItemData itemData)
++        {
++            m_CombatPhase?.RollbackPurchasedTimeExtension();
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs.meta b/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs.meta
+new file mode 100644
+index 0000000..a041115
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseExecutors.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: dbd113b00ea567241b69d88f29975c20
+\ No newline at end of file
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseService.cs b/Assets/Scripts/MainGame/ItemPurchaseUseService.cs
+new file mode 100644
+index 0000000..5affd02
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseService.cs
+@@ -0,0 +1,185 @@
++#if UNITY_6000_0_OR_NEWER
++using System;
++
++namespace InTheArena.MainGame
++{
++    /// <summary>
++    /// Phase 1-A에서 효과 실행을 대체하는 테스트용 실행 경계입니다.
++    /// 실제 아이템 효과와 골드/사용 기록 커밋은 후속 단계에서 연결합니다.
++    /// </summary>
++    public interface IItemPurchaseUseExecutor
++    {
++        bool TryExecute(ItemData itemData, out string message);
++    }
++
++    public interface IReversibleItemPurchaseUseExecutor : IItemPurchaseUseExecutor
++    {
++        void Rollback(ItemData itemData);
++    }
++
++    /// <summary>
++    /// 구매·사용 거래의 검증과 실행 요청을 담당합니다.
++    /// Phase 1-A에서는 실제 골드 차감과 사용 완료 기록을 수행하지 않습니다.
++    /// </summary>
++    public sealed class ItemPurchaseUseService
++    {
++        private readonly RoundContext m_Context;
++        private readonly StagePlayerState m_PlayerState;
++
++        public ItemPurchaseUseService(RoundContext context, StagePlayerState playerState)
++        {
++            m_Context = context;
++            m_PlayerState = playerState;
++        }
++
++        public bool TryValidate(ItemData itemData, int observedGold, out string message)
++        {
++            message = string.Empty;
++
++            if (itemData == null)
++            {
++                message = "유효하지 않은 아이템입니다.";
++                return false;
++            }
++
++            if (itemData.ItemType == ItemType.None)
++            {
++                message = "아이템 종류가 설정되지 않았습니다.";
++                return false;
++            }
++
++            if (m_Context == null || m_Context.CurrentRound <= 0)
++            {
++                message = "활성 라운드가 없습니다.";
++                return false;
++            }
++
++            if (m_PlayerState == null)
++            {
++                message = "스테이지 플레이어 상태가 없습니다.";
++                return false;
++            }
++
++            if (itemData.PriceGold < 0)
++            {
++                message = "아이템 가격이 잘못되었습니다.";
++                return false;
++            }
++
++            if (observedGold != m_PlayerState.Gold)
++            {
++                message = "골드 정보가 변경되었습니다.";
++                return false;
++            }
++
++            if (m_PlayerState.Gold < itemData.PriceGold)
++            {
++                message = "골드가 부족합니다.";
++                return false;
++            }
++
++            if (m_Context.RoundItemUsage.HasUsed(itemData.ItemType))
++            {
++                message = "이번 라운드에 이미 사용한 아이템입니다.";
++                return false;
++            }
++
++            return true;
++        }
++
++        public bool TryPreview(
++            ItemData itemData,
++            IItemPurchaseUseExecutor executor,
++            int observedGold,
++            out string message)
++        {
++            if (!TryValidate(itemData, observedGold, out message))
++            {
++                return false;
++            }
++
++            if (executor == null)
++            {
++                message = "아이템 실행기가 없습니다.";
++                return false;
++            }
++
++            try
++            {
++                return executor.TryExecute(itemData, out message);
++            }
++            catch (Exception exception)
++            {
++                message = $"아이템 실행 중 오류가 발생했습니다: {exception.Message}";
++                return false;
++            }
++        }
++
++        public bool TryUse(
++            ItemData itemData,
++            IItemPurchaseUseExecutor executor,
++            int observedGold,
++            out string message)
++        {
++            message = string.Empty;
++
++            if (!TryValidate(itemData, observedGold, out message))
++            {
++                return false;
++            }
++
++            if (executor == null)
++            {
++                message = "아이템 실행기가 없습니다.";
++                return false;
++            }
++
++            if (!m_Context.RoundItemUsage.TryMarkUsed(itemData.ItemType))
++            {
++                message = "이번 라운드에 이미 사용한 아이템입니다.";
++                return false;
++            }
++
++            int originalGold = m_PlayerState.Gold;
++            m_PlayerState.Gold = originalGold - itemData.PriceGold;
++
++            bool success;
++            try
++            {
++                success = executor.TryExecute(itemData, out message);
++            }
++            catch (Exception exception)
++            {
++                success = false;
++                message = $"아이템 실행 중 오류가 발생했습니다: {exception.Message}";
++            }
++
++            if (success)
++            {
++                if (string.IsNullOrEmpty(message))
++                {
++                    message = "아이템을 사용했습니다.";
++                }
++
++                return true;
++            }
++
++            if (executor is IReversibleItemPurchaseUseExecutor reversibleExecutor)
++            {
++                try
++                {
++                    reversibleExecutor.Rollback(itemData);
++                }
++                catch (Exception exception)
++                {
++                    message = $"아이템 실패 복구 중 오류가 발생했습니다: {exception.Message}";
++                }
++            }
++
++            m_Context.RoundItemUsage.TryUnmarkUsed(itemData.ItemType);
++            m_PlayerState.Gold = originalGold;
++            return false;
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/MainGame/ItemPurchaseUseService.cs.meta b/Assets/Scripts/MainGame/ItemPurchaseUseService.cs.meta
+new file mode 100644
+index 0000000..80bad09
+--- /dev/null
++++ b/Assets/Scripts/MainGame/ItemPurchaseUseService.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: 391a715d224740aca89527297e08bf5e
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/Scripts/MainGame/RoundItemUsageState.cs b/Assets/Scripts/MainGame/RoundItemUsageState.cs
+new file mode 100644
+index 0000000..da945b9
+--- /dev/null
++++ b/Assets/Scripts/MainGame/RoundItemUsageState.cs
+@@ -0,0 +1,45 @@
++#if UNITY_6000_0_OR_NEWER
++using System.Collections.Generic;
++
++namespace InTheArena.MainGame
++{
++    /// <summary>
++    /// 이번 라운드에서 사용 완료된 아이템 종류만 보관하는 도메인 상태입니다.
++    /// UI, 팝업, 타기팅 또는 트랜잭션 수명은 소유하지 않습니다.
++    /// </summary>
++    public sealed class RoundItemUsageState
++    {
++        private readonly HashSet<ItemType> m_UsedItemTypes = new HashSet<ItemType>();
++
++        public bool HasUsed(ItemType itemType)
++        {
++            return itemType != ItemType.None && m_UsedItemTypes.Contains(itemType);
++        }
++
++        public bool TryMarkUsed(ItemType itemType)
++        {
++            if (itemType == ItemType.None)
++            {
++                return false;
++            }
++
++            return m_UsedItemTypes.Add(itemType);
++        }
++
++        internal bool TryUnmarkUsed(ItemType itemType)
++        {
++            if (itemType == ItemType.None)
++            {
++                return false;
++            }
++
++            return m_UsedItemTypes.Remove(itemType);
++        }
++
++        public void Reset()
++        {
++            m_UsedItemTypes.Clear();
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/MainGame/RoundItemUsageState.cs.meta b/Assets/Scripts/MainGame/RoundItemUsageState.cs.meta
+new file mode 100644
+index 0000000..9e7c173
+--- /dev/null
++++ b/Assets/Scripts/MainGame/RoundItemUsageState.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: cc03e7646f6149a5b73aa70ab7c94917
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:
+diff --git a/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs b/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs
+new file mode 100644
+index 0000000..412d5c2
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs
+@@ -0,0 +1,196 @@
++#if UNITY_6000_0_OR_NEWER
++using System.Threading;
++using InTheArena.MainGame;
++using TMPro;
++using UnityEngine;
++using UnityEngine.EventSystems;
++using UnityEngine.UI;
++
++namespace InTheArena.UI
++{
++    [DisallowMultipleComponent]
++    public sealed class UI_ItemPurchasePopupController : UI_Base, IItemPurchaseConfirmationView, IPointerClickHandler
++    {
++        [SerializeField] private Button m_BuyButton;
++        [SerializeField] private TMP_Text m_ItemInfoText;
++        [SerializeField] private TMP_Text m_PriceText;
++        [SerializeField] private RectTransform m_PopupPanel;
++
++        private AwaitableCompletionSource m_CompletionSource;
++        private bool m_IsShowing;
++        private bool m_IsRequestCompleted;
++        private bool m_ListenersRegistered;
++        private ItemPurchaseDecision m_LastDecision = ItemPurchaseDecision.Cancelled;
++
++        public ItemPurchaseDecision LastDecision => m_LastDecision;
++
++        protected override void Awake()
++        {
++            base.Awake();
++            ResolveReferences();
++            RegisterListeners();
++        }
++
++        public async Awaitable ShowAsync(
++            ItemData itemData,
++            int currentGold,
++            CancellationToken token)
++        {
++            if (m_IsShowing || itemData == null)
++            {
++                return;
++            }
++
++            ResolveReferences();
++            RegisterListeners();
++            SetDisplay(itemData, currentGold);
++
++            var source = new AwaitableCompletionSource();
++            m_LastDecision = ItemPurchaseDecision.Cancelled;
++            m_IsRequestCompleted = false;
++            m_CompletionSource = source;
++            m_IsShowing = true;
++
++            try
++            {
++                if (UIManager.Instance == null || !UIManager.Instance.OpenControl(this))
++                {
++                    Complete(ItemPurchaseDecision.Cancelled);
++                    return;
++                }
++
++                using (CancellationTokenRegistration registration = token.Register(
++                    static state => ((UI_ItemPurchasePopupController)state).Complete(
++                        ItemPurchaseDecision.Cancelled),
++                    this))
++                {
++                    await source.Awaitable;
++                    // Keep the completed request alive until the next frame so a
++                    // re-entrant ShowAsync call cannot replace its decision before
++                    // popup cleanup has finished.
++                    await Awaitable.NextFrameAsync();
++                }
++            }
++            finally
++            {
++                if (ReferenceEquals(m_CompletionSource, source))
++                {
++                    m_CompletionSource = null;
++                    m_IsShowing = false;
++                    m_IsRequestCompleted = false;
++                }
++
++                if (UIManager.Instance != null)
++                {
++                    UIManager.Instance.CloseControl(this);
++                }
++            }
++        }
++
++        public void Cancel()
++        {
++            Complete(ItemPurchaseDecision.Cancelled);
++        }
++
++        private void OnBuyClicked()
++        {
++            Complete(ItemPurchaseDecision.Confirmed);
++        }
++
++        private void Complete(ItemPurchaseDecision decision)
++        {
++            AwaitableCompletionSource source = m_CompletionSource;
++            if (!m_IsShowing || m_IsRequestCompleted || source == null)
++            {
++                return;
++            }
++
++            m_IsRequestCompleted = true;
++            m_LastDecision = decision;
++            source.TrySetResult();
++        }
++
++        private void ResolveReferences()
++        {
++            m_BuyButton ??= FindButton("Btn_Buy");
++
++            Transform innerPanel = transform.Find("PopupPanel/InnerPanel");
++            m_ItemInfoText ??= innerPanel?.Find("Text_Info1")?.GetComponent<TMP_Text>();
++            m_PriceText ??= innerPanel?.Find("Text")?.GetComponent<TMP_Text>()
++                ?? innerPanel?.Find("Btn_Buy/InnerButton/Text")?.GetComponent<TMP_Text>();
++            m_PopupPanel ??= transform.Find("PopupPanel") as RectTransform;
++        }
++
++        private void RegisterListeners()
++        {
++            if (m_ListenersRegistered)
++            {
++                return;
++            }
++
++            if (m_BuyButton != null)
++            {
++                m_BuyButton.onClick.AddListener(OnBuyClicked);
++            }
++
++            m_ListenersRegistered = true;
++        }
++
++        private Button FindButton(string objectName)
++        {
++            Transform target = transform.Find($"PopupPanel/InnerPanel/{objectName}");
++            return target != null ? target.GetComponent<Button>() : null;
++        }
++
++        private void SetDisplay(ItemData itemData, int currentGold)
++        {
++            if (m_ItemInfoText != null)
++            {
++                m_ItemInfoText.text = $"{itemData.ItemName}을(를) 구매할까요?\n보유 골드: {currentGold}";
++            }
++
++            if (m_PriceText != null)
++            {
++                m_PriceText.text = $"{itemData.PriceGold} G";
++            }
++        }
++
++        public void OnPointerClick(PointerEventData eventData)
++        {
++            if (!m_IsShowing ||
++                m_IsRequestCompleted ||
++                eventData == null ||
++                m_PopupPanel == null)
++            {
++                return;
++            }
++
++            bool isInsidePopup = RectTransformUtility.RectangleContainsScreenPoint(
++                m_PopupPanel,
++                eventData.position,
++                eventData.pressEventCamera);
++
++            if (!isInsidePopup)
++            {
++                Complete(ItemPurchaseDecision.Cancelled);
++            }
++        }
++
++        private void OnDisable()
++        {
++            Complete(ItemPurchaseDecision.Cancelled);
++        }
++
++        protected override void OnDestroy()
++        {
++            if (m_ListenersRegistered && m_BuyButton != null)
++            {
++                m_BuyButton.onClick.RemoveListener(OnBuyClicked);
++            }
++
++            Complete(ItemPurchaseDecision.Cancelled);
++            base.OnDestroy();
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs.meta b/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs.meta
+new file mode 100644
+index 0000000..b064072
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_ItemPurchasePopupController.cs.meta
+@@ -0,0 +1,11 @@
++fileFormatVersion: 2
++guid: 5bfe96adf80a46c89499b6e3b6ca8d48
++MonoImporter:
++  externalObjects: {}
++  serializedVersion: 2
++  defaultReferences: []
++  executionOrder: 0
++  icon: {instanceID: 0}
++  userData:
++  assetBundleName:
++  assetBundleVariant:

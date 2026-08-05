@@ -1,4 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
+using System.Threading;
 using InTheArena.MainGame;
 using TMPro;
 using UnityEngine;
@@ -39,6 +40,7 @@ namespace InTheArena.UI
         [SerializeField] private Button m_ItemSlot3Button;
         [SerializeField] private Image m_ItemSlot3Icon;
         [SerializeField] private ItemData m_ItemSlot3Data;
+        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
 
         private CombatPhase m_CombatPhase;
         private RoundContext m_RoundContext;
@@ -46,10 +48,13 @@ namespace InTheArena.UI
         private ItemInventoryService m_InventoryService;
         private ItemData m_DraggedItem;
         private bool m_IsSubscribed;
+        private CancellationTokenSource m_ItemUseLifetimeCancellation;
+        private long m_ActiveTargetingRequestVersion = -1;
 
         protected override void Awake()
         {
             base.Awake();
+            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             ApplyItemIcons();
             ResetDisplay();
         }
@@ -108,6 +113,7 @@ namespace InTheArena.UI
 
         public override void OnClosed()
         {
+            CancelTargetingRequest();
             UnsubscribeEvents();
             m_DraggedItem = null;
             ResetDisplay();
@@ -125,6 +131,12 @@ namespace InTheArena.UI
         public void OnBeginDrag(PointerEventData eventData)
         {
             m_DraggedItem = ResolveDraggedItem(eventData);
+            if (m_DraggedItem == null) return;
+
+            if (CanUseNewTargetingFlow(m_DraggedItem))
+            {
+                RequestTargetedItemUse(m_DraggedItem);
+            }
         }
 
         public void OnDrag(PointerEventData eventData)
@@ -142,6 +154,18 @@ namespace InTheArena.UI
                 return;
             }
 
+            if (CanUseNewImmediateFlow(itemData) && itemData.ItemType == ItemType.TimeExtension)
+            {
+                Debug.Log("[UI_BattlePhaseHUD] 시간 연장 아이템은 클릭으로 사용해야 합니다.");
+                return;
+            }
+
+            if (CanUseNewTargetingFlow(itemData))
+            {
+                // 타기팅 기반 아이템 사용은 비동기 흐름과 InputManager.OnSkillDragEnded를 통해 커밋됨
+                return;
+            }
+
             if (!InputManager.Instance.RaycastGroundPosition(eventData.position, out Vector3 worldPosition))
             {
                 Debug.Log("[UI_BattlePhaseHUD] 전장 영역에 아이템을 드롭해야 합니다.");
@@ -149,6 +173,92 @@ namespace InTheArena.UI
             }
 
             bool success = m_CombatPhase.UseCombatItem(itemData, worldPosition, out string message, out _);
+            Debug.Log($"[UI_BattlePhaseHUD] {message}");
+            if (success)
+            {
+                RefreshItemButtons();
+            }
+        }
+
+        private async void RequestTargetedItemUse(ItemData itemData)
+        {
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+
+            if (coordinator == null || popup == null) return;
+
+            CancelTargetingRequest();
+
+            long requestVersion = await coordinator.RequestTargetedUseAsync(
+                itemData,
+                popup,
+                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
+
+            if (requestVersion != -1 && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
+            {
+                m_ActiveTargetingRequestVersion = requestVersion;
+                InputManager.Instance.ArmSkillTargeting(0, (int)requestVersion);
+                InputManager.Instance.OnSkillDragEnded += OnSkillDragEnded;
+            }
+        }
+
+        private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
+        {
+            if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, worldPos);
+            if (itemData.ItemType == ItemType.Mercenary) return new CombatMercenaryUseExecutor(m_CombatPhase, worldPos);
+            return null;
+        }
+
+        private void DetachTargetingInput()
+        {
+            if (InputManager.Instance != null)
+            {
+                InputManager.Instance.OnSkillDragEnded -= OnSkillDragEnded;
+                InputManager.Instance.CancelSkillDrag();
+            }
+            m_ActiveTargetingRequestVersion = -1;
+        }
+
+        private void CancelTargetingRequest()
+        {
+            long requestVersion = m_ActiveTargetingRequestVersion;
+            DetachTargetingInput();
+
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
+            {
+                coordinator.CancelActiveRequest();
+            }
+        }
+
+        private void OnSkillDragEnded(int skillId, Vector2 screenPos, Vector3 worldPos, bool isCanceled, bool isValid)
+        {
+            if (m_CombatPhase == null || m_DraggedItem == null)
+            {
+                CancelTargetingRequest();
+                return;
+            }
+
+            long targetVersion = m_ActiveTargetingRequestVersion;
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+
+            if (isCanceled || !isValid || coordinator == null || coordinator.ActiveRequestVersion != targetVersion)
+            {
+                CancelTargetingRequest();
+                return;
+            }
+
+            DetachTargetingInput();
+
+            IItemPurchaseUseExecutor executor = CreateExecutor(m_DraggedItem, worldPos);
+
+            bool success = coordinator.TryCompleteTargetUse(
+                targetVersion,
+                executor,
+                out ItemPurchaseUseResult result,
+                out string message);
+
             Debug.Log($"[UI_BattlePhaseHUD] {message}");
             if (success)
             {
@@ -168,6 +278,21 @@ namespace InTheArena.UI
                 m_SpeedButton.onClick.AddListener(OnSpeedButtonClicked);
             }
 
+            if (m_ItemSlot1Button != null)
+            {
+                m_ItemSlot1Button.onClick.AddListener(OnItemSlot1Clicked);
+            }
+
+            if (m_ItemSlot2Button != null)
+            {
+                m_ItemSlot2Button.onClick.AddListener(OnItemSlot2Clicked);
+            }
+
+            if (m_ItemSlot3Button != null)
+            {
+                m_ItemSlot3Button.onClick.AddListener(OnItemSlot3Clicked);
+            }
+
             m_CombatPhase.OnItemUsed += OnCombatItemUsed;
             m_IsSubscribed = true;
         }
@@ -182,6 +307,21 @@ namespace InTheArena.UI
             if (m_SpeedButton != null)
             {
                 m_SpeedButton.onClick.RemoveListener(OnSpeedButtonClicked);
+            }
+
+            if (m_ItemSlot1Button != null)
+            {
+                m_ItemSlot1Button.onClick.RemoveListener(OnItemSlot1Clicked);
+            }
+
+            if (m_ItemSlot2Button != null)
+            {
+                m_ItemSlot2Button.onClick.RemoveListener(OnItemSlot2Clicked);
+            }
+
+            if (m_ItemSlot3Button != null)
+            {
+                m_ItemSlot3Button.onClick.RemoveListener(OnItemSlot3Clicked);
             }
 
             if (m_CombatPhase != null)
@@ -201,6 +341,56 @@ namespace InTheArena.UI
 
             m_CombatPhase.ToggleCombatSpeed();
             RefreshCombatState();
+        }
+
+        private void OnItemSlot1Clicked()
+        {
+            RequestImmediateItemUse(m_ItemSlot1Data);
+        }
+
+        private void OnItemSlot2Clicked()
+        {
+            RequestImmediateItemUse(m_ItemSlot2Data);
+        }
+
+        private void OnItemSlot3Clicked()
+        {
+            RequestImmediateItemUse(m_ItemSlot3Data);
+        }
+
+        private void RequestImmediateItemUse(ItemData itemData)
+        {
+            if (!CanUseNewImmediateFlow(itemData) || itemData.ItemType != ItemType.TimeExtension)
+            {
+                return;
+            }
+
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+            if (coordinator == null || popup == null || popup.ParentRoot == null)
+            {
+                return;
+            }
+
+            _ = RequestImmediateItemUseAsync(itemData, coordinator, popup);
+        }
+
+        private async Awaitable RequestImmediateItemUseAsync(
+            ItemData itemData,
+            ItemPurchaseUseCoordinator coordinator,
+            UI_ItemPurchasePopupController popup)
+        {
+            await coordinator.RequestImmediateUseAsync(
+                itemData,
+                popup,
+                new CombatTimeExtensionUseExecutor(m_CombatPhase),
+                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
+
+            if (coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded)
+            {
+                RefreshItemButtons();
+            }
         }
 
         private void OnCombatItemUsed(ItemData itemData)
@@ -324,10 +514,51 @@ namespace InTheArena.UI
                 return;
             }
 
+            if (CanUseNewImmediateFlow(itemData))
+            {
+                button.interactable = CanAcceptCombatInput() &&
+                    !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
+                    itemData.PriceGold >= 0 &&
+                    m_PlayerState.Gold >= itemData.PriceGold;
+                return;
+            }
+
             int count = m_InventoryService != null && m_PlayerState != null && itemData != null
                 ? m_InventoryService.GetStageItemCount(itemData, m_PlayerState)
                 : 0;
             button.interactable = CanAcceptCombatInput() && count > 0;
+        }
+
+        private bool CanUseNewImmediateFlow(ItemData itemData)
+        {
+            if (itemData == null || itemData.ItemType != ItemType.TimeExtension)
+            {
+                return false;
+            }
+
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
+                popup != null &&
+                popup.ParentRoot != null &&
+                m_RoundContext != null &&
+                m_PlayerState != null;
+        }
+
+        private bool CanUseNewTargetingFlow(ItemData itemData)
+        {
+            if (itemData == null || (itemData.ItemType != ItemType.Meteor && itemData.ItemType != ItemType.Mercenary))
+            {
+                return false;
+            }
+
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
+                popup != null &&
+                popup.ParentRoot != null &&
+                m_RoundContext != null &&
+                m_PlayerState != null;
         }
 
         private ItemData ResolveDraggedItem(PointerEventData eventData)
@@ -440,6 +671,9 @@ namespace InTheArena.UI
         {
             UnsubscribeEvents();
             ClearBindings();
+            m_ItemUseLifetimeCancellation?.Cancel();
+            m_ItemUseLifetimeCancellation?.Dispose();
+            m_ItemUseLifetimeCancellation = null;
             base.OnDestroy();
         }
     }

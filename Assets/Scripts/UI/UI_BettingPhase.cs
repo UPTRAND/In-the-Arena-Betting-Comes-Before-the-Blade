@@ -1,4 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
+using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,6 +19,7 @@ namespace InTheArena.UI
         [SerializeField] private ItemData m_AdditionalBetData;
         [SerializeField] private ItemData m_InsuranceData;
         [SerializeField] private ItemData m_RerollData;
+        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
 
         [Header("UI Feedback")]
         [SerializeField] private TMP_Text m_FeedbackText;
@@ -25,9 +27,12 @@ namespace InTheArena.UI
         [SerializeField] private TMP_Text m_InsuranceCountText;
         [SerializeField] private TMP_Text m_RerollCountText;
 
+        private CancellationTokenSource m_ItemUseLifetimeCancellation;
+
         protected override void Awake()
         {
             base.Awake();
+            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             RefreshItemCounts();
             
             if (m_AdditionalBetButton != null)
@@ -78,6 +83,15 @@ namespace InTheArena.UI
                 return;
             }
 
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance.ItemPurchaseUseCoordinator;
+            if (itemData != null && popup != null && popup.ParentRoot != null && coordinator != null)
+            {
+                _ = TryUseItemThroughPurchaseFlowAsync(itemData, coordinator, popup);
+                return;
+            }
+
             string message;
             int remain;
             bool success = RoundManager.Instance.BettingPhase.UseBettingItem(itemData, out message, out remain);
@@ -91,6 +105,22 @@ namespace InTheArena.UI
                     countText.text = remain.ToString();
                 }
             }
+        }
+
+        private async Awaitable TryUseItemThroughPurchaseFlowAsync(
+            ItemData itemData,
+            ItemPurchaseUseCoordinator coordinator,
+            UI_ItemPurchasePopupController popup)
+        {
+            await coordinator.RequestImmediateUseAsync(
+                itemData,
+                popup,
+                new BettingItemUseExecutor(RoundManager.Instance.BettingPhase),
+                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
+
+            ShowFeedback(coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded
+                ? "베팅 아이템을 사용했습니다."
+                : "베팅 아이템을 사용하지 못했습니다.");
         }
 
         private void ShowFeedback(string message)
@@ -116,6 +146,14 @@ namespace InTheArena.UI
             {
                 RoundManager.Instance.Context.OnSpecialBetChanged -= HandleSpecialBetChanged;
             }
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            m_ItemUseLifetimeCancellation?.Cancel();
+            m_ItemUseLifetimeCancellation?.Dispose();
+            m_ItemUseLifetimeCancellation = null;
         }
 
         private void HandleSpecialBetChanged()

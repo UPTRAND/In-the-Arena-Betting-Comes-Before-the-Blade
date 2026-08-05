@@ -1,0 +1,1420 @@
+diff --git a/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab b/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
+index 5e33435..aa48597 100644
+--- a/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
++++ b/Assets/Prefabs/UI/Popup/UI_ItemPurchasePopup.prefab
+@@ -11,13 +11,15 @@ GameObject:
+   - component: {fileID: 6949673602519545589}
+   - component: {fileID: 7589781819540602687}
+   - component: {fileID: 5617733952139232662}
++  - component: {fileID: 911234567890123456}
++  - component: {fileID: 911234567890123467}
+   m_Layer: 0
+   m_Name: UI_ItemPurchasePopup
+   m_TagString: Untagged
+   m_Icon: {fileID: 0}
+   m_NavMeshLayer: 0
+   m_StaticEditorFlags: 0
+-  m_IsActive: 1
++  m_IsActive: 0
+ --- !u!224 &6949673602519545589
+ RectTransform:
+   m_ObjectHideFlags: 0
+@@ -76,6 +78,37 @@ MonoBehaviour:
+   m_FillOrigin: 0
+   m_UseSpriteMesh: 0
+   m_PixelsPerUnitMultiplier: 1
++--- !u!114 &911234567890123456
++MonoBehaviour:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 516824395472061953}
++  m_Enabled: 1
++  m_EditorHideFlags: 0
++  m_Script: {fileID: 11500000, guid: 5bfe96adf80a46c89499b6e3b6ca8d48, type: 3}
++  m_Name: UI_ItemPurchasePopupController
++  m_EditorClassIdentifier: InTheArena.UI::InTheArena.UI.UI_ItemPurchasePopupController
++  m_HasControl: 1
++  m_CanCloseControlWithBackButton: 1
++  m_BIsPlayerUI: 0
++  m_BuyButton: {fileID: 4186604419378110383}
++  m_ItemInfoText: {fileID: 1846056050604460840}
++  m_PriceText: {fileID: 9159522990301913938}
++  m_PopupPanel: {fileID: 262617361110753614}
++--- !u!225 &911234567890123467
++CanvasGroup:
++  m_ObjectHideFlags: 0
++  m_CorrespondingSourceObject: {fileID: 0}
++  m_PrefabInstance: {fileID: 0}
++  m_PrefabAsset: {fileID: 0}
++  m_GameObject: {fileID: 516824395472061953}
++  m_Enabled: 1
++  m_Alpha: 1
++  m_Interactable: 1
++  m_BlocksRaycasts: 1
++  m_IgnoreParentGroups: 0
+ --- !u!1 &1037037022280573194
+ GameObject:
+   m_ObjectHideFlags: 0
+@@ -599,7 +632,7 @@ RectTransform:
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0.5, y: 0}
+   m_AnchorMax: {x: 0.5, y: 0}
+-  m_AnchoredPosition: {x: 0, y: 100}
++  m_AnchoredPosition: {x: 0, y: 134}
+   m_SizeDelta: {x: 350, y: 120}
+   m_Pivot: {x: 0.5, y: 0.5}
+ --- !u!222 &38167141668907372
+diff --git a/Assets/Scenes/MainGame.unity b/Assets/Scenes/MainGame.unity
+index c719f4a..dea2095 100644
+--- a/Assets/Scenes/MainGame.unity
++++ b/Assets/Scenes/MainGame.unity
+@@ -1682,6 +1682,7 @@ RectTransform:
+   - {fileID: 218072488}
+   - {fileID: 103213511}
+   - {fileID: 326530272}
++  - {fileID: 1268398439}
+   m_Father: {fileID: 0}
+   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+   m_AnchorMin: {x: 0, y: 0}
+@@ -2921,6 +2922,108 @@ Transform:
+   m_Children: []
+   m_Father: {fileID: 1564198033}
+   m_LocalEulerAnglesHint: {x: 45, y: 0, z: 0}
++--- !u!1001 &1268398438
++PrefabInstance:
++  m_ObjectHideFlags: 0
++  serializedVersion: 2
++  m_Modification:
++    serializedVersion: 3
++    m_TransformParent: {fileID: 337048258}
++    m_Modifications:
++    - target: {fileID: 516824395472061953, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_Name
++      value: UI_ItemPurchasePopup
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_Pivot.x
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_Pivot.y
++      value: 0.5
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchorMax.x
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchorMax.y
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchorMin.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchorMin.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_SizeDelta.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_SizeDelta.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalPosition.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalPosition.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalPosition.z
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalRotation.w
++      value: 1
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalRotation.x
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalRotation.y
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalRotation.z
++      value: -0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchoredPosition.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_AnchoredPosition.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.x
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.y
++      value: 0
++      objectReference: {fileID: 0}
++    - target: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++      propertyPath: m_LocalEulerAnglesHint.z
++      value: 0
++      objectReference: {fileID: 0}
++    m_RemovedComponents: []
++    m_RemovedGameObjects: []
++    m_AddedGameObjects: []
++    m_AddedComponents: []
++  m_SourcePrefab: {fileID: 100100000, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++--- !u!224 &1268398439 stripped
++RectTransform:
++  m_CorrespondingSourceObject: {fileID: 6949673602519545589, guid: c965a3423529d5e47b5268a821cb954b, type: 3}
++  m_PrefabInstance: {fileID: 1268398438}
++  m_PrefabAsset: {fileID: 0}
+ --- !u!1 &1280806514
+ GameObject:
+   m_ObjectHideFlags: 0
+diff --git a/Assets/Scripts/MainGame/BettingPhase.cs b/Assets/Scripts/MainGame/BettingPhase.cs
+index db70cd8..ac9fc1f 100644
+--- a/Assets/Scripts/MainGame/BettingPhase.cs
++++ b/Assets/Scripts/MainGame/BettingPhase.cs
+@@ -76,11 +76,7 @@ namespace InTheArena.MainGame
+         private RoundBetTicket m_DraftTicket;
+         
+         // 아이템 상태 트래킹
+-        private bool m_UsedAdditionalBetTicket = false;
+-        private bool m_UsedInsurance = false;
+-        private bool m_UsedRerollTicket = false;
+         private SpecialBetType? m_OverriddenSpecialBet = null;
+-        private bool m_HasRerolledThisRound = false;
+ 
+         public RoundBetTicket DraftTicket 
+         { 
+@@ -102,7 +98,7 @@ namespace InTheArena.MainGame
+         { 
+             get 
+             { 
+-                return m_UsedAdditionalBetTicket; 
++                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket);
+             } 
+         }
+ 
+@@ -110,7 +106,7 @@ namespace InTheArena.MainGame
+         { 
+             get 
+             { 
+-                return m_UsedInsurance; 
++                return Context != null && Context.RoundItemUsage.HasUsed(ItemType.Insurance);
+             } 
+         }
+ 
+@@ -157,11 +153,7 @@ namespace InTheArena.MainGame
+         private void InitializePhaseData()
+         {
+             IsPhaseCompleted = false;
+-            m_UsedAdditionalBetTicket = false;
+-            m_UsedInsurance = false;
+-            m_UsedRerollTicket = false;
+             m_OverriddenSpecialBet = null;
+-            m_HasRerolledThisRound = false;
+ 
+             Context.AssignUnitsForBetting();
+             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
+@@ -654,33 +646,31 @@ namespace InTheArena.MainGame
+ 
+             if (itemData.ItemType == ItemType.AdditionalBetTicket)
+             {
+-                if (m_UsedAdditionalBetTicket)
++                if (UsedAdditionalBetTicket)
+                 {
+                     message = "추가 배팅권은 라운드당 1회만 사용 가능합니다.";
+                 }
+                 else
+                 {
+-                    m_UsedAdditionalBetTicket = true;
+                     success = true;
+                     message = "추가 배팅권(+500 Call)을 사용했습니다.";
+                 }
+             }
+             else if (itemData.ItemType == ItemType.Insurance)
+             {
+-                if (m_UsedInsurance)
++                if (UsedInsurance)
+                 {
+                     message = "보험은 라운드당 1회만 사용 가능합니다.";
+                 }
+                 else
+                 {
+-                    m_UsedInsurance = true;
+                     success = true;
+                     message = "패배 시 원금이 반환되는 보험을 사용했습니다.";
+                 }
+             }
+             else if (itemData.ItemType == ItemType.RerollTicket)
+             {
+-                if (m_UsedRerollTicket || m_HasRerolledThisRound)
++                if (Context.RoundItemUsage.HasUsed(ItemType.RerollTicket))
+                 {
+                     message = "리롤권은 라운드당 1회만 사용 가능합니다.";
+                 }
+@@ -691,8 +681,6 @@ namespace InTheArena.MainGame
+                     {
+                         int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
+                         m_OverriddenSpecialBet = specialBets[randomIndex];
+-                        m_HasRerolledThisRound = true;
+-                        m_UsedRerollTicket = true;
+                         Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
+                         RefreshSpecialBetAvailability();
+                         UpdateSurvivingSlotAvailability();
+@@ -708,20 +696,84 @@ namespace InTheArena.MainGame
+                 }
+             }
+ 
+-            if (success)
++            if (success && inventoryService.TryUseItemFromStage(itemData, playerState))
+             {
+-                inventoryService.TryUseItemFromStage(itemData, playerState);
++                Context.RoundItemUsage.TryMarkUsed(itemData.ItemType);
+             }
+ 
+             remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
+             return success;
+         }
+ 
++        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
++        {
++            message = string.Empty;
++
++            if (itemData == null || Context == null)
++            {
++                message = "유효하지 않은 베팅 아이템입니다.";
++                return false;
++            }
++
++            if (itemData.ItemType == ItemType.AdditionalBetTicket)
++            {
++                message = "추가 배팅권을 사용했습니다. (+500 Call)";
++                return true;
++            }
++
++            if (itemData.ItemType == ItemType.Insurance)
++            {
++                message = "보험을 사용했습니다. 패배 시 배팅 Call을 돌려받습니다.";
++                return true;
++            }
++
++            if (itemData.ItemType != ItemType.RerollTicket)
++            {
++                message = "베팅 아이템이 아닙니다.";
++                return false;
++            }
++
++            IReadOnlyList<SpecialBetType> specialBets = Context.CurrentStageData?.SpecialBetTypes;
++            if (specialBets == null || specialBets.Count == 0)
++            {
++                message = "변경할 특수 베팅 규칙이 없습니다.";
++                return false;
++            }
++
++            int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
++            m_OverriddenSpecialBet = specialBets[randomIndex];
++            Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
++            RefreshSpecialBetAvailability();
++            UpdateSurvivingSlotAvailability();
++            RefreshBetSummary();
++
++            message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
++            return true;
++        }
++
++        internal void RestorePurchasedItemState(
++            IReadOnlyList<SpecialBetType> previousSpecialBets,
++            SpecialBetType? previousOverride)
++        {
++            m_OverriddenSpecialBet = previousOverride;
++            Context?.SetActiveSpecialBets(previousSpecialBets);
++            RefreshSpecialBetAvailability();
++            UpdateSurvivingSlotAvailability();
++            RefreshBetSummary();
++        }
++
++        internal IReadOnlyList<SpecialBetType> GetActiveSpecialBetsForItemUse()
++        {
++            return Context?.ActiveSpecialBets;
++        }
++
+         private void OnConfirmBetClicked()
+         {
+             if (IsPhaseCompleted) return;
+ 
+-            m_DraftTicket.SetItemUsages(m_UsedAdditionalBetTicket, m_UsedInsurance);
++            m_DraftTicket.SetItemUsages(
++                Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket),
++                Context.RoundItemUsage.HasUsed(ItemType.Insurance));
+             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
+             {
+                 if (m_ValidationText != null) m_ValidationText.text = error;
+diff --git a/Assets/Scripts/MainGame/CombatPhase.cs b/Assets/Scripts/MainGame/CombatPhase.cs
+index 6e41506..97202a4 100644
+--- a/Assets/Scripts/MainGame/CombatPhase.cs
++++ b/Assets/Scripts/MainGame/CombatPhase.cs
+@@ -223,10 +223,10 @@ namespace InTheArena.MainGame
+         private RoundData GetCurrentRoundData()
+         {
+             if (Context == null || Context.CurrentStageData == null || Context.CurrentRound <= 0) return null;
+-            
++
+             int roundIndex = Context.CurrentRound - 1;
+             if (roundIndex < 0 || roundIndex >= Context.CurrentStageData.RoundDatas.Count) return null;
+-            
++
+             return Context.CurrentStageData.RoundDatas[roundIndex];
+         }
+ 
+@@ -559,6 +559,7 @@ namespace InTheArena.MainGame
+         public int BlueAliveCount => CountLivingUnits(Context?.TeamBUnits);
+         public int InitialRedUnitCount => m_InitialRedUnitCount;
+         public int InitialBlueUnitCount => m_InitialBlueUnitCount;
++        public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
+ 
+         public override async Awaitable ExitPhaseAsync(CancellationToken token)
+         {
+@@ -615,6 +616,33 @@ namespace InTheArena.MainGame
+ 
+         public event System.Action<ItemData> OnItemUsed;
+ 
++        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
++        {
++            message = string.Empty;
++
++            if (itemData == null)
++            {
++                message = "유효하지 않은 전투 아이템입니다.";
++                return false;
++            }
++
++            if (itemData.ItemType != ItemType.TimeExtension)
++            {
++                message = "Phase 1-B에서 지원하는 전투 아이템이 아닙니다.";
++                return false;
++            }
++
++            m_RemainingCombatTime += 5f;
++            OnItemUsed?.Invoke(itemData);
++            message = "전투 시간이 5초 연장되었습니다.";
++            return true;
++        }
++
++        internal void RollbackPurchasedTimeExtension()
++        {
++            m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - 5f);
++        }
++
+         public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
+         {
+             remainingCount = 0;
+@@ -645,38 +673,11 @@ namespace InTheArena.MainGame
+ 
+             if (itemData.ItemType == ItemType.Meteor)
+             {
+-                ApplyMeteorEffect(dropPosition);
+-                success = true;
+-                message = "메테오를 사용했습니다.";
++                success = TryApplyMeteorEffect(dropPosition, out message);
+             }
+             else if (itemData.ItemType == ItemType.Mercenary)
+             {
+-                if (m_MercenaryKnightData == null ||
+-                    m_MercenaryArcherData == null ||
+-                    m_MercenaryWizardData == null)
+-                {
+-                    message = "용병 데이터가 없습니다.";
+-                    return false;
+-                }
+-                
+-                Team team = Team.Red;
+-                if (UnityEngine.Camera.main != null)
+-                {
+-                    Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
+-                    if (viewportPos.x >= 0.5f)
+-                    {
+-                        team = Team.Blue;
+-                    }
+-                }
+-
+-                SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
+-                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
+-                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
+-                SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
+-                SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
+-
+-                success = true;
+-                message = "용병을 고용했습니다.";
++                success = TrySpawnMercenaries(dropPosition, out message);
+             }
+             else if (itemData.ItemType == ItemType.TimeExtension)
+             {
+@@ -707,26 +708,84 @@ namespace InTheArena.MainGame
+             bool teamEliminated = deadUnit.Team == (int)Team.Red
+                 ? UnitRegistry.RedAliveCount == 0
+                 : UnitRegistry.BlueAliveCount == 0;
+-            
++
+             if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
+ 
+             deadUnit.HoldDeathPresentation();
+             m_FinalDeathPresentationUnits.Add(deadUnit);
+         }
+ 
+-        private void SpawnMercenary(UnitData unitData, Team team, Vector3 position)
++        internal bool TrySpawnMercenaries(Vector3 dropPosition, out string message)
+         {
+-            if (unitData == null)
++            message = "";
++            if (m_MercenaryKnightData == null || m_MercenaryArcherData == null || m_MercenaryWizardData == null)
+             {
+-                return;
++                message = "용병 데이터가 없습니다.";
++                return false;
+             }
+ 
+-            if (Context == null)
++            Team team = Team.Red;
++            if (UnityEngine.Camera.main != null)
+             {
+-                return;
++                Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
++                if (viewportPos.x >= 0.5f)
++                {
++                    team = Team.Blue;
++                }
++            }
++
++            List<UnitType> spawnedUnits = new List<UnitType>(3);
++            try
++            {
++                UnitType knight = SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
++                if (knight == null) throw new Exception("기사 소환 실패");
++                spawnedUnits.Add(knight);
++
++                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
++                UnitType archer = SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
++                if (archer == null) throw new Exception("궁수 소환 실패");
++                spawnedUnits.Add(archer);
++
++                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
++                UnitType wizard = SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
++                if (wizard == null) throw new Exception("마법사 소환 실패");
++                spawnedUnits.Add(wizard);
++
++                message = "용병을 고용했습니다.";
++                return true;
+             }
++            catch (Exception ex)
++            {
++                Debug.LogError($"[CombatPhase] 용병 소환 실패 및 롤백: {ex.Message}");
++                RollbackMercenaries(spawnedUnits, team);
++                message = "용병 소환에 실패했습니다.";
++                return false;
++            }
++        }
+ 
+-            InTheArena.Unit.Unit unit = PoolManager.Require().Units.Spawn(
++        private void RollbackMercenaries(List<UnitType> units, Team team)
++        {
++            List<UnitType> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
++            foreach (var unit in units)
++            {
++                if (unit == null) continue;
++
++                if (m_DeathHandlers.TryGetValue(unit, out var handler))
++                {
++                    unit.OnDied -= handler;
++                    m_DeathHandlers.Remove(unit);
++                }
++
++                runtimeUnits.Remove(unit);
++                PoolManager.Require().Units.Return(unit);
++            }
++        }
++
++        private UnitType SpawnMercenary(UnitData unitData, Team team, Vector3 position)
++        {
++            if (unitData == null || Context == null) return null;
++
++            UnitType unit = PoolManager.Require().Units.Spawn(
+                 unitData,
+                 team == Team.Red ? m_TeamASpawnRoot : m_TeamBSpawnRoot,
+                 (int)team,
+@@ -737,26 +796,31 @@ namespace InTheArena.MainGame
+             if (unit != null)
+             {
+                 unit.SetAIActive(true);
+-                List<InTheArena.Unit.Unit> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
++                List<UnitType> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
+                 runtimeUnits.Add(unit);
+-                
++
+                 System.Action<UnitType> handler = _ => OnMercenaryDied(unit);
+                 m_DeathHandlers[unit] = handler;
+                 unit.OnDied += handler;
+             }
++            return unit;
+         }
+ 
+-        private void ApplyMeteorEffect(Vector3 center)
++        internal bool TryApplyMeteorEffect(Vector3 center, out string message)
+         {
+             float radius = 2f;
+             float stunDuration = 3f;
+             float radiusSqr = radius * radius;
++            message = "";
+ 
+             if (Context != null)
+             {
+                 ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
+                 ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
+             }
++
++            message = "메테오를 사용했습니다.";
++            return true;
+         }
+ 
+         private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
+@@ -813,7 +877,7 @@ namespace InTheArena.MainGame
+ 
+             // Team A 배치 정보 (빨간색)
+             DrawGridContentGizmos(roundData.TeamAGrid, Team.Red, new Color(1f, 0.2f, 0.2f, 0.8f));
+-            
++
+             // Team B 배치 정보 (파란색)
+             DrawGridContentGizmos(roundData.TeamBGrid, Team.Blue, new Color(0.2f, 0.5f, 1f, 0.8f));
+         }
+@@ -861,7 +925,7 @@ namespace InTheArena.MainGame
+             if (grid == null) return;
+ 
+             Gizmos.color = color;
+-            
++
+             int cellCount = Mathf.Min(grid.Length, TeamGridCellCount);
+             for (int cellIndex = 0; cellIndex < cellCount; cellIndex++)
+             {
+diff --git a/Assets/Scripts/MainGame/RoundContext.cs b/Assets/Scripts/MainGame/RoundContext.cs
+index 7d0ed44..181813a 100644
+--- a/Assets/Scripts/MainGame/RoundContext.cs
++++ b/Assets/Scripts/MainGame/RoundContext.cs
+@@ -18,6 +18,8 @@ namespace InTheArena.MainGame
+         public int MaxRounds { get; set; } = 5;
+         public StageData CurrentStageData { get; set; }
+         public StageSession StageSession { get; } = new StageSession();
++        public RoundItemUsageState RoundItemUsage { get; } = new RoundItemUsageState();
++        private int m_ItemUsageRoundIndex = -1;
+         public int TargetCall => CurrentStageData != null ? CurrentStageData.TargetCall : 0;
+         public int CurrentCall => StageSession.CurrentCall;
+ 
+@@ -75,6 +77,8 @@ namespace InTheArena.MainGame
+             MaxRounds = stageData.TotalRounds;
+             StageSession.Initialize(stageData);
+             CurrentRound = 0;
++            m_ItemUsageRoundIndex = -1;
++            RoundItemUsage.Reset();
+             ResetRoundState();
+         }
+ 
+@@ -84,15 +88,28 @@ namespace InTheArena.MainGame
+         public void SetRoundData(StageData stageData, int roundIndex)
+         {
+             if (stageData == null) return;
+-            if (CurrentStageData != stageData || StageSession.StageData != stageData)
++            bool isNewStage = CurrentStageData != stageData || StageSession.StageData != stageData;
++            if (isNewStage)
+             {
+                 InitializeStage(stageData);
+             }
+ 
++            if (m_ItemUsageRoundIndex != roundIndex)
++            {
++                if (!isNewStage)
++                {
++                    RoundItemUsage.Reset();
++                }
++
++                m_ItemUsageRoundIndex = roundIndex;
++            }
++
++            int nextRound = roundIndex + 1;
+             CurrentStageId = stageData.StageId;
+             MaxRounds = stageData.TotalRounds;
+-            CurrentRound = roundIndex + 1;
++            CurrentRound = nextRound;
+             CurrentStageData = stageData;
++
+             ResetRoundState();
+ 
+             if (roundIndex < stageData.RoundDatas.Count)
+@@ -193,6 +210,8 @@ namespace InTheArena.MainGame
+             IsRoundCompleted = false;
+             CombatWinner = Team.None;
+             CurrentRoundRule = RoundRule.None;
++            m_ItemUsageRoundIndex = -1;
++            RoundItemUsage.Reset();
+             ActiveSpecialBets.Clear();
+             OnSpecialBetChanged = null;
+         }
+diff --git a/Assets/Scripts/Managers/InputManager.cs b/Assets/Scripts/Managers/InputManager.cs
+index 7e20b34..6d7bc57 100644
+--- a/Assets/Scripts/Managers/InputManager.cs
++++ b/Assets/Scripts/Managers/InputManager.cs
+@@ -27,6 +27,8 @@ public class InputManager : Manager_Base
+ 
+     // ��ų �巡�� ���� ����
+     private bool m_IsDraggingSkill;
++    private bool m_IsTargetingArmed;
++    private int m_ArmedSessionId = -1;
+     private int m_CurrentDraggingSkillId = -1;
+     private Camera m_CachedMainCamera;
+ 
+@@ -44,7 +46,7 @@ public class InputManager : Manager_Base
+     /// <summary>
+     /// ��ų �巡�� ����/�ߵ� (��ų ID, ȭ�� ��ǥ, 3D ���� ���� ��ǥ, ��� ����)
+     /// </summary>
+-    public event Action<int, Vector2, Vector3, bool> OnSkillDragEnded;
++    public event Action<int, Vector2, Vector3, bool, bool> OnSkillDragEnded;
+     #endregion
+ 
+     public Camera MainCamera
+@@ -117,6 +119,13 @@ public class InputManager : Manager_Base
+             }
+ 
+             // 2. ��ų �巡�� Ÿ���� ���� ������Ʈ
++            if (m_IsTargetingArmed && !IsPointerOverUIObject(touch.screenPosition))
++            {
++                m_IsTargetingArmed = false;
++                StartSkillDrag(m_CurrentDraggingSkillId, touch.screenPosition);
++                return;
++            }
++
+             if (m_IsDraggingSkill)
+             {
+                 if (touch.phase == UnityEngine.InputSystem.TouchPhase.Moved || touch.phase == UnityEngine.InputSystem.TouchPhase.Stationary)
+@@ -170,6 +179,27 @@ public class InputManager : Manager_Base
+     /// <summary>
+     /// HUD ��ų ��ư�� OnPointerDown/OnBeginDrag���� ȣ���Ͽ� ���� Ÿ���� ����
+     /// </summary>
++    public void ArmSkillTargeting(int skillId, int sessionId)
++    {
++        m_IsTargetingArmed = true;
++        m_ArmedSessionId = sessionId;
++        m_CurrentDraggingSkillId = skillId;
++    }
++
++    public void CancelSkillDrag()
++    {
++        if (m_IsDraggingSkill)
++        {
++            EndSkillDrag(Vector2.zero, true);
++        }
++        else
++        {
++            m_IsTargetingArmed = false;
++            m_ArmedSessionId = -1;
++            m_CurrentDraggingSkillId = -1;
++        }
++    }
++
+     public void StartSkillDrag(int skillId, Vector2 screenPosition)
+     {
+         m_IsDraggingSkill = true;
+@@ -184,7 +214,8 @@ public class InputManager : Manager_Base
+         if (!m_IsDraggingSkill) return;
+ 
+         bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
+-        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, hitGround);
++        bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
++        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, isValid);
+     }
+ 
+     private void EndSkillDrag(Vector2 screenPosition, bool isCanceled)
+@@ -192,7 +223,8 @@ public class InputManager : Manager_Base
+         if (!m_IsDraggingSkill) return;
+ 
+         bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
+-        OnSkillDragEnded?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, isCanceled);
++        bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
++        OnSkillDragEnded?.Invoke(m_CurrentDraggingSkillId, screenPosition, worldPos, isCanceled, isValid);
+ 
+         m_IsDraggingSkill = false;
+         m_CurrentDraggingSkillId = -1;
+@@ -207,7 +239,7 @@ public class InputManager : Manager_Base
+         if (MainCamera == null) return false;
+ 
+         Ray ray = MainCamera.ScreenPointToRay(screenPosition);
+-        if (Physics.Raycast(ray, out RaycastHit hit, 500f, m_GroundLayerMask))
++        if (Physics.Raycast(ray, out RaycastHit hit, 500f, m_GroundLayerMask, QueryTriggerInteraction.Collide))
+         {
+             worldPosition = hit.point;
+             return true;
+diff --git a/Assets/Scripts/Managers/RoundManager.cs b/Assets/Scripts/Managers/RoundManager.cs
+index ad63677..d7bb910 100644
+--- a/Assets/Scripts/Managers/RoundManager.cs
++++ b/Assets/Scripts/Managers/RoundManager.cs
+@@ -54,6 +54,8 @@ namespace InTheArena.MainGame
+ 
+         private RoundContext m_Context;
+         private StageData m_CurrentStageData;
++        private StagePlayerState m_PlayerState;
++        private ItemPurchaseUseCoordinator m_ItemPurchaseUseCoordinator;
+         private CancellationTokenSource m_RoundCts;
+         private int m_CurrentRoundIndex = 0;
+         private bool m_IsRoundRunning = false;
+@@ -61,6 +63,7 @@ namespace InTheArena.MainGame
+ 
+         public RoundContext Context => m_Context;
+         public StageData CurrentStageData => m_CurrentStageData;
++        public ItemPurchaseUseCoordinator ItemPurchaseUseCoordinator => m_ItemPurchaseUseCoordinator;
+         public bool IsRoundRunning => m_IsRoundRunning;
+         public int CurrentRoundIndex => m_CurrentRoundIndex;
+ 
+@@ -80,11 +83,17 @@ namespace InTheArena.MainGame
+         /// <summary>
+         /// StageManager에서 호출하여 컨텍스트와 스테이지 데이터 초기화
+         /// </summary>
+-        public void InitializeContext(RoundContext context, StageData stageData)
++        public void InitializeContext(
++            RoundContext context,
++            StageData stageData,
++            StagePlayerState playerState)
+         {
++            DisposeItemPurchaseUseCoordinator();
+             m_Context = context ?? new RoundContext();
+             m_CurrentStageData = stageData;
++            m_PlayerState = playerState;
+             m_Context.InitializeStage(stageData);
++            CreateItemPurchaseUseCoordinator();
+ 
+             Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
+         }
+@@ -106,6 +115,7 @@ namespace InTheArena.MainGame
+                 return;
+             }
+ 
++            CreateItemPurchaseUseCoordinator();
+             m_CurrentRoundIndex = roundIndex;
+             m_RoundCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+             m_IsRoundRunning = true;
+@@ -174,6 +184,7 @@ namespace InTheArena.MainGame
+             finally
+             {
+                 await CleanupActivePhaseAsync();
++                DisposeItemPurchaseUseCoordinator();
+                 m_IsRoundRunning = false;
+                 PoolManager.Instance?.ClearRound();
+                 
+@@ -187,6 +198,7 @@ namespace InTheArena.MainGame
+ 
+         private async Awaitable CleanupActivePhaseAsync()
+         {
++            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+             RoundPhaseBase activePhase = m_ActivePhase;
+             m_ActivePhase = null;
+             if (activePhase == null)
+@@ -253,6 +265,7 @@ namespace InTheArena.MainGame
+         /// </summary>
+         public void ForceEndRound()
+         {
++            m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+             if (m_RoundCts != null)
+             {
+                 m_RoundCts.Cancel();
+@@ -261,11 +274,37 @@ namespace InTheArena.MainGame
+ 
+         private void OnDestroy()
+         {
++            DisposeItemPurchaseUseCoordinator();
+             if (ReferenceEquals(_instance, this))
+             {
+                 _instance = null;
+             }
+         }
++
++        private void CreateItemPurchaseUseCoordinator()
++        {
++            if (m_ItemPurchaseUseCoordinator != null || m_Context == null || m_PlayerState == null)
++            {
++                return;
++            }
++
++            var service = new ItemPurchaseUseService(m_Context, m_PlayerState);
++            m_ItemPurchaseUseCoordinator = new ItemPurchaseUseCoordinator(
++                m_Context,
++                m_PlayerState,
++                service);
++        }
++
++        private void DisposeItemPurchaseUseCoordinator()
++        {
++            if (m_ItemPurchaseUseCoordinator == null)
++            {
++                return;
++            }
++
++            m_ItemPurchaseUseCoordinator.Dispose();
++            m_ItemPurchaseUseCoordinator = null;
++        }
+     }
+ }
+ #endif
+diff --git a/Assets/Scripts/Managers/StageManager.cs b/Assets/Scripts/Managers/StageManager.cs
+index 36112ea..787e507 100644
+--- a/Assets/Scripts/Managers/StageManager.cs
++++ b/Assets/Scripts/Managers/StageManager.cs
+@@ -275,7 +275,10 @@ namespace InTheArena.MainGame
+             }
+ 
+             // RoundManager에 컨텍스트 전달
+-            RoundManager.Instance.InitializeContext(m_Context, m_CurrentStageData);
++            RoundManager.Instance.InitializeContext(
++                m_Context,
++                m_CurrentStageData,
++                PlayerState);
+         }
+ 
+         private async Awaitable RunStageLoopAsync(CancellationToken token)
+diff --git a/Assets/Scripts/Managers/UIManager.cs b/Assets/Scripts/Managers/UIManager.cs
+index dded3d7..9cdb888 100644
+--- a/Assets/Scripts/Managers/UIManager.cs
++++ b/Assets/Scripts/Managers/UIManager.cs
+@@ -35,6 +35,7 @@ public class UIManager : Manager_Base
+     private readonly List<List<UI_Base>> m_ControlStack = new List<List<UI_Base>>();
+     private bool m_BindCallbacks;
+     private bool m_IsScreenFaderOpened;
++    private Coroutine m_SceneUiRebindRoutine;
+ 
+     public static UIObjectPoolingFactory Pool => Instance != null ? Instance.m_Pool : null;
+     // FX ���� �߰� �� ����
+@@ -139,6 +140,29 @@ public class UIManager : Manager_Base
+     {
+         // ���� ����Ǹ� ���� ���� UI ������ ����
+         ClearSceneCache();
++
++        if (m_SceneUiRebindRoutine != null)
++        {
++            StopCoroutine(m_SceneUiRebindRoutine);
++        }
++
++        m_SceneUiRebindRoutine = StartCoroutine(RebindSceneUiRootsNextFrame());
++    }
++
++    private IEnumerator RebindSceneUiRootsNextFrame()
++    {
++        yield return null;
++
++        m_SceneUiRebindRoutine = null;
++
++        UI_Root[] sceneRoots = FindObjectsByType<UI_Root>(
++            FindObjectsInactive.Include,
++            FindObjectsSortMode.None);
++
++        foreach (UI_Root sceneRoot in sceneRoots)
++        {
++            RegisterUiRoot(sceneRoot);
++        }
+     }
+ 
+     /// <summary>
+@@ -218,6 +242,7 @@ public class UIManager : Manager_Base
+ 
+     private void ClearSceneCache()
+     {
++        UnbindUiRootCallbacks();
+         m_ControlStack.Clear();
+         m_AllUiBaseObjects.Clear();
+         m_UiElementsByTypename.Clear();
+@@ -226,16 +251,21 @@ public class UIManager : Manager_Base
+         m_UiRoots.Clear();
+     }
+ 
+-    private void UnbindCallbacks()
++    private void UnbindUiRootCallbacks()
+     {
+-        if (!m_BindCallbacks) return;
+-
+         foreach (var uiRoot in m_UiRoots)
+         {
+             if (uiRoot == null) continue;
+             uiRoot.OnControlAdded -= OnControlAdded;
+             uiRoot.OnControlRemoved -= OnControlRemoved;
+         }
++    }
++
++    private void UnbindCallbacks()
++    {
++        if (!m_BindCallbacks) return;
++
++        UnbindUiRootCallbacks();
+ 
+         if (ScreenFader.Instance != null)
+         {
+@@ -257,6 +287,34 @@ public class UIManager : Manager_Base
+         return m_BakedUiRoots.TryGetValue(parent, out var root) ? root : null;
+     }
+ 
++    public bool OpenControl(UI_Base control)
++    {
++        if (control == null)
++        {
++            return false;
++        }
++
++        if (control.ParentRoot == null)
++        {
++            Debug.LogError($"[UIManager] {control.name}에 UI_Root가 설정되지 않았습니다.");
++            return false;
++        }
++
++        control.Open();
++        return true;
++    }
++
++    public bool CloseControl(UI_Base control)
++    {
++        if (control == null)
++        {
++            return false;
++        }
++
++        control.Close();
++        return true;
++    }
++
+     public T GetElement<T>() where T : class, IUIBase
+     {
+         string typeName = typeof(T).Name;
+diff --git a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+index 3a01d71..8099af3 100644
+--- a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
++++ b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+@@ -1,4 +1,5 @@
+ #if UNITY_6000_0_OR_NEWER
++using System.Threading;
+ using InTheArena.MainGame;
+ using TMPro;
+ using UnityEngine;
+@@ -39,6 +40,7 @@ namespace InTheArena.UI
+         [SerializeField] private Button m_ItemSlot3Button;
+         [SerializeField] private Image m_ItemSlot3Icon;
+         [SerializeField] private ItemData m_ItemSlot3Data;
++        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
+ 
+         private CombatPhase m_CombatPhase;
+         private RoundContext m_RoundContext;
+@@ -46,10 +48,13 @@ namespace InTheArena.UI
+         private ItemInventoryService m_InventoryService;
+         private ItemData m_DraggedItem;
+         private bool m_IsSubscribed;
++        private CancellationTokenSource m_ItemUseLifetimeCancellation;
++        private long m_ActiveTargetingRequestVersion = -1;
+ 
+         protected override void Awake()
+         {
+             base.Awake();
++            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+             ApplyItemIcons();
+             ResetDisplay();
+         }
+@@ -108,6 +113,7 @@ namespace InTheArena.UI
+ 
+         public override void OnClosed()
+         {
++            CancelTargetingRequest();
+             UnsubscribeEvents();
+             m_DraggedItem = null;
+             ResetDisplay();
+@@ -125,6 +131,12 @@ namespace InTheArena.UI
+         public void OnBeginDrag(PointerEventData eventData)
+         {
+             m_DraggedItem = ResolveDraggedItem(eventData);
++            if (m_DraggedItem == null) return;
++
++            if (CanUseNewTargetingFlow(m_DraggedItem))
++            {
++                RequestTargetedItemUse(m_DraggedItem);
++            }
+         }
+ 
+         public void OnDrag(PointerEventData eventData)
+@@ -142,6 +154,18 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            if (CanUseNewImmediateFlow(itemData) && itemData.ItemType == ItemType.TimeExtension)
++            {
++                Debug.Log("[UI_BattlePhaseHUD] 시간 연장 아이템은 클릭으로 사용해야 합니다.");
++                return;
++            }
++
++            if (CanUseNewTargetingFlow(itemData))
++            {
++                // 타기팅 기반 아이템 사용은 비동기 흐름과 InputManager.OnSkillDragEnded를 통해 커밋됨
++                return;
++            }
++
+             if (!InputManager.Instance.RaycastGroundPosition(eventData.position, out Vector3 worldPosition))
+             {
+                 Debug.Log("[UI_BattlePhaseHUD] 전장 영역에 아이템을 드롭해야 합니다.");
+@@ -156,6 +180,92 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        private async void RequestTargetedItemUse(ItemData itemData)
++        {
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++
++            if (coordinator == null || popup == null) return;
++
++            CancelTargetingRequest();
++
++            long requestVersion = await coordinator.RequestTargetedUseAsync(
++                itemData,
++                popup,
++                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
++
++            if (requestVersion != -1 && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
++            {
++                m_ActiveTargetingRequestVersion = requestVersion;
++                InputManager.Instance.ArmSkillTargeting(0, (int)requestVersion);
++                InputManager.Instance.OnSkillDragEnded += OnSkillDragEnded;
++            }
++        }
++
++        private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
++        {
++            if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, worldPos);
++            if (itemData.ItemType == ItemType.Mercenary) return new CombatMercenaryUseExecutor(m_CombatPhase, worldPos);
++            return null;
++        }
++
++        private void DetachTargetingInput()
++        {
++            if (InputManager.Instance != null)
++            {
++                InputManager.Instance.OnSkillDragEnded -= OnSkillDragEnded;
++                InputManager.Instance.CancelSkillDrag();
++            }
++            m_ActiveTargetingRequestVersion = -1;
++        }
++
++        private void CancelTargetingRequest()
++        {
++            long requestVersion = m_ActiveTargetingRequestVersion;
++            DetachTargetingInput();
++
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
++            {
++                coordinator.CancelActiveRequest();
++            }
++        }
++
++        private void OnSkillDragEnded(int skillId, Vector2 screenPos, Vector3 worldPos, bool isCanceled, bool isValid)
++        {
++            if (m_CombatPhase == null || m_DraggedItem == null)
++            {
++                CancelTargetingRequest();
++                return;
++            }
++
++            long targetVersion = m_ActiveTargetingRequestVersion;
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++
++            if (isCanceled || !isValid || coordinator == null || coordinator.ActiveRequestVersion != targetVersion)
++            {
++                CancelTargetingRequest();
++                return;
++            }
++
++            DetachTargetingInput();
++
++            IItemPurchaseUseExecutor executor = CreateExecutor(m_DraggedItem, worldPos);
++
++            bool success = coordinator.TryCompleteTargetUse(
++                targetVersion,
++                executor,
++                out ItemPurchaseUseResult result,
++                out string message);
++
++            Debug.Log($"[UI_BattlePhaseHUD] {message}");
++            if (success)
++            {
++                RefreshItemButtons();
++            }
++        }
++
+         private void SubscribeEvents()
+         {
+             if (m_IsSubscribed || m_CombatPhase == null)
+@@ -168,6 +278,21 @@ namespace InTheArena.UI
+                 m_SpeedButton.onClick.AddListener(OnSpeedButtonClicked);
+             }
+ 
++            if (m_ItemSlot1Button != null)
++            {
++                m_ItemSlot1Button.onClick.AddListener(OnItemSlot1Clicked);
++            }
++
++            if (m_ItemSlot2Button != null)
++            {
++                m_ItemSlot2Button.onClick.AddListener(OnItemSlot2Clicked);
++            }
++
++            if (m_ItemSlot3Button != null)
++            {
++                m_ItemSlot3Button.onClick.AddListener(OnItemSlot3Clicked);
++            }
++
+             m_CombatPhase.OnItemUsed += OnCombatItemUsed;
+             m_IsSubscribed = true;
+         }
+@@ -184,6 +309,21 @@ namespace InTheArena.UI
+                 m_SpeedButton.onClick.RemoveListener(OnSpeedButtonClicked);
+             }
+ 
++            if (m_ItemSlot1Button != null)
++            {
++                m_ItemSlot1Button.onClick.RemoveListener(OnItemSlot1Clicked);
++            }
++
++            if (m_ItemSlot2Button != null)
++            {
++                m_ItemSlot2Button.onClick.RemoveListener(OnItemSlot2Clicked);
++            }
++
++            if (m_ItemSlot3Button != null)
++            {
++                m_ItemSlot3Button.onClick.RemoveListener(OnItemSlot3Clicked);
++            }
++
+             if (m_CombatPhase != null)
+             {
+                 m_CombatPhase.OnItemUsed -= OnCombatItemUsed;
+@@ -203,6 +343,56 @@ namespace InTheArena.UI
+             RefreshCombatState();
+         }
+ 
++        private void OnItemSlot1Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot1Data);
++        }
++
++        private void OnItemSlot2Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot2Data);
++        }
++
++        private void OnItemSlot3Clicked()
++        {
++            RequestImmediateItemUse(m_ItemSlot3Data);
++        }
++
++        private void RequestImmediateItemUse(ItemData itemData)
++        {
++            if (!CanUseNewImmediateFlow(itemData) || itemData.ItemType != ItemType.TimeExtension)
++            {
++                return;
++            }
++
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            if (coordinator == null || popup == null || popup.ParentRoot == null)
++            {
++                return;
++            }
++
++            _ = RequestImmediateItemUseAsync(itemData, coordinator, popup);
++        }
++
++        private async Awaitable RequestImmediateItemUseAsync(
++            ItemData itemData,
++            ItemPurchaseUseCoordinator coordinator,
++            UI_ItemPurchasePopupController popup)
++        {
++            await coordinator.RequestImmediateUseAsync(
++                itemData,
++                popup,
++                new CombatTimeExtensionUseExecutor(m_CombatPhase),
++                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
++
++            if (coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded)
++            {
++                RefreshItemButtons();
++            }
++        }
++
+         private void OnCombatItemUsed(ItemData itemData)
+         {
+             RefreshItemButtons();
+@@ -324,12 +514,53 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            if (CanUseNewImmediateFlow(itemData))
++            {
++                button.interactable = CanAcceptCombatInput() &&
++                    !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
++                    itemData.PriceGold >= 0 &&
++                    m_PlayerState.Gold >= itemData.PriceGold;
++                return;
++            }
++
+             int count = m_InventoryService != null && m_PlayerState != null && itemData != null
+                 ? m_InventoryService.GetStageItemCount(itemData, m_PlayerState)
+                 : 0;
+             button.interactable = CanAcceptCombatInput() && count > 0;
+         }
+ 
++        private bool CanUseNewImmediateFlow(ItemData itemData)
++        {
++            if (itemData == null || itemData.ItemType != ItemType.TimeExtension)
++            {
++                return false;
++            }
++
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
++                popup != null &&
++                popup.ParentRoot != null &&
++                m_RoundContext != null &&
++                m_PlayerState != null;
++        }
++
++        private bool CanUseNewTargetingFlow(ItemData itemData)
++        {
++            if (itemData == null || (itemData.ItemType != ItemType.Meteor && itemData.ItemType != ItemType.Mercenary))
++            {
++                return false;
++            }
++
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
++                popup != null &&
++                popup.ParentRoot != null &&
++                m_RoundContext != null &&
++                m_PlayerState != null;
++        }
++
+         private ItemData ResolveDraggedItem(PointerEventData eventData)
+         {
+             if (!CanAcceptCombatInput() || eventData == null)
+@@ -440,6 +671,9 @@ namespace InTheArena.UI
+         {
+             UnsubscribeEvents();
+             ClearBindings();
++            m_ItemUseLifetimeCancellation?.Cancel();
++            m_ItemUseLifetimeCancellation?.Dispose();
++            m_ItemUseLifetimeCancellation = null;
+             base.OnDestroy();
+         }
+     }
+diff --git a/Assets/Scripts/UI/UI_BettingPhase.cs b/Assets/Scripts/UI/UI_BettingPhase.cs
+index 4bc301a..b6ff79c 100644
+--- a/Assets/Scripts/UI/UI_BettingPhase.cs
++++ b/Assets/Scripts/UI/UI_BettingPhase.cs
+@@ -1,4 +1,5 @@
+ #if UNITY_6000_0_OR_NEWER
++using System.Threading;
+ using System.Collections.Generic;
+ using UnityEngine;
+ using UnityEngine.UI;
+@@ -18,6 +19,7 @@ namespace InTheArena.UI
+         [SerializeField] private ItemData m_AdditionalBetData;
+         [SerializeField] private ItemData m_InsuranceData;
+         [SerializeField] private ItemData m_RerollData;
++        [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
+ 
+         [Header("UI Feedback")]
+         [SerializeField] private TMP_Text m_FeedbackText;
+@@ -25,9 +27,12 @@ namespace InTheArena.UI
+         [SerializeField] private TMP_Text m_InsuranceCountText;
+         [SerializeField] private TMP_Text m_RerollCountText;
+ 
++        private CancellationTokenSource m_ItemUseLifetimeCancellation;
++
+         protected override void Awake()
+         {
+             base.Awake();
++            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+             RefreshItemCounts();
+             
+             if (m_AdditionalBetButton != null)
+@@ -78,6 +83,15 @@ namespace InTheArena.UI
+                 return;
+             }
+ 
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance.ItemPurchaseUseCoordinator;
++            if (itemData != null && popup != null && popup.ParentRoot != null && coordinator != null)
++            {
++                _ = TryUseItemThroughPurchaseFlowAsync(itemData, coordinator, popup);
++                return;
++            }
++
+             string message;
+             int remain;
+             bool success = RoundManager.Instance.BettingPhase.UseBettingItem(itemData, out message, out remain);
+@@ -93,6 +107,22 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        private async Awaitable TryUseItemThroughPurchaseFlowAsync(
++            ItemData itemData,
++            ItemPurchaseUseCoordinator coordinator,
++            UI_ItemPurchasePopupController popup)
++        {
++            await coordinator.RequestImmediateUseAsync(
++                itemData,
++                popup,
++                new BettingItemUseExecutor(RoundManager.Instance.BettingPhase),
++                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
++
++            ShowFeedback(coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded
++                ? "베팅 아이템을 사용했습니다."
++                : "베팅 아이템을 사용하지 못했습니다.");
++        }
++
+         private void ShowFeedback(string message)
+         {
+             if (m_FeedbackText != null)
+@@ -118,6 +148,14 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        protected override void OnDestroy()
++        {
++            base.OnDestroy();
++            m_ItemUseLifetimeCancellation?.Cancel();
++            m_ItemUseLifetimeCancellation?.Dispose();
++            m_ItemUseLifetimeCancellation = null;
++        }
++
+         private void HandleSpecialBetChanged()
+         {
+             ShowFeedback("특수 배팅 룰이 갱신되었습니다!");

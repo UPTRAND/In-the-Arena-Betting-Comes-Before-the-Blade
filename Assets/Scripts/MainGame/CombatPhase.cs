@@ -223,10 +223,10 @@ namespace InTheArena.MainGame
         private RoundData GetCurrentRoundData()
         {
             if (Context == null || Context.CurrentStageData == null || Context.CurrentRound <= 0) return null;
-            
+
             int roundIndex = Context.CurrentRound - 1;
             if (roundIndex < 0 || roundIndex >= Context.CurrentStageData.RoundDatas.Count) return null;
-            
+
             return Context.CurrentStageData.RoundDatas[roundIndex];
         }
 
@@ -559,6 +559,7 @@ namespace InTheArena.MainGame
         public int BlueAliveCount => CountLivingUnits(Context?.TeamBUnits);
         public int InitialRedUnitCount => m_InitialRedUnitCount;
         public int InitialBlueUnitCount => m_InitialBlueUnitCount;
+        public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
@@ -615,6 +616,33 @@ namespace InTheArena.MainGame
 
         public event System.Action<ItemData> OnItemUsed;
 
+        internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
+        {
+            message = string.Empty;
+
+            if (itemData == null)
+            {
+                message = "유효하지 않은 전투 아이템입니다.";
+                return false;
+            }
+
+            if (itemData.ItemType != ItemType.TimeExtension)
+            {
+                message = "Phase 1-B에서 지원하는 전투 아이템이 아닙니다.";
+                return false;
+            }
+
+            m_RemainingCombatTime += 5f;
+            OnItemUsed?.Invoke(itemData);
+            message = "전투 시간이 5초 연장되었습니다.";
+            return true;
+        }
+
+        internal void RollbackPurchasedTimeExtension()
+        {
+            m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - 5f);
+        }
+
         public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
         {
             remainingCount = 0;
@@ -645,38 +673,11 @@ namespace InTheArena.MainGame
 
             if (itemData.ItemType == ItemType.Meteor)
             {
-                ApplyMeteorEffect(dropPosition);
-                success = true;
-                message = "메테오를 사용했습니다.";
+                success = TryApplyMeteorEffect(dropPosition, out message);
             }
             else if (itemData.ItemType == ItemType.Mercenary)
             {
-                if (m_MercenaryKnightData == null ||
-                    m_MercenaryArcherData == null ||
-                    m_MercenaryWizardData == null)
-                {
-                    message = "용병 데이터가 없습니다.";
-                    return false;
-                }
-                
-                Team team = Team.Red;
-                if (UnityEngine.Camera.main != null)
-                {
-                    Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
-                    if (viewportPos.x >= 0.5f)
-                    {
-                        team = Team.Blue;
-                    }
-                }
-
-                SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
-                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
-                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
-                SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
-                SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
-
-                success = true;
-                message = "용병을 고용했습니다.";
+                success = TrySpawnMercenaries(dropPosition, out message);
             }
             else if (itemData.ItemType == ItemType.TimeExtension)
             {
@@ -707,26 +708,84 @@ namespace InTheArena.MainGame
             bool teamEliminated = deadUnit.Team == (int)Team.Red
                 ? UnitRegistry.RedAliveCount == 0
                 : UnitRegistry.BlueAliveCount == 0;
-            
+
             if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
 
             deadUnit.HoldDeathPresentation();
             m_FinalDeathPresentationUnits.Add(deadUnit);
         }
 
-        private void SpawnMercenary(UnitData unitData, Team team, Vector3 position)
+        internal bool TrySpawnMercenaries(Vector3 dropPosition, out string message)
         {
-            if (unitData == null)
+            message = "";
+            if (m_MercenaryKnightData == null || m_MercenaryArcherData == null || m_MercenaryWizardData == null)
             {
-                return;
+                message = "용병 데이터가 없습니다.";
+                return false;
             }
 
-            if (Context == null)
+            Team team = Team.Red;
+            if (UnityEngine.Camera.main != null)
             {
-                return;
+                Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
+                if (viewportPos.x >= 0.5f)
+                {
+                    team = Team.Blue;
+                }
             }
 
-            InTheArena.Unit.Unit unit = PoolManager.Require().Units.Spawn(
+            List<UnitType> spawnedUnits = new List<UnitType>(3);
+            try
+            {
+                UnitType knight = SpawnMercenary(m_MercenaryKnightData, team, dropPosition);
+                if (knight == null) throw new Exception("기사 소환 실패");
+                spawnedUnits.Add(knight);
+
+                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
+                UnitType archer = SpawnMercenary(m_MercenaryArcherData, team, archerPosition);
+                if (archer == null) throw new Exception("궁수 소환 실패");
+                spawnedUnits.Add(archer);
+
+                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
+                UnitType wizard = SpawnMercenary(m_MercenaryWizardData, team, wizardPosition);
+                if (wizard == null) throw new Exception("마법사 소환 실패");
+                spawnedUnits.Add(wizard);
+
+                message = "용병을 고용했습니다.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[CombatPhase] 용병 소환 실패 및 롤백: {ex.Message}");
+                RollbackMercenaries(spawnedUnits, team);
+                message = "용병 소환에 실패했습니다.";
+                return false;
+            }
+        }
+
+        private void RollbackMercenaries(List<UnitType> units, Team team)
+        {
+            List<UnitType> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
+            foreach (var unit in units)
+            {
+                if (unit == null) continue;
+
+                if (m_DeathHandlers.TryGetValue(unit, out var handler))
+                {
+                    unit.OnDied -= handler;
+                    m_DeathHandlers.Remove(unit);
+                }
+
+                runtimeUnits.Remove(unit);
+                PoolManager.Require().Units.Return(unit);
+            }
+        }
+
+        private UnitType SpawnMercenary(UnitData unitData, Team team, Vector3 position)
+        {
+            if (unitData == null || Context == null) return null;
+
+            UnitType unit = PoolManager.Require().Units.Spawn(
                 unitData,
                 team == Team.Red ? m_TeamASpawnRoot : m_TeamBSpawnRoot,
                 (int)team,
@@ -737,26 +796,31 @@ namespace InTheArena.MainGame
             if (unit != null)
             {
                 unit.SetAIActive(true);
-                List<InTheArena.Unit.Unit> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
+                List<UnitType> runtimeUnits = (team == Team.Red) ? Context.TeamAUnits : Context.TeamBUnits;
                 runtimeUnits.Add(unit);
-                
+
                 System.Action<UnitType> handler = _ => OnMercenaryDied(unit);
                 m_DeathHandlers[unit] = handler;
                 unit.OnDied += handler;
             }
+            return unit;
         }
 
-        private void ApplyMeteorEffect(Vector3 center)
+        internal bool TryApplyMeteorEffect(Vector3 center, out string message)
         {
             float radius = 2f;
             float stunDuration = 3f;
             float radiusSqr = radius * radius;
+            message = "";
 
             if (Context != null)
             {
                 ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
                 ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
             }
+
+            message = "메테오를 사용했습니다.";
+            return true;
         }
 
         private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
@@ -813,7 +877,7 @@ namespace InTheArena.MainGame
 
             // Team A 배치 정보 (빨간색)
             DrawGridContentGizmos(roundData.TeamAGrid, Team.Red, new Color(1f, 0.2f, 0.2f, 0.8f));
-            
+
             // Team B 배치 정보 (파란색)
             DrawGridContentGizmos(roundData.TeamBGrid, Team.Blue, new Color(0.2f, 0.5f, 1f, 0.8f));
         }
@@ -861,7 +925,7 @@ namespace InTheArena.MainGame
             if (grid == null) return;
 
             Gizmos.color = color;
-            
+
             int cellCount = Mathf.Min(grid.Length, TeamGridCellCount);
             for (int cellIndex = 0; cellIndex < cellCount; cellIndex++)
             {

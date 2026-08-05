@@ -275,7 +275,10 @@ namespace InTheArena.MainGame
             }
 
             // RoundManager에 컨텍스트 전달
-            RoundManager.Instance.InitializeContext(m_Context, m_CurrentStageData);
+            RoundManager.Instance.InitializeContext(
+                m_Context,
+                m_CurrentStageData,
+                PlayerState);
         }
 
         private async Awaitable RunStageLoopAsync(CancellationToken token)
