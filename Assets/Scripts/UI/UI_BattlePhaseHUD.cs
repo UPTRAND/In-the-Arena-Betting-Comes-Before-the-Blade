@@ -451,12 +451,12 @@ namespace InTheArena.UI
 
             if (m_RedTeamSlider != null)
             {
-                m_RedTeamSlider.value = GetSurvivalRatio(redAlive, m_CombatPhase.InitialRedUnitCount);
+                m_RedTeamSlider.value = GetSurvivalRatio(redAlive, m_CombatPhase.RedParticipantCount);
             }
 
             if (m_BlueTeamSlider != null)
             {
-                m_BlueTeamSlider.value = GetSurvivalRatio(blueAlive, m_CombatPhase.InitialBlueUnitCount);
+                m_BlueTeamSlider.value = GetSurvivalRatio(blueAlive, m_CombatPhase.BlueParticipantCount);
             }
 
             if (m_BattleTimerText != null)

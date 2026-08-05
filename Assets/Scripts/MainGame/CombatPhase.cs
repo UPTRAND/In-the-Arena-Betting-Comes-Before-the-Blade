@@ -51,6 +51,8 @@ namespace InTheArena.MainGame
         private float m_RemainingCombatTime;
         private int m_InitialRedUnitCount;
         private int m_InitialBlueUnitCount;
+        private int m_RedParticipantCount;
+        private int m_BlueParticipantCount;
         private readonly Dictionary<UnitType, UnitSlotKey> m_UnitSlots = new Dictionary<UnitType, UnitSlotKey>();
         private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
@@ -68,6 +70,8 @@ namespace InTheArena.MainGame
 
             m_InitialRedUnitCount = RedAliveCount;
             m_InitialBlueUnitCount = BlueAliveCount;
+            m_RedParticipantCount = m_InitialRedUnitCount;
+            m_BlueParticipantCount = m_InitialBlueUnitCount;
             m_CombatHud?.BindAndShow(
                 this,
                 Context,
@@ -88,6 +92,8 @@ namespace InTheArena.MainGame
             m_RemainingCombatTime = m_CombatTimeout;
             m_InitialRedUnitCount = 0;
             m_InitialBlueUnitCount = 0;
+            m_RedParticipantCount = 0;
+            m_BlueParticipantCount = 0;
             m_CurrentSpeed = m_NormalSpeed;
             Time.timeScale = m_CurrentSpeed;
             Context.CombatWinner = Team.None;
@@ -191,6 +197,9 @@ namespace InTheArena.MainGame
         private void OnUnitDied(UnitType deadUnit, UnitSlotKey key)
         {
             if (deadUnit == null) return;
+
+            Team team = key.Team;
+            Debug.Log($"[Phase1C Test] 유닛 사망. Team: {team}, RuntimeListCount: {(team == Team.Red ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
 
             if (m_FirstEliminatedSlot <= 0)
             {
@@ -503,8 +512,8 @@ namespace InTheArena.MainGame
 
         private CombatResultSnapshot BuildCombatResult(Team winner)
         {
-            int redAlive = 0;
-            int blueAlive = 0;
+            int redAlive = RedAliveCount;
+            int blueAlive = BlueAliveCount;
             var redSlots = new HashSet<int>();
             var blueSlots = new HashSet<int>();
 
@@ -516,12 +525,10 @@ namespace InTheArena.MainGame
                 int slot = pair.Value.CellIndex + 1;
                 if (pair.Value.Team == Team.Red)
                 {
-                    redAlive++;
                     redSlots.Add(slot);
                 }
                 else if (pair.Value.Team == Team.Blue)
                 {
-                    blueAlive++;
                     blueSlots.Add(slot);
                 }
             }
@@ -559,6 +566,8 @@ namespace InTheArena.MainGame
         public int BlueAliveCount => CountLivingUnits(Context?.TeamBUnits);
         public int InitialRedUnitCount => m_InitialRedUnitCount;
         public int InitialBlueUnitCount => m_InitialBlueUnitCount;
+        public int RedParticipantCount => m_RedParticipantCount;
+        public int BlueParticipantCount => m_BlueParticipantCount;
         public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
@@ -705,6 +714,9 @@ namespace InTheArena.MainGame
         {
             if (deadUnit == null) return;
 
+            Team team = (Team)deadUnit.Team;
+            Debug.Log($"[Phase1C Test] 용병 사망. Team: {team}, RuntimeListCount: {(team == Team.Red ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
+
             bool teamEliminated = deadUnit.Team == (int)Team.Red
                 ? UnitRegistry.RedAliveCount == 0
                 : UnitRegistry.BlueAliveCount == 0;
@@ -764,6 +776,18 @@ namespace InTheArena.MainGame
                     spawnedUnits[i].NotifyBattleStarted();
                     spawnedUnits[i].SetAIActive(true);
                 }
+
+                if (team == Team.Red)
+                {
+                    m_RedParticipantCount += spawnedUnits.Count;
+                }
+                else
+                {
+                    m_BlueParticipantCount += spawnedUnits.Count;
+                }
+
+                Debug.Log($"[Phase1C Test] 용병 고용 성공. Team: {team}, RuntimeListCount: {((team == Team.Red) ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, " +
+                          $"RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
 
                 message = "용병을 고용했습니다.";
                 return true;
