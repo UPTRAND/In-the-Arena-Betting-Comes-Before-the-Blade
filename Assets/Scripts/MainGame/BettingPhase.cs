@@ -1,7 +1,6 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using DG.Tweening;
 using InTheArena.Unit;
@@ -15,6 +14,7 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
+        private const int WagerStepCall = 100;
         [Header("Round / Team Info")]
         [SerializeField] private CanvasGroup m_BettingCanvasGroup;
         [SerializeField] private TMP_Text m_RoundText;
@@ -54,8 +54,7 @@ namespace InTheArena.MainGame
         [SerializeField] private TMP_Text m_ValidationText;
         [SerializeField] private Button m_ConfirmBetButton;
 
-        [Header("New Betting UI (optional)")]
-        [SerializeField] private TMP_InputField m_WagerInput;
+        [Header("New Betting UI")]
         [SerializeField] private TMP_Dropdown m_WinningTeamDropdown;
         [SerializeField] private TMP_Dropdown m_GameEndTimeDropdown;
         [SerializeField] private TMP_Dropdown m_OddEvenDropdown;
@@ -65,8 +64,10 @@ namespace InTheArena.MainGame
         [SerializeField] private GameObject m_FirstAnnihilatedDropdownRoot;
         [SerializeField] private Button[] m_RedSurvivingSlotButtons = new Button[6];
         [SerializeField] private TMP_Text[] m_RedSurvivingSlotTexts = new TMP_Text[6];
+        [SerializeField] private Image[] m_RedSurvivingSlotImages = new Image[6];
         [SerializeField] private Button[] m_BlueSurvivingSlotButtons = new Button[6];
         [SerializeField] private TMP_Text[] m_BlueSurvivingSlotTexts = new TMP_Text[6];
+        [SerializeField] private Image[] m_BlueSurvivingSlotImages = new Image[6];
         [SerializeField] private TMP_Text m_NewRoundText;
         [SerializeField] private TMP_Text m_NewCurrentCallText;
         [SerializeField] private TMP_Text m_NewMultiplierText;
@@ -158,7 +159,7 @@ namespace InTheArena.MainGame
             Context.AssignUnitsForBetting();
             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
             m_DraftTicket = new RoundBetTicket();
-            m_DraftTicket.SetWager(Mathf.Max(1, Context.CurrentCall));
+            m_DraftTicket.SetWager(GetMaximumWagerCall());
             m_SelectedSurvivingSlots.Clear();
         }
 
@@ -232,15 +233,13 @@ namespace InTheArena.MainGame
             if (m_RoundText != null) m_RoundText.text = $"Round {Context.CurrentRound}";
             if (m_TeamANameText != null) m_TeamANameText.text = "Red Team";
             if (m_TeamBNameText != null) m_TeamBNameText.text = "Blue Team";
-            SetTeamUnitInfo(m_TeamAUnitInfoText, Context.TeamADeployments);
-            SetTeamUnitInfo(m_TeamBUnitInfoText, Context.TeamBDeployments);
 
             if (m_WagerSlider != null)
             {
                 m_WagerSlider.wholeNumbers = true;
                 m_WagerSlider.minValue = 1f;
-                m_WagerSlider.maxValue = Mathf.Max(1, Context.CurrentCall);
-                m_WagerSlider.value = Mathf.Max(1, Context.CurrentCall);
+                m_WagerSlider.maxValue = Mathf.Max(1, GetMaximumWagerCall() / WagerStepCall);
+                m_WagerSlider.SetValueWithoutNotify(m_DraftTicket.WagerCall / WagerStepCall);
             }
 
             SetupNewUi();
@@ -256,16 +255,10 @@ namespace InTheArena.MainGame
         private void SetupNewUi()
         {
             if (m_NewRoundText != null) m_NewRoundText.text = $"Round {Context.CurrentRound}";
-            if (m_WagerInput != null)
-            {
-                m_WagerInput.contentType = TMP_InputField.ContentType.IntegerNumber;
-                m_WagerInput.SetTextWithoutNotify(m_DraftTicket.WagerCall.ToString());
-            }
-
-            SetOptions(m_WinningTeamDropdown, "Select winning team", "Red", "Blue", "Draw");
-            SetOptions(m_GameEndTimeDropdown, "Select game end time", "0-5 sec", "5-10 sec", "10-15 sec", "15-20 sec", "20+ sec");
-            SetOptions(m_OddEvenDropdown, "Select odd / even", "Odd", "Even");
-            SetOptions(m_FirstAnnihilatedDropdown, "Select first annihilated", "Slot 1", "Slot 2", "Slot 3", "Slot 4", "Slot 5", "Slot 6");
+            SetOptions(m_WinningTeamDropdown, "승리 진영 선택", "레드", "블루", "무승부");
+            SetOptions(m_GameEndTimeDropdown, "종료 시간 선택", "0~5초", "5~10초", "10~15초", "15~20초", "20초 이상");
+            SetOptions(m_OddEvenDropdown, "홀짝 선택", "홀", "짝");
+            SetOptions(m_FirstAnnihilatedDropdown, "첫 전멸 슬롯 선택", "1번", "2번", "3번", "4번", "5번", "6번");
         }
 
         private static void SetOptions(TMP_Dropdown dropdown, params string[] options)
@@ -297,49 +290,9 @@ namespace InTheArena.MainGame
             if (target != null) target.SetActive(active);
         }
 
-        private static void SetTeamUnitInfo(TMP_Text infoText, List<TeamUnitDeployment> deployments)
-        {
-            if (infoText == null) return;
-            if (deployments == null || deployments.Count == 0)
-            {
-                infoText.text = "No units deployed";
-                return;
-            }
-
-            var lines = new StringBuilder();
-            for (int i = 0; i < deployments.Count; i++)
-            {
-                TeamUnitDeployment deployment = deployments[i];
-                int col = deployment.CellIndex % 2;
-                int row = deployment.CellIndex / 2;
-                lines.Append($"({col},{row}) {DescribeUnits(deployment.Units)}");
-                if (i < deployments.Count - 1) lines.Append('\n');
-            }
-            infoText.text = lines.ToString();
-        }
-
-        private static string DescribeUnits(List<UnitData> units)
-        {
-            if (units == null || units.Count == 0) return "Empty";
-            UnitData first = units[0];
-            bool sameType = first != null;
-            for (int i = 1; i < units.Count; i++)
-            {
-                if (units[i] != first)
-                {
-                    sameType = false;
-                    break;
-                }
-            }
-            return sameType
-                ? $"{first.UnitName} x{units.Count}"
-                : string.Join(", ", units.ConvertAll(unit => unit != null ? unit.UnitName : "Unknown"));
-        }
-
         private void SubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.AddListener(OnWagerChanged);
-            if (m_WagerInput != null) m_WagerInput.onEndEdit.AddListener(OnWagerInputEnded);
             if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.AddListener(OnWinningTeamChanged);
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.AddListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.AddListener(OnOddEvenChanged);
@@ -391,7 +344,6 @@ namespace InTheArena.MainGame
         private void UnsubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.RemoveAllListeners();
-            if (m_WagerInput != null) m_WagerInput.onEndEdit.RemoveListener(OnWagerInputEnded);
             if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.RemoveListener(OnWinningTeamChanged);
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.RemoveListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.RemoveListener(OnOddEvenChanged);
@@ -416,14 +368,8 @@ namespace InTheArena.MainGame
 
         private void OnWagerChanged(float value)
         {
-            m_DraftTicket.SetWager(Mathf.Clamp(Mathf.RoundToInt(value), 1, Mathf.Max(1, Context.CurrentCall)));
-            RefreshBetSummary();
-        }
-
-        private void OnWagerInputEnded(string value)
-        {
-            if (!int.TryParse(value, out int wager)) wager = 1;
-            m_DraftTicket.SetWager(Mathf.Clamp(wager, 1, Mathf.Max(1, Context.CurrentCall)));
+            int steps = Mathf.Clamp(Mathf.RoundToInt(value), 1, GetMaximumWagerCall() / WagerStepCall);
+            m_DraftTicket.SetWager(steps * WagerStepCall);
             RefreshBetSummary();
         }
 
@@ -531,17 +477,28 @@ namespace InTheArena.MainGame
 
         private void RefreshUnitSlotTexts()
         {
-            SetUnitSlotTexts(m_RedSurvivingSlotTexts, Context.TeamADeployments);
-            SetUnitSlotTexts(m_BlueSurvivingSlotTexts, Context.TeamBDeployments);
+            SetUnitSlots(m_RedSurvivingSlotTexts, m_RedSurvivingSlotImages, Context.TeamADeployments, Team.Red);
+            SetUnitSlots(m_BlueSurvivingSlotTexts, m_BlueSurvivingSlotImages, Context.TeamBDeployments, Team.Blue);
         }
 
-        private static void SetUnitSlotTexts(TMP_Text[] texts, List<TeamUnitDeployment> deployments)
+        private static void SetUnitSlots(TMP_Text[] texts, Image[] images, List<TeamUnitDeployment> deployments, Team team)
         {
             for (int i = 0; i < texts.Length; i++)
             {
-                if (texts[i] == null) continue;
                 TeamUnitDeployment deployment = deployments.Find(item => item.CellIndex == i);
-                texts[i].text = deployment == null ? "-" : DescribeUnits(deployment.Units);
+                UnitData representative = deployment?.Units?.Find(unit => unit != null);
+                int count = deployment?.Units?.Count ?? 0;
+
+                if (texts[i] != null)
+                {
+                    texts[i].gameObject.SetActive(count > 0);
+                    texts[i].text = count > 0 ? $"×{count}" : string.Empty;
+                }
+
+                if (images == null || i >= images.Length || images[i] == null) continue;
+                Sprite portrait = representative?.GetPortrait(team);
+                images[i].gameObject.SetActive(portrait != null);
+                images[i].sprite = portrait;
             }
         }
 
@@ -556,13 +513,18 @@ namespace InTheArena.MainGame
         private void RefreshBetSummary()
         {
             RefreshSelectionVisuals();
-            int wager = Mathf.Clamp(m_DraftTicket.WagerCall, 1, Mathf.Max(1, Context.CurrentCall));
-            if (m_CurrentCallText != null) m_CurrentCallText.text = $"{Context.CurrentCall} Call";
-            if (m_NewCurrentCallText != null) m_NewCurrentCallText.text = $"{Context.CurrentCall} Call";
+            int wager = Mathf.Clamp(m_DraftTicket.WagerCall, WagerStepCall, GetMaximumWagerCall());
+            m_DraftTicket.SetWager(wager);
+            if (m_WagerSlider != null) m_WagerSlider.SetValueWithoutNotify(wager / WagerStepCall);
+            int remainingCall = Mathf.Max(0, Context.CurrentCall - wager);
+            if (m_CurrentCallText != null) m_CurrentCallText.text = $"{remainingCall} Call";
+            if (m_NewCurrentCallText != null) m_NewCurrentCallText.text = $"{remainingCall} Call";
             if (m_WagerCallText != null) m_WagerCallText.text = $"{wager} Call";
-            if (m_WagerInput != null) m_WagerInput.SetTextWithoutNotify(wager.ToString());
-            if (m_NewMultiplierText != null) m_NewMultiplierText.text = $"x{m_DraftTicket.Multiplier}";
-            if (m_MultiplierText != null) m_MultiplierText.text = $"×{m_DraftTicket.Multiplier}";
+            string multiplierLabel = m_DraftTicket.Multiplier > 0
+                ? $"×{m_DraftTicket.Multiplier}"
+                : "확인";
+            if (m_NewMultiplierText != null) m_NewMultiplierText.text = multiplierLabel;
+            if (m_MultiplierText != null) m_MultiplierText.text = multiplierLabel;
             if (m_EstimatedPayoutText != null)
             {
                 m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
@@ -571,6 +533,12 @@ namespace InTheArena.MainGame
             bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out string error);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
             if (m_ValidationText != null) m_ValidationText.text = valid ? string.Empty : error;
+        }
+
+        private int GetMaximumWagerCall()
+        {
+            int roundedCall = Mathf.FloorToInt(Mathf.Max(0, Context?.CurrentCall ?? 0) / (float)WagerStepCall) * WagerStepCall;
+            return Mathf.Max(WagerStepCall, roundedCall);
         }
 
         private void RefreshSelectionVisuals()

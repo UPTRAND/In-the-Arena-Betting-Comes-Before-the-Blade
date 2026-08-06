@@ -14,28 +14,18 @@ namespace InTheArena.MainGame
         /// <summary>
         /// AsyncOperation을 Awaitable로 변환
         /// </summary>
-        public static Awaitable ToAwaitable(this AsyncOperation operation)
+        public static async Awaitable ToAwaitable(this AsyncOperation operation)
         {
-            var awaitable = new AwaitableCompletionSource();
-            
             if (operation == null || operation.isDone)
             {
-                awaitable.TrySetResult();
-                return awaitable.Awaitable;
+                return;
             }
 
             // 완료될 때까지 매 프레임 체크
-            var routine = WaitForCompletion(operation, awaitable);
-            return awaitable.Awaitable;
-        }
-
-        private static async Awaitable WaitForCompletion(AsyncOperation operation, AwaitableCompletionSource source)
-        {
             while (!operation.isDone)
             {
                 await Awaitable.NextFrameAsync();
             }
-            source.TrySetResult();
         }
     }
 }

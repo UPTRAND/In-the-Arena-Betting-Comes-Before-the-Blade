@@ -80,6 +80,8 @@ public class Managers : MonoBehaviour
 
     private void ApplyPerformanceSettings()
     {
+        Application.runInBackground = true;
+
         if (QualitySettings.vSyncCount != _vSyncCount)
             QualitySettings.vSyncCount = _vSyncCount;
 

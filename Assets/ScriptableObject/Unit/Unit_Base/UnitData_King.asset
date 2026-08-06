@@ -23,6 +23,8 @@ MonoBehaviour:
     moveSpeed: 0.75
     attackRange: 1.1
   m_UnitPrefab: {fileID: 3164494858236416527, guid: b49a2dbd662a4b31acf0489696025ec1, type: 3}
+  m_RedPortrait: {fileID: 775533577, guid: 31748e43c1d17dc4387b8ad9c418e634, type: 3}
+  m_BluePortrait: {fileID: -295868516, guid: 2eafde6111ef403468421b0913528a45, type: 3}
   m_SkillDatas:
   - {fileID: 11400000, guid: 2b196f7ebad343af96f9d3ee852073a8, type: 2}
   m_AIData: {fileID: 11400000, guid: 94733aa653a82d34b8283cfb494cdfa2, type: 2}

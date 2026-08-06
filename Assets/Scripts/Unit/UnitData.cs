@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 using System.Collections.Generic;
+using InTheArena.MainGame;
 
 namespace InTheArena.Unit
 {
@@ -31,6 +32,10 @@ namespace InTheArena.Unit
         [Tooltip("유닛 프리팹 (씬에 생성될 오브젝트)")]
         [SerializeField] private GameObject m_UnitPrefab;
 
+        [Header("UI Portraits")]
+        [SerializeField] private Sprite m_RedPortrait;
+        [SerializeField] private Sprite m_BluePortrait;
+
         [Tooltip("AI가 앞에서부터 사용 가능 여부를 검사하는 스킬 목록")]
         [SerializeField] private List<SkillData> m_SkillDatas = new List<SkillData>();
 
@@ -59,6 +64,8 @@ namespace InTheArena.Unit
 
         /// <summary> 유닛 프리팹 </summary>
         public GameObject UnitPrefab => m_UnitPrefab;
+
+        public Sprite GetPortrait(Team team) => team == Team.Red ? m_RedPortrait : m_BluePortrait;
 
         /// <summary> 스킬 데이터 </summary>
         public SkillData SkillData => m_SkillDatas != null && m_SkillDatas.Count > 0
