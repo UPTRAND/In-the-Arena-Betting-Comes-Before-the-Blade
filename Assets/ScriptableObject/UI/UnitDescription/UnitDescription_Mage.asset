@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 877af321b3885eb498e1f7eac429f547, type: 3}
+  m_Name: UnitDescription_Mage
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UnitDescriptionData
+  m_UnitId: Wizard
+  m_UnitName: "\uB9C8\uBC95\uC0AC"
+  m_Summary: "\uC655\uAD81 \uAE30\uC0AC\uB2E8 \uC911\uAE09 \uB9C8\uBC95\uC0AC"
+  m_UnitIcon: {fileID: -353127806, guid: 9ec49b5339911b54a911605fa922874d, type: 3}
+  m_SkillIcon: {fileID: 0}
+  m_SkillName: "\uD30C\uC774\uC5B4 \uBCFC"
+  m_SkillDescription: "\uB9C8\uBC95\uC744 \uD3ED\uBC1C\uC2DC\uCF1C \uC801 \uC720\uB2DB\uC5D0\uAC8C
+    20\uC758 \uBC94\uC704 \uD53C\uD574\uB97C \uC785\uD78C\uB2E4."

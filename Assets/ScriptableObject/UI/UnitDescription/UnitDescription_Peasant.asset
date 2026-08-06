@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 877af321b3885eb498e1f7eac429f547, type: 3}
+  m_Name: UnitDescription_Peasant
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UnitDescriptionData
+  m_UnitId: Peasant
+  m_UnitName: "\uB18D\uBD80"
+  m_Summary: "\uB0A0\uCE74\uB85C\uC6B4 \uCC3D"
+  m_UnitIcon: {fileID: 1642169647, guid: f68cc042c94e6974d823270f8f0ae8d3, type: 3}
+  m_SkillIcon: {fileID: 0}
+  m_SkillName: "\uAE4A\uAC8C \uCC0C\uB974\uAE30"
+  m_SkillDescription: "\uB18D\uAE30\uAD6C\uB97C \uD798\uAECF \uB0B4\uC9C8\uB7EC \uC804\uBC29\uC758
+    \uC801\uC5D0\uAC8C 30\uC758 \uD53C\uD574\uB97C \uC900\uB2E4."

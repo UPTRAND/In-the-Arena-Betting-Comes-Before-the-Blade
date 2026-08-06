@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 877af321b3885eb498e1f7eac429f547, type: 3}
+  m_Name: UnitDescription_Knight
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UnitDescriptionData
+  m_UnitId: Knight
+  m_UnitName: "\uAE30\uC0AC"
+  m_Summary: "\uAE30\uC0AC\uB2E8\uC758 \uBC29\uD328"
+  m_UnitIcon: {fileID: 48037446, guid: 6a940757f130ab147bc818ddaa16b1bc, type: 3}
+  m_SkillIcon: {fileID: 0}
+  m_SkillName: "\uCCA0\uBCBD \uBC29\uC5B4"
+  m_SkillDescription: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C \uBC1B\uC744 \uB300
+    \uD574\uB2F9 \uD53C\uD574\uB97C 1\uD68C \uBB34\uD6A8\uD654\uD55C\uB2E4."
