@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 24
+  spritePixelsToUnits: 16
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -939,38 +939,38 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      MiniArcherMan_37: -410173223
+      MiniArcherMan_0: -86967063
+      MiniArcherMan_1: -1162813518
+      MiniArcherMan_10: -146446739
+      MiniArcherMan_11: 97274782
+      MiniArcherMan_12: 1546052031
+      MiniArcherMan_13: -1239390606
+      MiniArcherMan_14: 1036970115
+      MiniArcherMan_15: -1318929608
+      MiniArcherMan_16: -15396816
+      MiniArcherMan_17: 359712742
+      MiniArcherMan_18: -1300914379
+      MiniArcherMan_19: 432396709
+      MiniArcherMan_2: 1878445929
+      MiniArcherMan_20: -128611034
+      MiniArcherMan_21: 838119478
+      MiniArcherMan_22: 674754450
+      MiniArcherMan_23: 1170826720
       MiniArcherMan_24: 2061209233
       MiniArcherMan_25: 1559329461
       MiniArcherMan_26: -742978772
       MiniArcherMan_27: -571739008
       MiniArcherMan_28: 706189995
       MiniArcherMan_29: 1456970884
-      MiniArcherMan_13: -1239390606
-      MiniArcherMan_14: 1036970115
-      MiniArcherMan_23: 1170826720
-      MiniArcherMan_15: -1318929608
-      MiniArcherMan_16: -15396816
-      MiniArcherMan_17: 359712742
-      MiniArcherMan_18: -1300914379
-      MiniArcherMan_19: 432396709
-      MiniArcherMan_20: -128611034
-      MiniArcherMan_21: 838119478
-      MiniArcherMan_22: 674754450
+      MiniArcherMan_3: 119245968
+      MiniArcherMan_30: 2049726958
+      MiniArcherMan_31: -1170459075
+      MiniArcherMan_32: -1928120903
       MiniArcherMan_33: 377381431
       MiniArcherMan_34: 143797560
       MiniArcherMan_35: -993590600
       MiniArcherMan_36: 1373923474
-      MiniArcherMan_30: 2049726958
-      MiniArcherMan_31: -1170459075
-      MiniArcherMan_32: -1928120903
-      MiniArcherMan_0: -86967063
-      MiniArcherMan_1: -1162813518
-      MiniArcherMan_2: 1878445929
-      MiniArcherMan_3: 119245968
-      MiniArcherMan_10: -146446739
-      MiniArcherMan_11: 97274782
-      MiniArcherMan_12: 1546052031
+      MiniArcherMan_37: -410173223
       MiniArcherMan_4: 1546261064
       MiniArcherMan_5: -1671457327
       MiniArcherMan_6: -2141431925

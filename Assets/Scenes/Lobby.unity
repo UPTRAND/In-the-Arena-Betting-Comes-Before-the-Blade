@@ -388,9 +388,33 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8219463773018295766, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8219463773018295766, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 535637534, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
+    - target: {fileID: 8219463773018295766, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_Color.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8219463773018295766, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_Color.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8219463773018295766, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8877421528685051547, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
       propertyPath: m_Name
       value: UI_LobbyHeader
+      objectReference: {fileID: 0}
+    - target: {fileID: 8877421528685051547, guid: 78bd517a424e4594085434cfbe2515fd, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -802,6 +826,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5337579843525308686, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5337579843525308686, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8662699303241997949, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -0.47061157
+      objectReference: {fileID: 0}
+    - target: {fileID: 8662699303241997949, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -929,6 +969,10 @@ PrefabInstance:
     - target: {fileID: 120540538475642393, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
       propertyPath: m_Name
       value: UI_LobbyNavigationBar
+      objectReference: {fileID: 0}
+    - target: {fileID: 120540538475642393, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 716823510635423182, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
       propertyPath: m_Pivot.x

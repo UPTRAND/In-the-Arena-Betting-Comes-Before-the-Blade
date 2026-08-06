@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 24
+  spritePixelsToUnits: 16
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -829,34 +829,34 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      MiniShieldMan_32: -436215548
-      MiniShieldMan_33: 180057174
+      MiniShieldMan_0: 48037446
+      MiniShieldMan_1: 1401908707
+      MiniShieldMan_10: -319951177
+      MiniShieldMan_11: -1001022415
+      MiniShieldMan_12: -1528927825
       MiniShieldMan_13: -1075793557
       MiniShieldMan_14: 415669597
       MiniShieldMan_15: -1296178289
       MiniShieldMan_16: 2078275453
       MiniShieldMan_17: -388837542
       MiniShieldMan_18: 1981537507
-      MiniShieldMan_28: -472318220
-      MiniShieldMan_29: 1475376622
-      MiniShieldMan_30: 283992990
-      MiniShieldMan_31: -13194551
-      MiniShieldMan_25: -1351091899
-      MiniShieldMan_26: -637635984
-      MiniShieldMan_27: 784810394
-      MiniShieldMan_0: 48037446
-      MiniShieldMan_1: 1401908707
-      MiniShieldMan_2: 740956645
-      MiniShieldMan_3: -640537668
-      MiniShieldMan_10: -319951177
-      MiniShieldMan_11: -1001022415
-      MiniShieldMan_12: -1528927825
       MiniShieldMan_19: -1320165851
+      MiniShieldMan_2: 740956645
       MiniShieldMan_20: -876910272
       MiniShieldMan_21: -1494733489
       MiniShieldMan_22: 625006907
       MiniShieldMan_23: -1368168329
       MiniShieldMan_24: -2015212077
+      MiniShieldMan_25: -1351091899
+      MiniShieldMan_26: -637635984
+      MiniShieldMan_27: 784810394
+      MiniShieldMan_28: -472318220
+      MiniShieldMan_29: 1475376622
+      MiniShieldMan_3: -640537668
+      MiniShieldMan_30: 283992990
+      MiniShieldMan_31: -13194551
+      MiniShieldMan_32: -436215548
+      MiniShieldMan_33: 180057174
       MiniShieldMan_4: 1344564277
       MiniShieldMan_5: -565563195
       MiniShieldMan_6: -61425265
