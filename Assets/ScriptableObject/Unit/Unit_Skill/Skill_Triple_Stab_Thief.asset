@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Skill_Triple_Stab_Thief
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
   m_SkillName: Triple Stab
-  m_Description: Quickly slashes with a dagger and stabs the enemy three times, dealing 4, 5, and 6 damage as separate hits.
+  m_Description: Quickly slashes with a dagger and stabs the enemy three times, dealing
+    4, 5, and 6 damage as separate hits.
   m_SkillType: 0
   m_Range: 1.2
-  m_Cooldown: 7
+  m_Cooldown: 6
   m_CastTime: 0.5833333
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0
@@ -41,6 +42,6 @@ MonoBehaviour:
       type: {class: MultiHitDamageSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
       data:
         m_Damages:
-        - 4
-        - 5
-        - 6
+        - 8
+        - 9
+        - 10

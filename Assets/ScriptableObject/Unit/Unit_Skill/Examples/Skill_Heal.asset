@@ -16,7 +16,7 @@ MonoBehaviour:
   m_Description: 
   m_SkillType: 0
   m_Range: 5
-  m_Cooldown: 5
+  m_Cooldown: 6
   m_CastTime: 0.6
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0
@@ -39,6 +39,6 @@ MonoBehaviour:
     - rid: 8871563067095777436
       type: {class: HealSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
       data:
-        m_BaseHeal: 30
-        m_AttackPowerRatio: 0.5
+        m_BaseHeal: 32
+        m_AttackPowerRatio: 0
         m_MaxHealthRatio: 0

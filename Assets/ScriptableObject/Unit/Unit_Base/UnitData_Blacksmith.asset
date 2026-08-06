@@ -16,11 +16,11 @@ MonoBehaviour:
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: bca93f8deeed419f97606b7b2b72045c, type: 2}
   m_BaseStat:
-    maxHp: 150
-    attackPower: 10
+    maxHp: 180
+    attackPower: 7
     defense: 8
-    attackSpeed: 0.35
-    moveSpeed: 1
+    attackSpeed: 0.45
+    moveSpeed: 0.75
     attackRange: 1
   m_UnitPrefab: {fileID: 3164494858236416527, guid: 13e1cbeafe7d433a8611f0a544828869, type: 3}
   m_SkillDatas:

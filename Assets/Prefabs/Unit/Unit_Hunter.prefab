@@ -390,8 +390,8 @@ MonoBehaviour:
   m_BowAttackPower: 13
   m_BowAttackSpeed: 0.5
   m_BowAttackRange: 2.5
-  m_DaggerAttackPower: 18
-  m_DaggerAttackSpeed: 1.5
+  m_DaggerAttackPower: 8
+  m_DaggerAttackSpeed: 1.6
   m_DaggerAttackRange: 1
 --- !u!114 &261010819116085216
 MonoBehaviour:

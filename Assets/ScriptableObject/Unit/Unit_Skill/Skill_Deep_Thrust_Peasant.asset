@@ -17,7 +17,7 @@ MonoBehaviour:
     \uC801\uC5D0\uAC8C 30\uC758 \uD53C\uD574\uB97C \uC900\uB2E4."
   m_SkillType: 0
   m_Range: 1.7
-  m_Cooldown: 8
+  m_Cooldown: 9
   m_CastTime: 0.6
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0

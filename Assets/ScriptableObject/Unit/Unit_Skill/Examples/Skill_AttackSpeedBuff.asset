@@ -18,7 +18,7 @@ MonoBehaviour:
   m_SkillType: 0
   m_Range: 0
   m_Cooldown: 8
-  m_CastTime: 0
+  m_CastTime: 3
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0
   m_Targeting:

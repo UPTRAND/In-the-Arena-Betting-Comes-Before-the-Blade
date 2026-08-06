@@ -16,9 +16,9 @@ MonoBehaviour:
   m_Description: Launches a fire ball that deals 20 damage to enemies within 1 unit
     of the impact.
   m_SkillType: 0
-  m_Range: 8
-  m_Cooldown: 3
-  m_CastTime: 0.4
+  m_Range: 35
+  m_Cooldown: 5
+  m_CastTime: 0.8
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0
   m_Targeting:
@@ -47,6 +47,6 @@ MonoBehaviour:
         m_Lifetime: 5
         m_BaseDamage: 20
         m_AttackPowerRatio: 0
-        m_ExplosionRadius: 1
+        m_ExplosionRadius: 1.5
         m_CriticalChance: 0
         m_ImpactStatus: {fileID: 0}

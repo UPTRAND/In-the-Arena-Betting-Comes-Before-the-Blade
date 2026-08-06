@@ -17,6 +17,8 @@ namespace InTheArena.Unit
         private const string RedTeamTag = "RedTeam";
         private const string BlueTeamTag = "BlueTeam";
         private const float MinimumAttackAnimationLock = 0.3f;
+        private const float ProjectileReleaseFrameOffset = 3f;
+        private const float DefaultAnimationFrameRate = 12f;
         private const float DefaultCastHeight = 0.75f;
         private const float DefaultHitHeight = 0.5f;
 
@@ -66,6 +68,9 @@ namespace InTheArena.Unit
         private BasicAttackData m_BasicAttackOverride;
         private float m_CurrentHp;
         private float m_AttackCooldown;
+        private BasicAttackData m_PendingProjectileAttackData;
+        private UnitHandle m_PendingProjectileAttackTarget;
+        private float m_PendingProjectileAttackRemaining;
         private bool m_IsSilenced;
         private bool m_IsInitialized;
         private bool m_IsRegistered;
@@ -211,6 +216,7 @@ namespace InTheArena.Unit
             m_HasWeaponStatOverride = false;
             m_BasicAttackOverride = null;
             m_AttackCooldown = 0f;
+            ClearPendingProjectileAttack();
             m_IsSilenced = false;
             m_ActionController.Reset();
             m_AnimationPresenter ??= new UnitAnimationPresenter(m_Animator);
@@ -305,6 +311,7 @@ namespace InTheArena.Unit
             m_WeaponStatOverride = default;
             m_HasWeaponStatOverride = false;
             m_BasicAttackOverride = null;
+            ClearPendingProjectileAttack();
             m_CombatLogNumber = 0;
             m_CastingTargets.Clear();
             m_HitFlashRemaining = 0f;
@@ -339,6 +346,7 @@ namespace InTheArena.Unit
 
             if (m_AttackCooldown > 0f) m_AttackCooldown = Mathf.Max(0f, m_AttackCooldown - deltaTime);
             m_ActionController.Tick(deltaTime);
+            UpdatePendingProjectileAttack(deltaTime);
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
                 m_RuntimeSkills[i]?.Tick(deltaTime);
@@ -531,6 +539,7 @@ namespace InTheArena.Unit
             ClearDataStatusEffects();
             m_RuntimeAI?.Deactivate();
             StopMovement();
+            ClearPendingProjectileAttack();
             m_ActionController.MarkDead();
             if (m_Collider != null) m_Collider.enabled = false;
             UnitRegistry.NotifyDeath(this);
@@ -558,48 +567,128 @@ namespace InTheArena.Unit
             if (!CanAttack || target == null || target.IsDead || target.Team == Team) return false;
 
             BasicAttackData attackData = CurrentBasicAttackData;
+            if (attackData == null) return false;
+
             float attackAnimationLock = ResolveAttackAnimationLock(attackData);
             if (!m_ActionController.TryBeginAttack(attackAnimationLock)) return false;
-
-            if (attackData == null || !attackData.TryExecute(this, target))
-            {
-                m_ActionController.Tick(attackAnimationLock);
-                m_AttackCooldown = attackData != null
-                    ? attackData.FailureRetryDelay
-                    : 0.25f;
-                return false;
-            }
 
             m_AttackCooldown = AttackInterval;
             m_AnimationPresenter?.PlayAttack(attackData);
             PlayClip(m_AttackSound);
+
+            if (attackData?.Delivery is HomingProjectileAttackDelivery)
+            {
+                float releaseDelay = ResolveProjectileAttackReleaseDelay(attackData, attackAnimationLock);
+                SchedulePendingProjectileAttack(attackData, target, releaseDelay);
+                return true;
+            }
+
+            if (!attackData.TryExecute(this, target))
+            {
+                m_ActionController.Tick(attackAnimationLock);
+                m_AttackCooldown = attackData.FailureRetryDelay;
+                return false;
+            }
+
             OnAttack?.Invoke(target);
             return true;
         }
 
+        private void SchedulePendingProjectileAttack(BasicAttackData attackData, Unit target, float releaseDelay)
+        {
+            m_PendingProjectileAttackData = attackData;
+            m_PendingProjectileAttackTarget = new UnitHandle(target);
+            m_PendingProjectileAttackRemaining = Mathf.Max(0f, releaseDelay);
+        }
+
+        private void UpdatePendingProjectileAttack(float deltaTime)
+        {
+            if (m_PendingProjectileAttackData == null) return;
+            if (IsStunned)
+            {
+                ClearPendingProjectileAttack();
+                return;
+            }
+
+            m_PendingProjectileAttackRemaining =
+                Mathf.Max(0f, m_PendingProjectileAttackRemaining - deltaTime);
+            if (m_PendingProjectileAttackRemaining > 0f) return;
+
+            BasicAttackData attackData = m_PendingProjectileAttackData;
+            Unit target = m_PendingProjectileAttackTarget.Unit;
+            ClearPendingProjectileAttack();
+
+            if (target == null || target.IsDead || target.Team == Team) return;
+            if (attackData.TryExecute(this, target))
+            {
+                OnAttack?.Invoke(target);
+                return;
+            }
+
+            m_AttackCooldown = Mathf.Min(m_AttackCooldown, attackData.FailureRetryDelay);
+        }
+
+        private void ClearPendingProjectileAttack()
+        {
+            m_PendingProjectileAttackData = null;
+            m_PendingProjectileAttackTarget = default;
+            m_PendingProjectileAttackRemaining = 0f;
+        }
+
         private float ResolveAttackAnimationLock(BasicAttackData attackData = null)
         {
+            AnimationClip clip = FindPreferredAttackClip(attackData);
+            float bestLength = clip != null ? clip.length : 0f;
+
+            if (bestLength <= 0f && attackData?.Delivery is ImmediateAttackDelivery)
+                return ResolveAttackAnimationLock();
+
+            return Mathf.Max(MinimumAttackAnimationLock, bestLength);
+        }
+
+        private float ResolveProjectileAttackReleaseDelay(BasicAttackData attackData, float fallbackLock)
+        {
+            AnimationClip clip = FindPreferredAttackClip(attackData);
+            float clipLength = clip != null ? clip.length : fallbackLock;
+            float frameRate = clip != null && clip.frameRate > 0f
+                ? clip.frameRate
+                : DefaultAnimationFrameRate;
+            float releaseDelay = clipLength - (ProjectileReleaseFrameOffset / frameRate);
+            return Mathf.Clamp(releaseDelay, 0f, fallbackLock);
+        }
+
+        private AnimationClip FindPreferredAttackClip(BasicAttackData attackData)
+        {
             RuntimeAnimatorController controller = m_Animator != null ? m_Animator.runtimeAnimatorController : null;
-            if (controller == null) return MinimumAttackAnimationLock;
+            if (controller == null) return null;
 
             string preferredClipName = attackData?.Delivery is ImmediateAttackDelivery
                 ? "DaggerAttack"
                 : "Attack";
+            AnimationClip clip = FindLongestClip(controller, preferredClipName);
+            if (clip == null && !preferredClipName.Equals("Attack", StringComparison.OrdinalIgnoreCase))
+                clip = FindLongestClip(controller, "Attack");
+
+            return clip;
+        }
+
+        private static AnimationClip FindLongestClip(RuntimeAnimatorController controller, string clipName)
+        {
             AnimationClip[] clips = controller.animationClips;
+            AnimationClip bestClip = null;
             float bestLength = 0f;
             for (int i = 0; clips != null && i < clips.Length; i++)
             {
                 AnimationClip clip = clips[i];
                 if (clip == null) continue;
-                string clipName = clip.name;
-                if (!clipName.Equals(preferredClipName, StringComparison.OrdinalIgnoreCase)) continue;
-                bestLength = Mathf.Max(bestLength, clip.length);
+                if (!clip.name.Equals(clipName, StringComparison.OrdinalIgnoreCase)) continue;
+                if (bestClip != null && clip.length <= bestLength) continue;
+
+                bestClip = clip;
+                bestLength = clip.length;
             }
 
-            if (bestLength <= 0f && !preferredClipName.Equals("Attack", StringComparison.OrdinalIgnoreCase))
-                return ResolveAttackAnimationLock();
-
-            return Mathf.Max(MinimumAttackAnimationLock, bestLength);
+            return bestClip;
         }
 
         internal void NotifyBasicAttackHit(
