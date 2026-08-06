@@ -1,8 +1,9 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
 using System.Collections.Generic;
-using InTheArena.UI;
 using UnityEngine;
+using InTheArena.UI;
+using InTheArena.Battlefield;
 
 namespace InTheArena.Unit
 {
@@ -221,8 +222,10 @@ namespace InTheArena.Unit
             m_ActionController.Reset();
             m_AnimationPresenter ??= new UnitAnimationPresenter(m_Animator);
             m_AnimationPresenter.Reset();
-            m_PreviousSimulationPosition = transform.position;
-            m_SimulationPosition = transform.position;
+            Vector3 initialPosition = ClampToBattlefield(transform.position);
+            transform.position = initialPosition;
+            m_PreviousSimulationPosition = initialPosition;
+            m_SimulationPosition = initialPosition;
             m_FacingDirection = transform.forward;
             m_HoldDeathPresentation = false;
             m_CastingSkill = null;
@@ -917,15 +920,31 @@ namespace InTheArena.Unit
             RecalculateStats();
         }
 
-        public void MoveTo(Vector3 targetPosition, float stopDistance = 0f)
+        public void MoveTo(
+            Vector3 targetPosition,
+            float stopDistance = 0f)
         {
-            if (IsDead || IsStunned) return;
+            if (IsDead || IsStunned)
+            {
+                return;
+            }
+
             targetPosition.y = m_SimulationPosition.y;
+
+            // AI가 전장 밖 목적지를 계산하더라도 안쪽으로 보정한다.
+            targetPosition = ClampToBattlefield(targetPosition);
+
             bool wasMoving = IsMoving;
+
             m_MoveTargetPosition = targetPosition;
             m_MoveStopDistance = Mathf.Max(0f, stopDistance);
+
             m_ActionController.SetMoveIntent(true);
-            if (!wasMoving && IsMoving) OnMoveStart?.Invoke();
+
+            if (!wasMoving && IsMoving)
+            {
+                OnMoveStart?.Invoke();
+            }
         }
 
         public void StopMovement()
@@ -941,12 +960,17 @@ namespace InTheArena.Unit
 
         private void UpdateMovement(float deltaTime)
         {
-            if (!IsMoving || m_CurrentStat.moveSpeed <= 0f) return;
+            if (!IsMoving || m_CurrentStat.moveSpeed <= 0f)
+            {
+                return;
+            }
 
             Vector3 current = m_SimulationPosition;
             Vector3 delta = m_MoveTargetPosition - current;
             delta.y = 0f;
+
             float stopDistance = m_MoveStopDistance;
+
             if (delta.sqrMagnitude <= stopDistance * stopDistance)
             {
                 StopMovement();
@@ -954,16 +978,35 @@ namespace InTheArena.Unit
             }
 
             Vector3 direction = delta.normalized;
+
             Vector3 separation = UnitRegistry.CalculateSeparation(
                 this,
                 (m_UnitData?.VisualRadius ?? 0.5f) * 2f);
-            direction = Vector3.Normalize(direction + separation * 0.35f);
-            float distance = Mathf.Min(delta.magnitude - stopDistance, m_CurrentStat.moveSpeed * deltaTime);
-            m_SimulationPosition = current + direction * Mathf.Max(0f, distance);
+
+            Vector3 combinedDirection =
+                direction + separation * 0.35f;
+
+            if (combinedDirection.sqrMagnitude > 0.0001f)
+            {
+                direction = combinedDirection.normalized;
+            }
+
+            float distance = Mathf.Min(
+                delta.magnitude - stopDistance,
+                m_CurrentStat.moveSpeed * deltaTime);
+
+            Vector3 candidatePosition =
+                current + direction * Mathf.Max(0f, distance);
+
+            // separation을 포함한 실제 최종 위치를 제한한다.
+            m_SimulationPosition =
+                ClampToBattlefield(candidatePosition);
 
             if (direction.sqrMagnitude > 0.0001f)
             {
-                transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+                transform.rotation =
+                    Quaternion.LookRotation(direction, Vector3.up);
+
                 m_FacingDirection = direction;
             }
         }
@@ -1252,6 +1295,23 @@ namespace InTheArena.Unit
             fwd.y = 0f;
             if (fwd.sqrMagnitude > 0.0001f)
                 m_FacingDirection = fwd.normalized;
+        }
+
+        private Vector3 ClampToBattlefield(Vector3 position)
+        {
+            BattlefieldArea area = BattlefieldArea.Active;
+
+            // 전투 외 Scene이나 단위 테스트에서는 기존 동작을 유지한다.
+            if (area == null)
+            {
+                return position;
+            }
+
+            float radius = Mathf.Max(
+                0f,
+                m_UnitData?.VisualRadius ?? 0.5f);
+
+            return area.ClampPosition(position, radius);
         }
 
         private void PlayClip(AudioClip clip)
