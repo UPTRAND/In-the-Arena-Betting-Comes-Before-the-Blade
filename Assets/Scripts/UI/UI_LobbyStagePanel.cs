@@ -17,7 +17,7 @@ namespace InTheArena.UI
         public override void OnOpened() { base.OnOpened(); Refresh(); }
         public void Refresh()
         {
-            int next = (SaveManager.Instance != null && SaveManager.Instance.Data != null ? SaveManager.Instance.Data.clearedStageNumber : 0) + 1;
+            int next = (SaveManager.Instance != null ? SaveManager.Instance.ClearedStageNumber : 0) + 1;
             m_LevelText.text = $"레벨 {next}";
             m_Target = m_StageDatas.Find(stage => stage != null && stage.StageNum == next);
         }
@@ -25,9 +25,10 @@ namespace InTheArena.UI
         {
             Refresh();
             if (m_Target == null) { Debug.Log($"[Lobby] {m_LevelText.text}은 준비 중입니다."); return; }
+            if (StageManager.Instance == null) { Debug.LogError("[Lobby] StageManager를 찾을 수 없습니다."); return; }
+            if (StageManager.Instance.IsStageRunning || (InTheArena.Util.LoadingProgressService.Instance != null && InTheArena.Util.LoadingProgressService.Instance.IsLoading)) { return; }
             SaveManager save = SaveManager.Instance;
             if (save == null || !save.TrySpendHeart()) { Debug.Log($"[Lobby] 하트가 부족합니다. 다음 하트까지 {save?.GetRemainingHeartTime():mm\\:ss}"); return; }
-            if (StageManager.Instance == null) { Debug.LogError("[Lobby] StageManager를 찾을 수 없습니다."); return; }
             _ = StageManager.Instance.StartStageAsync(m_Target);
         }
     }

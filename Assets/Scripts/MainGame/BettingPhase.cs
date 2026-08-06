@@ -74,40 +74,40 @@ namespace InTheArena.MainGame
         private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
-        
+
         // 아이템 상태 트래킹
         private SpecialBetType? m_OverriddenSpecialBet = null;
 
-        public RoundBetTicket DraftTicket 
-        { 
-            get 
-            { 
-                return m_DraftTicket; 
-            } 
+        public RoundBetTicket DraftTicket
+        {
+            get
+            {
+                return m_DraftTicket;
+            }
         }
 
-        public SpecialBetType? OverriddenSpecialBet 
-        { 
-            get 
-            { 
-                return m_OverriddenSpecialBet; 
-            } 
+        public SpecialBetType? OverriddenSpecialBet
+        {
+            get
+            {
+                return m_OverriddenSpecialBet;
+            }
         }
 
-        public bool UsedAdditionalBetTicket 
-        { 
-            get 
-            { 
+        public bool UsedAdditionalBetTicket
+        {
+            get
+            {
                 return Context != null && Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket);
-            } 
+            }
         }
 
-        public bool UsedInsurance 
-        { 
-            get 
-            { 
+        public bool UsedInsurance
+        {
+            get
+            {
                 return Context != null && Context.RoundItemUsage.HasUsed(ItemType.Insurance);
-            } 
+            }
         }
 
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
@@ -615,95 +615,7 @@ namespace InTheArena.MainGame
                 : new Color(0.2f, 0.24f, 0.3f);
         }
 
-        // 아이템 사용
-        public bool UseBettingItem(ItemData itemData, out string message, out int remainingCount)
-        {
-            remainingCount = 0;
-            message = "";
 
-            if (itemData == null)
-            {
-                message = "유효하지 않은 아이템입니다.";
-                return false;
-            }
-
-            var inventoryService = SaveManager.Instance?.InventoryService;
-            var playerState = StageManager.Instance?.PlayerState;
-            
-            if (inventoryService == null || playerState == null)
-            {
-                message = "아이템 시스템을 불러올 수 없습니다.";
-                return false;
-            }
-
-            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
-            {
-                message = "보유한 아이템이 없습니다.";
-                return false;
-            }
-
-            bool success = false;
-
-            if (itemData.ItemType == ItemType.AdditionalBetTicket)
-            {
-                if (UsedAdditionalBetTicket)
-                {
-                    message = "추가 배팅권은 라운드당 1회만 사용 가능합니다.";
-                }
-                else
-                {
-                    success = true;
-                    message = "추가 배팅권(+500 Call)을 사용했습니다.";
-                }
-            }
-            else if (itemData.ItemType == ItemType.Insurance)
-            {
-                if (UsedInsurance)
-                {
-                    message = "보험은 라운드당 1회만 사용 가능합니다.";
-                }
-                else
-                {
-                    success = true;
-                    message = "패배 시 원금이 반환되는 보험을 사용했습니다.";
-                }
-            }
-            else if (itemData.ItemType == ItemType.RerollTicket)
-            {
-                if (Context.RoundItemUsage.HasUsed(ItemType.RerollTicket))
-                {
-                    message = "리롤권은 라운드당 1회만 사용 가능합니다.";
-                }
-                else
-                {
-                    var specialBets = Context.CurrentStageData.SpecialBetTypes;
-                    if (specialBets != null && specialBets.Count > 0)
-                    {
-                        int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
-                        m_OverriddenSpecialBet = specialBets[randomIndex];
-                        Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
-                        RefreshSpecialBetAvailability();
-                        UpdateSurvivingSlotAvailability();
-                        RefreshBetSummary();
-
-                        success = true;
-                        message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
-                    }
-                    else
-                    {
-                        message = "변경할 특수 베팅 룰이 없습니다.";
-                    }
-                }
-            }
-
-            if (success && inventoryService.TryUseItemFromStage(itemData, playerState))
-            {
-                Context.RoundItemUsage.TryMarkUsed(itemData.ItemType);
-            }
-
-            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
-            return success;
-        }
 
         internal bool TryApplyPurchasedItemEffect(ItemData itemData, out string message)
         {

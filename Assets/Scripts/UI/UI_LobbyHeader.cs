@@ -19,11 +19,11 @@ namespace InTheArena.UI
         {
             m_NextRefresh = Time.unscaledTime + 1f;
             SaveManager save = SaveManager.Instance;
-            if (save == null || save.Data == null) return;
+            if (save == null) return;
             save.RefreshHearts();
-            m_GoldText.text = save.Data.gold.ToString();
-            m_StarText.text = save.Data.stars.ToString();
-            m_HeartText.text = save.Data.hearts >= SaveManager.MaxHearts ? $"{save.Data.hearts}/{SaveManager.MaxHearts}" : $"{save.Data.hearts}/{SaveManager.MaxHearts} · {save.GetRemainingHeartTime():mm\\:ss}";
+            m_GoldText.text = save.Gold.ToString();
+            m_StarText.text = save.Stars.ToString();
+            m_HeartText.text = save.Hearts >= SaveManager.MaxHearts ? $"{save.Hearts}/{SaveManager.MaxHearts}" : $"{save.Hearts}/{SaveManager.MaxHearts} · {save.GetRemainingHeartTime():mm\\:ss}";
         }
     }
 }

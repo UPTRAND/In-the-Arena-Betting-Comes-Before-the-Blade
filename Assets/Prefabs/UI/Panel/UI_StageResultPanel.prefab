@@ -184,6 +184,8 @@ MonoBehaviour:
   m_CurrentCallText: {fileID: 6342769947551993640}
   m_TargetCallText: {fileID: 5411994734629041597}
   m_ReturnToLobbyButton: {fileID: 5519970743383084066}
+  m_ErrorText: {fileID: 0}
+  m_RetryButton: {fileID: 0}
 --- !u!1 &2359792829847273733
 GameObject:
   m_ObjectHideFlags: 0

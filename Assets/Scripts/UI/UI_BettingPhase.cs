@@ -34,7 +34,7 @@ namespace InTheArena.UI
             base.Awake();
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             RefreshItemCounts();
-            
+
             if (m_AdditionalBetButton != null)
             {
                 m_AdditionalBetButton.onClick.RemoveAllListeners();
@@ -92,19 +92,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            string message;
-            int remain;
-            bool success = RoundManager.Instance.BettingPhase.UseBettingItem(itemData, out message, out remain);
-
-            ShowFeedback(message);
-
-            if (success)
-            {
-                if (countText != null)
-                {
-                    countText.text = remain.ToString();
-                }
-            }
+            ShowFeedback("아이템 구매 팝업 또는 코디네이터가 없어 사용 불가합니다.");
         }
 
         private async Awaitable TryUseItemThroughPurchaseFlowAsync(
@@ -172,13 +160,7 @@ namespace InTheArena.UI
         {
             if (itemData != null && countText != null)
             {
-                var inventory = SaveManager.Instance?.InventoryService;
-                var state = StageManager.Instance?.PlayerState;
-                if (inventory != null && state != null)
-                {
-                    int count = inventory.GetStageItemCount(itemData, state);
-                    countText.text = count.ToString();
-                }
+                countText.text = string.Empty;
             }
         }
     }

@@ -78,8 +78,8 @@ public static class TestGoldInjector
         }
 
         int saveGold =
-            SaveManager.Instance?.Data != null
-                ? SaveManager.Instance.Data.gold
+            SaveManager.Instance != null
+                ? SaveManager.Instance.Gold
                 : -1;
 
         Debug.Log(

@@ -75,8 +75,7 @@ namespace InTheArena.MainGame
             m_CombatHud?.BindAndShow(
                 this,
                 Context,
-                StageManager.Instance?.PlayerState,
-                SaveManager.Instance?.InventoryService);
+                StageManager.Instance?.PlayerState);
         }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
@@ -652,63 +651,7 @@ namespace InTheArena.MainGame
             m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - 5f);
         }
 
-        public bool UseCombatItem(ItemData itemData, Vector3 dropPosition, out string message, out int remainingCount)
-        {
-            remainingCount = 0;
-            message = "";
 
-            if (itemData == null)
-            {
-                message = "유효하지 않은 아이템입니다.";
-                return false;
-            }
-
-            var inventoryService = SaveManager.Instance?.InventoryService;
-            var playerState = StageManager.Instance?.PlayerState;
-
-            if (inventoryService == null || playerState == null)
-            {
-                message = "아이템 시스템을 불러올 수 없습니다.";
-                return false;
-            }
-
-            if (inventoryService.GetStageItemCount(itemData, playerState) <= 0)
-            {
-                message = "보유한 아이템이 없습니다.";
-                return false;
-            }
-
-            bool success = false;
-
-            if (itemData.ItemType == ItemType.Meteor)
-            {
-                success = TryApplyMeteorEffect(dropPosition, out message);
-            }
-            else if (itemData.ItemType == ItemType.Mercenary)
-            {
-                success = TrySpawnMercenaries(dropPosition, out message);
-            }
-            else if (itemData.ItemType == ItemType.TimeExtension)
-            {
-                m_RemainingCombatTime += 5f;
-                success = true;
-                message = "전투 시간을 5초 연장했습니다.";
-            }
-            else
-            {
-                message = "전투 아이템이 아닙니다.";
-                return false;
-            }
-
-            if (success)
-            {
-                inventoryService.TryUseItemFromStage(itemData, playerState);
-                OnItemUsed?.Invoke(itemData);
-            }
-
-            remainingCount = inventoryService.GetStageItemCount(itemData, playerState);
-            return success;
-        }
 
         private void OnMercenaryDied(UnitType deadUnit)
         {

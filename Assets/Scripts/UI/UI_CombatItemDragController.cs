@@ -34,20 +34,9 @@ namespace InTheArena.UI
                 return;
             }
 
-            var inventoryService = SaveManager.Instance?.InventoryService;
-            var playerState = StageManager.Instance?.PlayerState;
-            
-            if (inventoryService == null || playerState == null)
-            {
-                ShowFeedback("아이템 시스템을 찾을 수 없습니다.");
-                return;
-            }
+            ShowFeedback("드래그를 통한 아이템 사용은 비활성화되었습니다.");
+            return;
 
-            if (inventoryService.GetStageItemCount(m_ItemData, playerState) <= 0)
-            {
-                ShowFeedback("보유한 아이템이 없습니다.");
-                return;
-            }
 
             m_IsDragging = true;
             m_OriginalPosition = transform.position;
@@ -123,31 +112,7 @@ namespace InTheArena.UI
 
         private void TryUseCombatItem(Vector3 dropPosition)
         {
-            if (RoundManager.Instance == null)
-            {
-                ShowFeedback("라운드 매니저를 찾을 수 없습니다.");
-                return;
-            }
-
-            if (RoundManager.Instance.CombatPhase == null)
-            {
-                ShowFeedback("현재 전투 페이즈가 아닙니다.");
-                return;
-            }
-
-            string message;
-            int remain;
-            bool success = RoundManager.Instance.CombatPhase.UseCombatItem(m_ItemData, dropPosition, out message, out remain);
-
-            ShowFeedback(message);
-
-            if (success)
-            {
-                if (m_CountText != null)
-                {
-                    m_CountText.text = remain.ToString();
-                }
-            }
+            ShowFeedback("드래그를 통한 아이템 사용은 비활성화되었습니다.");
         }
 
         private void OnEnable()
@@ -178,13 +143,7 @@ namespace InTheArena.UI
         {
             if (m_ItemData != null && m_CountText != null)
             {
-                var inventory = SaveManager.Instance?.InventoryService;
-                var state = StageManager.Instance?.PlayerState;
-                if (inventory != null && state != null)
-                {
-                    int count = inventory.GetStageItemCount(m_ItemData, state);
-                    m_CountText.text = count.ToString();
-                }
+                m_CountText.text = string.Empty;
             }
         }
 

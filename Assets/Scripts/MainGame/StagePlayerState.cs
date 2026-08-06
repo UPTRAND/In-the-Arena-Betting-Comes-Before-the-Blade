@@ -6,34 +6,24 @@ namespace InTheArena.MainGame
     public class StagePlayerState
     {
         public int Gold { get; set; }
-        public int[] ItemCounts { get; private set; }
 
         public StagePlayerState()
         {
-            ItemCounts = new int[20];
         }
 
-        public void CopyFrom(PlayerData data)
+        public void CopyFrom(InTheArena.Save.PlayerProgressState data)
         {
             if (data != null)
             {
-                Gold = data.gold;
-                if (data.itemCounts != null)
-                {
-                    Array.Copy(data.itemCounts, ItemCounts, data.itemCounts.Length);
-                }
+                Gold = data.Gold;
             }
         }
-        
-        public void ApplyTo(PlayerData data)
+
+        public void ApplyTo(InTheArena.Save.PlayerProgressState data)
         {
             if (data != null)
             {
-                data.gold = Gold;
-                if (data.itemCounts != null)
-                {
-                    Array.Copy(ItemCounts, data.itemCounts, ItemCounts.Length);
-                }
+                data.SetGold(Gold);
             }
         }
     }

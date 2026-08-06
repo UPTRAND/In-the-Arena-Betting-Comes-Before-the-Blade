@@ -45,7 +45,6 @@ namespace InTheArena.UI
         private CombatPhase m_CombatPhase;
         private RoundContext m_RoundContext;
         private StagePlayerState m_PlayerState;
-        private ItemInventoryService m_InventoryService;
 
         private ItemData m_DraggedItem;
         private ItemData m_ActiveTargetingItemData;
@@ -66,8 +65,7 @@ namespace InTheArena.UI
         public void BindAndShow(
             CombatPhase combatPhase,
             RoundContext roundContext,
-            StagePlayerState playerState,
-            ItemInventoryService inventoryService)
+            StagePlayerState playerState)
         {
             if (m_CombatPhase != null && m_CombatPhase != combatPhase)
             {
@@ -77,7 +75,6 @@ namespace InTheArena.UI
             m_CombatPhase = combatPhase;
             m_RoundContext = roundContext;
             m_PlayerState = playerState;
-            m_InventoryService = inventoryService;
 
             if (!BIsOpened)
             {
@@ -175,12 +172,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            bool success = m_CombatPhase.UseCombatItem(itemData, worldPosition, out string message, out _);
-            Debug.Log($"[UI_BattlePhaseHUD] {message}");
-            if (success)
-            {
-                RefreshItemButtons();
-            }
+            Debug.Log("[UI_BattlePhaseHUD] 인벤토리 기반 아이템 직접 사용은 제거되었습니다.");
         }
 
         private async void RequestTargetedItemUse(ItemData itemData)
@@ -546,10 +538,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            int count = m_InventoryService != null && m_PlayerState != null && itemData != null
-                ? m_InventoryService.GetStageItemCount(itemData, m_PlayerState)
-                : 0;
-            button.interactable = CanAcceptCombatInput() && count > 0;
+            button.interactable = false;
         }
 
         private bool CanUseNewImmediateFlow(ItemData itemData)
@@ -686,7 +675,6 @@ namespace InTheArena.UI
             m_CombatPhase = null;
             m_RoundContext = null;
             m_PlayerState = null;
-            m_InventoryService = null;
             m_DraggedItem = null;
             m_ActiveTargetingItemData = null;
         }

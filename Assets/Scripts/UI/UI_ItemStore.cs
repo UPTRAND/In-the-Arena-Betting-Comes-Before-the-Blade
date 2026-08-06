@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -17,7 +16,7 @@ namespace InTheArena.UI
         [Header("Store Settings")]
         [SerializeField] private StoreType m_StoreType = StoreType.Lobby;
         [SerializeField] private ItemData m_TargetItem;
-        
+
         [Header("UI Elements")]
         [SerializeField] private Button m_BuyButton;
         [SerializeField] private TMP_Text m_PriceText;
@@ -40,48 +39,13 @@ namespace InTheArena.UI
 
         private void OnBuyClicked()
         {
-            if (m_TargetItem == null) return;
-            var inventory = SaveManager.Instance?.InventoryService;
-            if (inventory == null)
-            {
-                ShowFeedback("?�이???�스?�을 찾을 ???�습?�다.");
-                return;
-            }
-
-            bool success = false;
-            if (m_StoreType == StoreType.Lobby)
-            {
-                success = inventory.TryBuyItemFromLobby(m_TargetItem);
-            }
-            else
-            {
-                var state = StageManager.Instance?.PlayerState;
-                if (state != null)
-                {
-                    success = inventory.TryBuyItemFromStage(m_TargetItem, state);
-                }
-                else
-                {
-                    ShowFeedback("진행 중인 ?�테?��?가 ?�습?�다.");
-                    return;
-                }
-            }
-
-            if (success)
-            {
-                ShowFeedback($"{m_TargetItem.ItemName} 구매 ?�료!");
-                RefreshUI();
-            }
-            else
-            {
-                ShowFeedback("골드가 부족합?�다.");
-            }
+            ShowFeedback("아이템은 더 이상 인벤토리에 보관되지 않으며 즉시 사용됩니다.");
         }
 
         public void RefreshUI()
         {
             if (m_TargetItem == null) return;
-            
+
             if (m_PriceText != null)
             {
                 m_PriceText.text = m_TargetItem.PriceGold.ToString();
@@ -89,24 +53,8 @@ namespace InTheArena.UI
 
             if (m_CurrentCountText != null)
             {
-                var inventory = SaveManager.Instance?.InventoryService;
-                if (inventory != null)
-                {
-                    int count = 0;
-                    if (m_StoreType == StoreType.Lobby)
-                    {
-                        count = inventory.GetLobbyItemCount(m_TargetItem);
-                    }
-                    else
-                    {
-                        var state = StageManager.Instance?.PlayerState;
-                        if (state != null)
-                        {
-                            count = inventory.GetStageItemCount(m_TargetItem, state);
-                        }
-                    }
-                    m_CurrentCountText.text = count.ToString();
-                }
+                m_CurrentCountText.text = "0";
+                m_CurrentCountText.gameObject.SetActive(false);
             }
         }
 
@@ -120,4 +68,3 @@ namespace InTheArena.UI
         }
     }
 }
-
