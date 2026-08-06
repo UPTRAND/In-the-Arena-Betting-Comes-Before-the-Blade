@@ -51,9 +51,7 @@ namespace InTheArena.Battlefield
             }
         }
 
-        public Vector3 ClampPosition(
-            Vector3 worldPosition,
-            float worldRadius)
+        public Vector3 ClampPosition(Vector3 worldPosition, float worldRadius)
         {
             if (m_AreaCollider == null)
             {
@@ -99,6 +97,40 @@ namespace InTheArena.Battlefield
             result.y = worldPosition.y;
 
             return result;
+        }
+
+        public bool ContainsPosition(Vector3 worldPosition, float worldRadius = 0f)
+        {
+            if (m_AreaCollider == null)
+            {
+                return false;
+            }
+
+            Transform areaTransform = m_AreaCollider.transform;
+            Vector3 localPosition =
+                areaTransform.InverseTransformPoint(worldPosition);
+
+            Vector3 center = m_AreaCollider.center;
+            Vector3 extents = m_AreaCollider.size * 0.5f;
+            Vector3 scale = areaTransform.lossyScale;
+
+            float radius = Mathf.Max(0f, worldRadius);
+
+            float localRadiusX =
+                radius / Mathf.Max(Mathf.Abs(scale.x), 0.0001f);
+
+            float localRadiusZ =
+                radius / Mathf.Max(Mathf.Abs(scale.z), 0.0001f);
+
+            float minX = center.x - extents.x + localRadiusX;
+            float maxX = center.x + extents.x - localRadiusX;
+            float minZ = center.z - extents.z + localRadiusZ;
+            float maxZ = center.z + extents.z - localRadiusZ;
+
+            return localPosition.x >= minX &&
+                   localPosition.x <= maxX &&
+                   localPosition.z >= minZ &&
+                   localPosition.z <= maxZ;
         }
 
 #if UNITY_EDITOR

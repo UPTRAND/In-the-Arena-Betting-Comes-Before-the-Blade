@@ -128,7 +128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 32410856}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: TeamASpawnRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -902,7 +902,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &226696150
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1141,7 +1141,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 309867658}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: TeamBSpawnRoot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4253,7 +4253,7 @@ GameObject:
   - component: {fileID: 2138027659}
   - component: {fileID: 2138027661}
   - component: {fileID: 2138027660}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: '[BattleField]'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4310,7 +4310,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cedc77c5d8e09f4482342a928b6e700, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattlefieldArea
-  m_AreaCollider: {fileID: 0}
+  m_AreaCollider: {fileID: 2138027660}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

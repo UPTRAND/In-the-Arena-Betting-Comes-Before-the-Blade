@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using DG.Tweening;
+using InTheArena.Battlefield;
 
 [DisallowMultipleComponent]
 public class InputManager : Manager_Base
@@ -211,19 +212,28 @@ public class InputManager : Manager_Base
 
     private void UpdateSkillDrag(Vector2 screenPosition)
     {
-        if (!m_IsDraggingSkill) return;
+        if (!m_IsDraggingSkill)
+        {
+            return;
+        }
 
-        bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
-        bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
-        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, m_ArmedSessionId, screenPosition, worldPos, isValid);
+        bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPosition);
+
+        bool isValid = IsValidBattlefieldTarget(screenPosition, hitGround, worldPosition);
+
+        OnSkillDragUpdated?.Invoke(m_CurrentDraggingSkillId, m_ArmedSessionId, screenPosition, worldPosition, isValid);
     }
 
     private void EndSkillDrag(Vector2 screenPosition, bool isCanceled)
     {
-        if (!m_IsDraggingSkill) return;
+        if (!m_IsDraggingSkill)
+        {
+            return;
+        }
 
-        bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPos);
-        bool isValid = hitGround && !IsPointerOverUIObject(screenPosition);
+        bool hitGround = RaycastGroundPosition(screenPosition, out Vector3 worldPosition);
+
+        bool isValid = IsValidBattlefieldTarget(screenPosition, hitGround, worldPosition);
 
         int skillId = m_CurrentDraggingSkillId;
         int sessionId = m_ArmedSessionId;
@@ -233,7 +243,13 @@ public class InputManager : Manager_Base
         m_CurrentDraggingSkillId = -1;
         m_ArmedSessionId = -1;
 
-        OnSkillDragEnded?.Invoke(skillId, sessionId, screenPosition, worldPos, isCanceled, isValid);
+        OnSkillDragEnded?.Invoke(
+            skillId,
+            sessionId,
+            screenPosition,
+            worldPosition,
+            isCanceled,
+            isValid);
     }
 
     /// <summary>
@@ -279,6 +295,21 @@ public class InputManager : Manager_Base
                 }
             }
         }
+    }
+
+    private bool IsValidBattlefieldTarget(
+    Vector2 screenPosition,
+    bool hitGround,
+    Vector3 worldPosition)
+    {
+        if (!hitGround || IsPointerOverUIObject(screenPosition))
+        {
+            return false;
+        }
+
+        BattlefieldArea area = BattlefieldArea.Active;
+        return area != null &&
+               area.ContainsPosition(worldPosition);
     }
 
     public override void Release()

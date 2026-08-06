@@ -6,6 +6,7 @@ using UnityEngine;
 using DG.Tweening;
 using InTheArena.Unit;
 using InTheArena.UI;
+using InTheArena.Battlefield;
 using UnitType = InTheArena.Unit.Unit;
 
 namespace InTheArena.MainGame
@@ -672,42 +673,98 @@ namespace InTheArena.MainGame
 
         internal bool TrySpawnMercenaries(Vector3 dropPosition, out string message)
         {
-            message = "";
+            message = string.Empty;
+
             if (Context == null || IsCombatEnded)
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
             }
 
-            if (m_MercenaryKnightData == null || m_MercenaryArcherData == null || m_MercenaryWizardData == null)
+            if (m_MercenaryKnightData == null ||
+                m_MercenaryArcherData == null ||
+                m_MercenaryWizardData == null)
             {
                 message = "용병 데이터가 없습니다.";
                 return false;
             }
 
+            // 기존 팀 결정 로직을 그대로 유지한다.
             Team team = Team.Red;
+
             if (UnityEngine.Camera.main != null)
             {
-                Vector3 viewportPos = UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
+                Vector3 viewportPos =
+                    UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
+
                 if (viewportPos.x >= 0.5f)
                 {
                     team = Team.Blue;
                 }
             }
 
+            // 생성 위치를 한 번만 계산한다.
+            Vector3 knightPosition = dropPosition;
+
+            Vector3 archerPosition =
+                dropPosition + new Vector3(0.5f, 0f, -0.5f);
+
+            Vector3 wizardPosition =
+                dropPosition + new Vector3(-0.5f, 0f, -0.5f);
+
+            // 어떤 유닛도 생성하기 전에 세 위치를 모두 검증한다.
+            if (!ValidateMercenarySpawnPosition(
+                    m_MercenaryKnightData,
+                    knightPosition,
+                    out message) ||
+                !ValidateMercenarySpawnPosition(
+                    m_MercenaryArcherData,
+                    archerPosition,
+                    out message) ||
+                !ValidateMercenarySpawnPosition(
+                    m_MercenaryWizardData,
+                    wizardPosition,
+                    out message))
+            {
+                return false;
+            }
+
             List<UnitType> spawnedUnits = new List<UnitType>(3);
+
             try
             {
-                UnitType knight = SpawnMercenary(m_MercenaryKnightData, team, dropPosition, spawnedUnits);
-                if (knight == null) throw new Exception("기사 소환 실패");
+                UnitType knight = SpawnMercenary(
+                    m_MercenaryKnightData,
+                    team,
+                    knightPosition,
+                    spawnedUnits);
 
-                Vector3 archerPosition = dropPosition + new Vector3(0.5f, 0f, -0.5f);
-                UnitType archer = SpawnMercenary(m_MercenaryArcherData, team, archerPosition, spawnedUnits);
-                if (archer == null) throw new Exception("궁수 소환 실패");
+                if (knight == null)
+                {
+                    throw new Exception("기사 소환 실패");
+                }
 
-                Vector3 wizardPosition = dropPosition + new Vector3(-0.5f, 0f, -0.5f);
-                UnitType wizard = SpawnMercenary(m_MercenaryWizardData, team, wizardPosition, spawnedUnits);
-                if (wizard == null) throw new Exception("마법사 소환 실패");
+                UnitType archer = SpawnMercenary(
+                    m_MercenaryArcherData,
+                    team,
+                    archerPosition,
+                    spawnedUnits);
+
+                if (archer == null)
+                {
+                    throw new Exception("궁수 소환 실패");
+                }
+
+                UnitType wizard = SpawnMercenary(
+                    m_MercenaryWizardData,
+                    team,
+                    wizardPosition,
+                    spawnedUnits);
+
+                if (wizard == null)
+                {
+                    throw new Exception("마법사 소환 실패");
+                }
 
                 for (int i = 0; i < spawnedUnits.Count; i++)
                 {
@@ -729,16 +786,25 @@ namespace InTheArena.MainGame
                     m_BlueParticipantCount += spawnedUnits.Count;
                 }
 
-                Debug.Log($"[Phase1C Test] 용병 고용 성공. Team: {team}, RuntimeListCount: {((team == Team.Red) ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, " +
-                          $"RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
+                Debug.Log(
+                    $"[Phase1C Test] 용병 고용 성공. " +
+                    $"Team: {team}, " +
+                    $"RuntimeListCount: " +
+                    $"{(team == Team.Red ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, " +
+                    $"RedAlive: {RedAliveCount}/{m_RedParticipantCount}, " +
+                    $"BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
 
                 message = "용병을 고용했습니다.";
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[CombatPhase] 용병 소환 실패 및 롤백: {ex.Message}");
+                Debug.LogError(
+                    $"[CombatPhase] 용병 소환 실패 및 롤백: {ex.Message}");
+
+                // 기존 시그니처와 기존 팀 변수를 그대로 사용한다.
                 RollbackMercenaries(spawnedUnits, team);
+
                 message = "용병 소환에 실패했습니다.";
                 return false;
             }
@@ -760,6 +826,36 @@ namespace InTheArena.MainGame
                 runtimeUnits.Remove(unit);
                 PoolManager.Require().Units.Return(unit);
             }
+        }
+
+        private bool ValidateMercenarySpawnPosition(UnitData unitData, Vector3 position, out string message)
+        {
+            if (unitData == null)
+            {
+                message = "용병 데이터가 없습니다.";
+                return false;
+            }
+
+            BattlefieldArea area = BattlefieldArea.Active;
+
+            if (area == null)
+            {
+                message = "전장 영역이 설정되지 않았습니다.";
+                return false;
+            }
+
+            float radius = Mathf.Max(0f, unitData.VisualRadius);
+
+            if (!area.ContainsPosition(position, radius))
+            {
+                message =
+                    "세 용병을 모두 배치할 수 있도록 전장 안쪽을 선택해야 합니다.";
+
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
         }
 
         private UnitType SpawnMercenary(UnitData unitData, Team team, Vector3 position, List<UnitType> spawnedUnits)
@@ -790,10 +886,16 @@ namespace InTheArena.MainGame
 
         internal bool TryApplyMeteorEffect(Vector3 center, out string message)
         {
-            message = "";
+            message = string.Empty;
+
             if (Context == null || IsCombatEnded)
             {
                 message = "유효하지 않은 전투 상태입니다.";
+                return false;
+            }
+
+            if (!ValidateBattlefieldTarget(center, 0f, out message))
+            {
                 return false;
             }
 
@@ -839,6 +941,26 @@ namespace InTheArena.MainGame
                     }
                 }
             }
+        }
+
+        private static bool ValidateBattlefieldTarget(Vector3 position, float padding, out string message)
+        {
+            BattlefieldArea area = BattlefieldArea.Active;
+
+            if (area == null)
+            {
+                message = "전장 영역이 설정되지 않았습니다.";
+                return false;
+            }
+
+            if (!area.ContainsPosition(position, padding))
+            {
+                message = "전장 안쪽에서 사용해야 합니다.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
         }
 
         private void OnDestroy()
