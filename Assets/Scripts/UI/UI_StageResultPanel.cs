@@ -12,7 +12,8 @@ namespace InTheArena.UI
         Saving,
         SaveFailed,
         ClearCompleted,
-        GameOver
+        GameOver,
+        GivenUp
     }
 
     [DisallowMultipleComponent]
@@ -27,9 +28,12 @@ namespace InTheArena.UI
         [Header("Error State")]
         [SerializeField] private TMP_Text m_ErrorText;
         [SerializeField] private Button m_RetryButton;
+        [SerializeField] private Button m_GiveUpButton;
+        [SerializeField] private TMP_Text m_GiveUpButtonText;
 
         private AwaitableCompletionSource m_CompletionSource;
         private bool m_IsEventSubscribed = false;
+        private bool m_IsGiveUpConfirming = false;
 
         protected override void Awake()
         {
@@ -38,6 +42,8 @@ namespace InTheArena.UI
                 m_ReturnToLobbyButton.onClick.AddListener(OnReturnToLobbyClicked);
             if (m_RetryButton != null)
                 m_RetryButton.onClick.AddListener(OnRetryClicked);
+            if (m_GiveUpButton != null)
+                m_GiveUpButton.onClick.AddListener(OnGiveUpClicked);
         }
 
         private void OnEnable()
@@ -82,12 +88,19 @@ namespace InTheArena.UI
             {
                 SetMode(StageResultPanelMode.ClearCompleted);
             }
+            else if (state == StageClearCommitState.GivenUp)
+            {
+                SetMode(StageResultPanelMode.GivenUp);
+            }
         }
 
         public void SetMode(StageResultPanelMode mode, string errorStr = null)
         {
-            if (m_ErrorText != null) m_ErrorText.gameObject.SetActive(mode == StageResultPanelMode.Saving || mode == StageResultPanelMode.SaveFailed);
+            m_IsGiveUpConfirming = false;
+            
+            if (m_ErrorText != null) m_ErrorText.gameObject.SetActive(mode == StageResultPanelMode.Saving || mode == StageResultPanelMode.SaveFailed || mode == StageResultPanelMode.GivenUp);
             if (m_RetryButton != null) m_RetryButton.gameObject.SetActive(mode == StageResultPanelMode.SaveFailed);
+            if (m_GiveUpButton != null) m_GiveUpButton.gameObject.SetActive(mode == StageResultPanelMode.SaveFailed);
             if (m_ReturnToLobbyButton != null) m_ReturnToLobbyButton.gameObject.SetActive(mode == StageResultPanelMode.ClearCompleted || mode == StageResultPanelMode.GameOver);
 
             if (mode == StageResultPanelMode.Saving)
@@ -97,10 +110,17 @@ namespace InTheArena.UI
             }
             else if (mode == StageResultPanelMode.SaveFailed)
             {
-                if (m_ErrorText != null) m_ErrorText.text = $"저장에 실패했습니다.\n{errorStr}";
+                if (m_ErrorText != null) m_ErrorText.text = $"저장에 실패했습니다.\n{errorStr}\n\n보상 포기를 선택하면 이번 스테이지에서 얻은\n골드·별·클리어 진행도가 저장되지 않습니다.";
+                if (m_GiveUpButtonText != null) m_GiveUpButtonText.text = "저장 포기";
                 DisableCompletionInput();
                 // Retry button operates regardless of CompletionInput block (it's part of the panel, interactability should be enabled globally, but completion logic blocked)
                 EnableInput();
+            }
+            else if (mode == StageResultPanelMode.GivenUp)
+            {
+                if (m_ErrorText != null) m_ErrorText.text = "로비로 이동 중...";
+                DisableCompletionInput();
+                DisableInput();
             }
             else if (mode == StageResultPanelMode.ClearCompleted)
             {
@@ -136,9 +156,27 @@ namespace InTheArena.UI
         
         private void OnRetryClicked()
         {
+            m_IsGiveUpConfirming = false;
             if (StageManager.Instance != null && m_RetryButton.gameObject.activeSelf)
             {
                 StageManager.Instance.RetryStageClearSave();
+            }
+        }
+
+        private void OnGiveUpClicked()
+        {
+            if (!m_IsGiveUpConfirming)
+            {
+                m_IsGiveUpConfirming = true;
+                if (m_ErrorText != null) m_ErrorText.text = "정말 포기하시겠습니까?\n이번 스테이지 보상과 진행도가 저장되지 않습니다.";
+                if (m_GiveUpButtonText != null) m_GiveUpButtonText.text = "정말 포기";
+            }
+            else
+            {
+                if (StageManager.Instance != null && m_GiveUpButton.gameObject.activeSelf)
+                {
+                    StageManager.Instance.GiveUpStageClearSave();
+                }
             }
         }
 
@@ -233,6 +271,8 @@ namespace InTheArena.UI
                 m_ReturnToLobbyButton.onClick.RemoveListener(OnReturnToLobbyClicked);
             if (m_RetryButton != null)
                 m_RetryButton.onClick.RemoveListener(OnRetryClicked);
+            if (m_GiveUpButton != null)
+                m_GiveUpButton.onClick.RemoveListener(OnGiveUpClicked);
             m_CompletionSource?.TrySetResult();
             UnsubscribeEvent();
             base.OnDestroy();

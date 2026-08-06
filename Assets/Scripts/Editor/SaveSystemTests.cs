@@ -301,150 +301,178 @@ namespace InTheArena.Tests.Editor
         // 3. 스테이지 커밋 테스트
         // ==========================================
         [Test]
-        public void StageClear_MissingSaveManager_TransitionsToFailed()
+        public void StageClear_MissingSaveManager_TransitionsToFailedThroughProductionMethod()
         {
             var go = new GameObject("StageManager");
             var stageManager = go.AddComponent<StageManager>();
-
-            stageManager.SetCurrentStageData(ScriptableObject.CreateInstance<StageData>()); // Dummy
-            var context = new RoundContext();
-            typeof(InTheArena.MainGame.StageSession).GetProperty("CurrentCall")?.SetValue(context.StageSession, 100);
-            typeof(StageManager).GetField("m_Context", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(stageManager, context);
-            stageManager.SetCurrentStageData(ScriptableObject.CreateInstance<StageData>());
-            var sd = ScriptableObject.CreateInstance<StageData>();
-            typeof(StageData).GetField("m_TargetCall", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(sd, 10);
-            stageManager.SetCurrentStageData(sd);
-
-            // Execute the check directly to trigger transitions
-            var checkMethod = typeof(StageManager).GetMethod("CheckStageClear", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            bool isClear = (bool)checkMethod.Invoke(stageManager, null);
-            Assert.IsTrue(isClear);
-
-            // Manually run the first block of RunStageLoopAsync logic that checks SaveManager
+            
             typeof(StageManager).GetMethod("SetStageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.Invoke(stageManager, new object[] { StageClearCommitState.Pending });
 
-            // Simulating SaveManager check in RunStageLoopAsync
-            if (SaveManager.Instance == null)
-            {
-                typeof(StageManager).GetField("m_LastStageClearSaveError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.SetValue(stageManager, "SaveManager is unavailable.");
-                typeof(StageManager).GetMethod("SetStageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.Invoke(stageManager, new object[] { StageClearCommitState.Failed });
-            }
+            var processMethod = typeof(StageManager).GetMethod("ProcessPendingStageClearSave", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            processMethod.Invoke(stageManager, null);
 
             Assert.AreEqual(StageClearCommitState.Failed, stageManager.StageClearCommitState);
             Assert.AreEqual("SaveManager is unavailable.", stageManager.LastStageClearSaveError);
-
+            
             UnityEngine.Object.DestroyImmediate(go);
         }
 
         [Test]
-        public void StageClear_FailedWithoutSaveManager_RejectsRetry()
+        public void StageClear_NullCandidate_TransitionsToFailed()
         {
+            var smGo = new GameObject("SaveManager");
+            var sm = smGo.AddComponent<SaveManager>();
+            typeof(SaveManager).GetProperty("Instance")?.SetValue(null, sm);
+            sm.InitializeForTests(new FakeSaveRepository(), new FakeClock(), new PlayerProgressState());
+
             var go = new GameObject("StageManager");
             var stageManager = go.AddComponent<StageManager>();
 
             typeof(StageManager).GetMethod("SetStageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.Invoke(stageManager, new object[] { StageClearCommitState.Failed });
-            typeof(StageManager).GetField("m_LastStageClearSaveError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(stageManager, "SaveManager is unavailable.");
+                ?.Invoke(stageManager, new object[] { StageClearCommitState.Pending });
 
-            bool retryResult = stageManager.RetryStageClearSave();
+            var processMethod = typeof(StageManager).GetMethod("ProcessPendingStageClearSave", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            processMethod.Invoke(stageManager, null);
 
-            // Retry should fail if SaveManager is still null
-            Assert.IsFalse(retryResult);
             Assert.AreEqual(StageClearCommitState.Failed, stageManager.StageClearCommitState);
+            Assert.AreEqual("No pending candidate data.", stageManager.LastStageClearSaveError);
 
+            UnityEngine.Object.DestroyImmediate(smGo);
             UnityEngine.Object.DestroyImmediate(go);
         }
 
         [Test]
-        public void SaveManager_StageClearCandidateSaveFailure_ReturnsFalse()
+        public void StageClear_SaveFailure_ExposesRetryState()
         {
             var smGo = new GameObject("SaveManager");
             var sm = smGo.AddComponent<SaveManager>();
-            var repo = new FakeSaveRepository { FailNextSave = true };
-            sm.InitializeForTests(repo, new FakeClock(), new PlayerProgressState());
-
-            var stageState = new StagePlayerState();
-            var candidate = sm.CreatePendingStageClearCandidate(stageState, 1, 10, 1);
-
-            bool success = sm.TryCommitPendingStageClear(candidate, out string error);
-
-            Assert.IsFalse(success);
-            Assert.IsNotNull(error);
-
-            UnityEngine.Object.DestroyImmediate(smGo);
-        }
-
-        [Test]
-        public void StageClear_SaveFailure_EmitsFailedEvent()
-        {
-            var smGo = new GameObject("SaveManager");
-            var sm = smGo.AddComponent<SaveManager>();
+            typeof(SaveManager).GetProperty("Instance")?.SetValue(null, sm);
             var repo = new FakeSaveRepository { FailNextSave = true };
             sm.InitializeForTests(repo, new FakeClock(), new PlayerProgressState());
 
             var stageGo = new GameObject("StageManager");
             var stageManager = stageGo.AddComponent<StageManager>();
 
-            StageClearCommitState? receivedState = null;
-            stageManager.OnStageClearCommitStateChanged += state => receivedState = state;
-
-            var stageState = new StagePlayerState();
-            var candidate = sm.CreatePendingStageClearCandidate(stageState, 1, 10, 1);
-
+            var candidate = sm.CreatePendingStageClearCandidate(new StagePlayerState(), 1, 10, 1);
             typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(stageManager, candidate);
+            
             typeof(StageManager).GetMethod("SetStageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.Invoke(stageManager, new object[] { StageClearCommitState.Pending });
 
-            // Simulate the TryCommit logic failing
-            bool success = sm.TryCommitPendingStageClear(candidate, out string error);
-            if (!success)
-            {
-                typeof(StageManager).GetField("m_LastStageClearSaveError", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.SetValue(stageManager, error);
-                typeof(StageManager).GetMethod("SetStageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    ?.Invoke(stageManager, new object[] { StageClearCommitState.Failed });
-            }
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Error, new System.Text.RegularExpressions.Regex(@"\[StageManager\] 스테이지 클리어 저장 실패: .*"));
 
-            Assert.IsFalse(success);
-            Assert.AreEqual(StageClearCommitState.Failed, receivedState);
+            var processMethod = typeof(StageManager).GetMethod("ProcessPendingStageClearSave", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            processMethod.Invoke(stageManager, null);
 
+            Assert.AreEqual(StageClearCommitState.Failed, stageManager.StageClearCommitState);
+            
             UnityEngine.Object.DestroyImmediate(smGo);
             UnityEngine.Object.DestroyImmediate(stageGo);
         }
 
         [Test]
-        public void StageClear_RetryDoubleClick_WritesOnce()
+        public void StageClear_RetrySuccess_CommitsExactlyOnce()
         {
             var smGo = new GameObject("SaveManager");
             var sm = smGo.AddComponent<SaveManager>();
+            typeof(SaveManager).GetProperty("Instance")?.SetValue(null, sm);
             var repo = new FakeSaveRepository();
             sm.InitializeForTests(repo, new FakeClock(), new PlayerProgressState());
 
             var stageGo = new GameObject("StageManager");
             var stageManager = stageGo.AddComponent<StageManager>();
 
-            // Set to failed so we can retry
+            var candidate = sm.CreatePendingStageClearCandidate(new StagePlayerState(), 1, 10, 1);
+            typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, candidate);
+            
             typeof(StageManager).GetField("m_StageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(stageManager, StageClearCommitState.Failed);
 
-            typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.SetValue(stageManager, new PlayerProgressState());
+            bool success = stageManager.RetryStageClearSave();
 
-            bool retry1 = stageManager.RetryStageClearSave();
-            bool retry2 = stageManager.RetryStageClearSave(); // Should fail because state is now Committed
-
-            Assert.IsTrue(retry1);
-            Assert.IsFalse(retry2);
+            Assert.IsTrue(success);
+            Assert.AreEqual(StageClearCommitState.Committed, stageManager.StageClearCommitState);
             Assert.AreEqual(1, repo.SaveCallCount);
 
             UnityEngine.Object.DestroyImmediate(smGo);
+            UnityEngine.Object.DestroyImmediate(stageGo);
+        }
+
+        [Test]
+        public void StageClear_RetryDoubleClick_DoesNotDuplicateSave()
+        {
+            var smGo = new GameObject("SaveManager");
+            var sm = smGo.AddComponent<SaveManager>();
+            typeof(SaveManager).GetProperty("Instance")?.SetValue(null, sm);
+            var repo = new FakeSaveRepository();
+            sm.InitializeForTests(repo, new FakeClock(), new PlayerProgressState());
+
+            var stageGo = new GameObject("StageManager");
+            var stageManager = stageGo.AddComponent<StageManager>();
+
+            var candidate = sm.CreatePendingStageClearCandidate(new StagePlayerState(), 1, 10, 1);
+            typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, candidate);
+            
+            typeof(StageManager).GetField("m_StageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, StageClearCommitState.Failed);
+
+            bool retry1 = stageManager.RetryStageClearSave();
+            bool retry2 = stageManager.RetryStageClearSave();
+
+            Assert.IsTrue(retry1);
+            Assert.IsFalse(retry2); // Second retry should be rejected
+            Assert.AreEqual(1, repo.SaveCallCount); // Save should happen exactly once
+
+            UnityEngine.Object.DestroyImmediate(smGo);
+            UnityEngine.Object.DestroyImmediate(stageGo);
+        }
+
+        [Test]
+        public void StageClear_GiveUpFromFailed_DiscardsCandidate()
+        {
+            var stageGo = new GameObject("StageManager");
+            var stageManager = stageGo.AddComponent<StageManager>();
+
+            var candidate = new PlayerProgressState();
+            typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, candidate);
+            
+            typeof(StageManager).GetField("m_StageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, StageClearCommitState.Failed);
+
+            bool success = stageManager.GiveUpStageClearSave();
+
+            Assert.IsTrue(success);
+            Assert.AreEqual(StageClearCommitState.GivenUp, stageManager.StageClearCommitState);
+            var resultingCandidate = typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.GetValue(stageManager);
+            Assert.IsNull(resultingCandidate); // Candidate should be discarded
+
+            UnityEngine.Object.DestroyImmediate(stageGo);
+        }
+
+        [Test]
+        public void StageClear_GiveUpAfterCommitted_IsRejected()
+        {
+            var stageGo = new GameObject("StageManager");
+            var stageManager = stageGo.AddComponent<StageManager>();
+
+            var candidate = new PlayerProgressState();
+            typeof(StageManager).GetField("m_PendingStageClearCandidate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, candidate);
+            
+            typeof(StageManager).GetField("m_StageClearCommitState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.SetValue(stageManager, StageClearCommitState.Committed);
+
+            bool success = stageManager.GiveUpStageClearSave();
+
+            Assert.IsFalse(success); // Cannot give up if already committed
+            Assert.AreEqual(StageClearCommitState.Committed, stageManager.StageClearCommitState);
+
             UnityEngine.Object.DestroyImmediate(stageGo);
         }
 

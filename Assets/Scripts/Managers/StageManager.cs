@@ -13,7 +13,8 @@ namespace InTheArena.MainGame
         Pending,
         Saving,
         Failed,
-        Committed
+        Committed,
+        GivenUp
     }
 
     [DisallowMultipleComponent]
@@ -241,6 +242,50 @@ namespace InTheArena.MainGame
             }
         }
 
+        public bool GiveUpStageClearSave()
+        {
+            if (m_StageClearCommitState != StageClearCommitState.Failed)
+                return false;
+
+            m_PendingStageClearCandidate = null;
+            SetStageClearCommitState(StageClearCommitState.GivenUp);
+            return true;
+        }
+
+        private void ProcessPendingStageClearSave()
+        {
+            if (m_StageClearCommitState != StageClearCommitState.Pending)
+                return;
+
+            SetStageClearCommitState(StageClearCommitState.Saving);
+
+            if (SaveManager.Instance == null)
+            {
+                m_LastStageClearSaveError = "SaveManager is unavailable.";
+                SetStageClearCommitState(StageClearCommitState.Failed);
+                return;
+            }
+
+            if (m_PendingStageClearCandidate == null)
+            {
+                m_LastStageClearSaveError = "No pending candidate data.";
+                SetStageClearCommitState(StageClearCommitState.Failed);
+                return;
+            }
+
+            bool success = SaveManager.Instance.TryCommitPendingStageClear(m_PendingStageClearCandidate, out string error);
+            if (!success)
+            {
+                Debug.LogError($"[StageManager] 스테이지 클리어 저장 실패: {error}");
+                m_LastStageClearSaveError = error;
+                SetStageClearCommitState(StageClearCommitState.Failed);
+            }
+            else
+            {
+                SetStageClearCommitState(StageClearCommitState.Committed);
+            }
+        }
+
         private async Awaitable RecoverToLobbyAsync()
         {
             try
@@ -358,24 +403,7 @@ namespace InTheArena.MainGame
 
                 if (m_StageClearCommitState == StageClearCommitState.Pending || m_StageClearCommitState == StageClearCommitState.Failed)
                 {
-                    if (m_StageClearCommitState == StageClearCommitState.Pending)
-                    {
-                        SetStageClearCommitState(StageClearCommitState.Saving);
-                        if (SaveManager.Instance != null && m_PendingStageClearCandidate != null)
-                        {
-                            bool success = SaveManager.Instance.TryCommitPendingStageClear(m_PendingStageClearCandidate, out string error);
-                            if (!success)
-                            {
-                                Debug.LogError($"[StageManager] 스테이지 클리어 저장 실패: {error}");
-                                m_LastStageClearSaveError = error;
-                                SetStageClearCommitState(StageClearCommitState.Failed);
-                            }
-                            else
-                            {
-                                SetStageClearCommitState(StageClearCommitState.Committed);
-                            }
-                        }
-                    }
+                    ProcessPendingStageClearSave();
 
                     if (m_StageClearCommitState == StageClearCommitState.Failed)
                     {
@@ -385,6 +413,10 @@ namespace InTheArena.MainGame
                             autoRetryCount++;
                             Debug.LogWarning($"[StageManager] 자동 재시도 {autoRetryCount}/3 수행 중...");
                             await Awaitable.WaitForSecondsAsync(1f, token);
+                            if (m_StageClearCommitState != StageClearCommitState.Failed)
+                            {
+                                continue;
+                            }
                             SetStageClearCommitState(StageClearCommitState.Pending);
                             continue;
                         }
@@ -395,9 +427,18 @@ namespace InTheArena.MainGame
                     }
                 }
 
+                if (m_StageClearCommitState == StageClearCommitState.GivenUp)
+                {
+                    if (UIManager.Instance != null)
+                    {
+                        UIManager.Instance.GetStageResultPanel()?.Close();
+                    }
+                    
+                    break;
+                }
+
                 if (m_StageClearCommitState == StageClearCommitState.Committed)
                 {
-                    // The panel is already shown, we just need to wait for user to click Return to Lobby
                     if (UIManager.Instance != null)
                     {
                         var panel = UIManager.Instance.GetStageResultPanel();
@@ -407,6 +448,7 @@ namespace InTheArena.MainGame
                             panel.Close();
                         }
                     }
+                    
                     break;
                 }
 
@@ -433,7 +475,7 @@ namespace InTheArena.MainGame
             await ReturnToLobbyAsync();
 
             // Once returned to lobby, clear the stage progress state to fully clean up
-            if (m_StageClearCommitState == StageClearCommitState.Committed)
+            if (m_StageClearCommitState == StageClearCommitState.Committed || m_StageClearCommitState == StageClearCommitState.GivenUp)
             {
                 ClearStageProgressState();
             }
