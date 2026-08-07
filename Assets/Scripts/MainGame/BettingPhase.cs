@@ -15,6 +15,7 @@ namespace InTheArena.MainGame
     public class BettingPhase : RoundPhaseBase
     {
         private const int WagerStepCall = 100;
+        private const float DropdownOptionHeight = 65f;
         [Header("Round / Team Info")]
         [SerializeField] private CanvasGroup m_BettingCanvasGroup;
         [SerializeField] private TMP_Text m_RoundText;
@@ -52,6 +53,7 @@ namespace InTheArena.MainGame
 
         [Header("Confirm")]
         [SerializeField] private TMP_Text m_ValidationText;
+        [SerializeField] private TMP_Text m_AgreeText;
         [SerializeField] private Button m_ConfirmBetButton;
 
         [Header("New Betting UI")]
@@ -68,16 +70,25 @@ namespace InTheArena.MainGame
         [SerializeField] private Button[] m_BlueSurvivingSlotButtons = new Button[6];
         [SerializeField] private TMP_Text[] m_BlueSurvivingSlotTexts = new TMP_Text[6];
         [SerializeField] private Image[] m_BlueSurvivingSlotImages = new Image[6];
-        [SerializeField] private TMP_Text m_NewRoundText;
+        [Header("Shared Top Bar")]
+        [SerializeField] private TMP_Text m_RoundInfoText;
+        [SerializeField] private TMP_Text m_TargetInfoText;
         [SerializeField] private TMP_Text m_NewCurrentCallText;
         [SerializeField] private TMP_Text m_NewMultiplierText;
 
         private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
+        private static readonly Color AgreeTextColor = Color.black;
+        private static readonly Color AgreeWarningColor = new Color(0.783f, 0.084f, 0.070f, 1f);
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
 
         // 아이템 상태 트래킹
         private SpecialBetType? m_OverriddenSpecialBet = null;
+
+        private void Awake()
+        {
+            RefreshTopBar(null);
+        }
 
         public RoundBetTicket DraftTicket
         {
@@ -254,11 +265,12 @@ namespace InTheArena.MainGame
 
         private void SetupNewUi()
         {
-            if (m_NewRoundText != null) m_NewRoundText.text = $"Round {Context.CurrentRound}";
-            SetOptions(m_WinningTeamDropdown, "승리 진영 선택", "레드", "블루", "무승부");
-            SetOptions(m_GameEndTimeDropdown, "종료 시간 선택", "0~5초", "5~10초", "10~15초", "15~20초", "20초 이상");
-            SetOptions(m_OddEvenDropdown, "홀짝 선택", "홀", "짝");
-            SetOptions(m_FirstAnnihilatedDropdown, "첫 전멸 슬롯 선택", "1번", "2번", "3번", "4번", "5번", "6번");
+            RefreshTopBar(Context);
+
+            SetOptions(m_WinningTeamDropdown, "미선택", "레드", "블루", "무승부");
+            SetOptions(m_GameEndTimeDropdown, "미선택", "0~5초", "5~10초", "10~15초", "15~20초", "20초 이상");
+            SetOptions(m_OddEvenDropdown, "미선택", "홀", "짝");
+            SetOptions(m_FirstAnnihilatedDropdown, "미선택", "1번", "2번", "3번", "4번", "5번", "6번");
         }
 
         private static void SetOptions(TMP_Dropdown dropdown, params string[] options)
@@ -267,6 +279,61 @@ namespace InTheArena.MainGame
             dropdown.ClearOptions();
             dropdown.AddOptions(new List<string>(options));
             dropdown.SetValueWithoutNotify(0);
+            ConfigureDropdownLayout(dropdown, options.Length);
+        }
+
+        public void RefreshTopBar(RoundContext context)
+        {
+            if (m_RoundInfoText != null)
+            {
+                m_RoundInfoText.text = context != null
+                    ? $"{context.CurrentRound} / {context.MaxRounds}"
+                    : "- / -";
+            }
+
+            if (m_TargetInfoText != null)
+            {
+                m_TargetInfoText.text = context != null
+                    ? $"{context.TargetCall} Col"
+                    : "- Col";
+            }
+        }
+
+        private static void ConfigureDropdownLayout(TMP_Dropdown dropdown, int optionCount)
+        {
+            RectTransform template = dropdown.template;
+            if (template == null) return;
+
+            float height = Mathf.Max(1, optionCount) * DropdownOptionHeight;
+            template.anchorMin = new Vector2(0.5f, 0f);
+            template.anchorMax = new Vector2(0.5f, 0f);
+            template.pivot = new Vector2(0.5f, 1f);
+            template.anchoredPosition = Vector2.zero;
+            template.sizeDelta = new Vector2(dropdown.GetComponent<RectTransform>().rect.width, height);
+
+            ScrollRect scrollRect = template.GetComponent<ScrollRect>();
+            if (scrollRect == null) return;
+
+            scrollRect.horizontal = false;
+            scrollRect.vertical = false;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            RectTransform viewport = scrollRect.viewport;
+            if (viewport != null)
+            {
+                viewport.anchorMin = Vector2.zero;
+                viewport.anchorMax = Vector2.one;
+                viewport.offsetMin = Vector2.zero;
+                viewport.offsetMax = Vector2.zero;
+            }
+
+            RectTransform content = scrollRect.content;
+            if (content == null) return;
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(0f, height);
         }
 
         private bool HasSpecial(SpecialBetType type)
@@ -532,7 +599,20 @@ namespace InTheArena.MainGame
 
             bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out string error);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
-            if (m_ValidationText != null) m_ValidationText.text = valid ? string.Empty : error;
+            if (m_ValidationText != null)
+            {
+                m_ValidationText.text = string.Empty;
+                m_ValidationText.gameObject.SetActive(false);
+            }
+
+            if (m_AgreeText != null)
+            {
+                bool hasSelection = m_DraftTicket.SelectedCategoryCount > 0;
+                m_AgreeText.text = hasSelection
+                    ? "위 배팅에 동의하십니까?"
+                    : "최소 1개 이상의 배팅 내역을 선택해야합니다.";
+                m_AgreeText.color = hasSelection ? AgreeTextColor : AgreeWarningColor;
+            }
         }
 
         private int GetMaximumWagerCall()
@@ -656,7 +736,6 @@ namespace InTheArena.MainGame
                 Context.RoundItemUsage.HasUsed(ItemType.Insurance));
             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
             {
-                if (m_ValidationText != null) m_ValidationText.text = error;
                 Debug.LogError($"[BettingPhase] {error}");
                 return;
             }

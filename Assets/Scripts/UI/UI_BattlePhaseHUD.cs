@@ -12,8 +12,6 @@ namespace InTheArena.UI
     public sealed class UI_BattlePhaseHUD : UI_Base, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         [Header("Battle Information")]
-        [SerializeField] private TMP_Text m_RoundInfoText;
-        [SerializeField] private TMP_Text m_TargetInfoText;
         [SerializeField] private TMP_Text m_RedTeamCountText;
         [SerializeField] private Slider m_RedTeamSlider;
         [SerializeField] private TMP_Text m_BlueTeamCountText;
@@ -475,15 +473,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (m_RoundInfoText != null)
-            {
-                m_RoundInfoText.text = $"Round {m_RoundContext.CurrentRound} / {m_RoundContext.MaxRounds}";
-            }
-
-            if (m_TargetInfoText != null)
-            {
-                m_TargetInfoText.text = $"Target {m_RoundContext.TargetCall} COL";
-            }
+            FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include)?.RefreshTopBar(m_RoundContext);
 
             if (m_MoneyText != null)
             {
@@ -652,8 +642,6 @@ namespace InTheArena.UI
 
         private void ResetDisplay()
         {
-            if (m_RoundInfoText != null) m_RoundInfoText.text = "Round - / -";
-            if (m_TargetInfoText != null) m_TargetInfoText.text = "Target - COL";
             if (m_RedTeamCountText != null) m_RedTeamCountText.text = "0";
             if (m_BlueTeamCountText != null) m_BlueTeamCountText.text = "0";
             if (m_RedTeamSlider != null) m_RedTeamSlider.value = 0f;
