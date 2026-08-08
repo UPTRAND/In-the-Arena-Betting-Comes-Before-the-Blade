@@ -19,8 +19,9 @@ namespace InTheArena.UI
         [SerializeField] private Image m_ShieldFillImage;
 
         [Header("Display Settings")]
-        [SerializeField] private float m_HeightOffset = 24f;
+        [SerializeField] private float m_HeightOffset = 30f;
         [SerializeField] private float m_DefaultVisibleDuration = 1.5f;
+        [SerializeField] private Vector2 m_HpBarSize = new Vector2(80f, 18f);
 
         private UnitTarget m_TargetUnit;
         private float m_VisibleTimer;
@@ -213,9 +214,9 @@ namespace InTheArena.UI
             if (m_RectTransform != null)
             {
                 // 프리팹의 크기가 너무 작거나(미세 규격) 미설정된 경우 스크린 해상도에 맞게 보정
-                if (m_RectTransform.sizeDelta.x < 30f)
+                if (m_RectTransform != null)
                 {
-                    m_RectTransform.sizeDelta = new Vector2(60f, 8f);
+                    m_RectTransform.sizeDelta = m_HpBarSize;
                 }
             }
 

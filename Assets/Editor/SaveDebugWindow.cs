@@ -7,6 +7,7 @@ public class SaveDebugWindow : EditorWindow
 {
     private int m_InputNextStage = 1;
     private int m_InputStars = 0;
+    private int m_InputHearts = SaveManager.MaxHearts;
 
     [MenuItem("Tools/Debug/Save Data")]
     public static void ShowWindow()
@@ -17,11 +18,12 @@ public class SaveDebugWindow : EditorWindow
 
     private void OnEnable()
     {
-        // Load initial values to populate input fields nicely if possible
-        if (SaveManager.Instance != null && SaveManager.Instance.Availability == SaveAvailability.Ready)
+        if (SaveManager.Instance != null &&
+            SaveManager.Instance.Availability == SaveAvailability.Ready)
         {
             m_InputNextStage = SaveManager.Instance.ClearedStageNumber + 1;
             m_InputStars = SaveManager.Instance.Stars;
+            m_InputHearts = SaveManager.Instance.Hearts;
         }
     }
 
@@ -37,69 +39,44 @@ public class SaveDebugWindow : EditorWindow
         EditorGUILayout.LabelField("Save Debug Tool", EditorStyles.boldLabel);
         EditorGUILayout.Space();
 
+        // Save 삭제는 SaveManager가 없어도 가능해야 함
+        DrawDeleteSaveSection();
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+        EditorGUILayout.Space();
+
         SaveManager save = SaveManager.Instance;
 
         if (save == null)
         {
-            EditorGUILayout.HelpBox("SaveManager is not available in the current scene.", MessageType.Warning);
+            EditorGUILayout.HelpBox(
+                "SaveManager is not available. Start Play Mode to modify runtime save values.",
+                MessageType.Info);
             return;
         }
 
-        // 1. Current Status Display
         EditorGUILayout.LabelField("Save Status", save.Availability.ToString());
         EditorGUILayout.LabelField("Gold", save.Gold.ToString());
+        EditorGUILayout.LabelField("Tickets / Hearts", $"{save.Hearts}/{SaveManager.MaxHearts}");
         EditorGUILayout.LabelField("Stars", save.Stars.ToString());
         EditorGUILayout.LabelField("Cleared", $"Stage {save.ClearedStageNumber}");
         EditorGUILayout.LabelField("Next Stage", $"Stage {save.ClearedStageNumber + 1}");
-        
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
-        EditorGUILayout.Space();
 
-        // 2. Gold Modification
-        if (GUILayout.Button("Gold +5000", GUILayout.Height(30)))
-        {
-            AddGold5000(save);
-        }
+        // 기존 Gold, Stage, Stars UI...
 
-        EditorGUILayout.Space();
-
-        // 3. Next Stage Modification
         EditorGUILayout.BeginHorizontal();
-        m_InputNextStage = EditorGUILayout.IntField("Next Stage", m_InputNextStage);
+
+        m_InputHearts = EditorGUILayout.IntField(
+            "Tickets / Hearts",
+            m_InputHearts);
+
         if (GUILayout.Button("Apply", GUILayout.Width(80)))
         {
-            SetNextStage(save, m_InputNextStage);
+            SetHearts(save, m_InputHearts);
         }
+
         EditorGUILayout.EndHorizontal();
-
-        // 4. Stars Modification
-        EditorGUILayout.BeginHorizontal();
-        m_InputStars = EditorGUILayout.IntField("Stars", m_InputStars);
-        if (GUILayout.Button("Apply", GUILayout.Width(80)))
-        {
-            SetStars(save, m_InputStars);
-        }
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
-        EditorGUILayout.Space();
-
-        // 5. Delete Save Data
-        GUI.color = Color.red;
-        GUI.enabled = !Application.isPlaying; // Prevent deletion during play mode
-        if (GUILayout.Button("DELETE SAVE DATA", GUILayout.Height(40)))
-        {
-            DeleteSaveFiles();
-        }
-        GUI.enabled = true;
-        GUI.color = Color.white;
-
-        if (Application.isPlaying)
-        {
-            EditorGUILayout.HelpBox("Save Clear is disabled during Play Mode.", MessageType.Info);
-        }
     }
 
     private void AddGold5000(SaveManager save)
@@ -120,6 +97,23 @@ public class SaveDebugWindow : EditorWindow
         }
         
         Debug.Log($"[SaveDebug] Successfully added 5000 Gold.");
+    }
+
+    private void SetHearts(SaveManager save, int value)
+    {
+        int hearts = Mathf.Clamp(value, 0, SaveManager.MaxHearts);
+
+        if (!save.DebugTryModifyState(
+                state => state.SetHearts(hearts),
+                out string error))
+        {
+            Debug.LogError(
+                $"[SaveDebug] Failed to set Hearts: {error}");
+            return;
+        }
+
+        Debug.Log(
+            $"[SaveDebug] Successfully set Hearts to {hearts}.");
     }
 
     private void SetNextStage(SaveManager save, int stageNumber)
@@ -144,6 +138,28 @@ public class SaveDebugWindow : EditorWindow
         }
         
         Debug.Log($"[SaveDebug] Successfully set Stars to {Mathf.Max(0, value)}.");
+    }
+
+    private void DrawDeleteSaveSection()
+    {
+        GUI.color = Color.red;
+
+        GUI.enabled = !Application.isPlaying;
+
+        if (GUILayout.Button("DELETE SAVE DATA", GUILayout.Height(40)))
+        {
+            DeleteSaveFiles();
+        }
+
+        GUI.enabled = true;
+        GUI.color = Color.white;
+
+        if (Application.isPlaying)
+        {
+            EditorGUILayout.HelpBox(
+                "Stop Play Mode to delete the save files.",
+                MessageType.Info);
+        }
     }
 
     private void DeleteSaveFiles()
