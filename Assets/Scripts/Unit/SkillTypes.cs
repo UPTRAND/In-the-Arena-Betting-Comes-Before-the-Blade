@@ -221,6 +221,7 @@ namespace InTheArena.Unit
 
         public virtual bool CanExecute(SkillRuntime runtime, Unit owner, SkillTargetSet targets) => true;
         public virtual SkillExecutionResult Execute(in SkillEffectContext context) => SkillExecutionResult.NoEffect;
+        public virtual void Tick(SkillRuntime runtime, float deltaTime) { }
         public virtual void OnTrigger(SkillRuntime runtime, in SkillTriggerContext context) { }
         public virtual void Reset() { }
     }

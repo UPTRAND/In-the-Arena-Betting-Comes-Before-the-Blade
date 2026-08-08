@@ -51,3 +51,7 @@ MonoBehaviour:
         m_BaseXRotationDegrees: 45
         m_StartZRotationDegrees: -25
         m_ZRotationDegrees: 180
+        m_ImpactVfxPrefab: {fileID: 6573129432423270027, guid: 3bb5522a7ac59e74f9f94bb44d4666d5, type: 3}
+        m_ImpactVfxOffset: {x: 0, y: 0, z: 0}
+        m_ImpactVfxScale: 2
+        m_ImpactVfxDuration: 0

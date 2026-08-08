@@ -21,7 +21,7 @@ MonoBehaviour:
     m_ExtraCountRange: 0
     m_SpawnProbability: 1
   - m_IsFixed: 1
-    m_FixedUnit: {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
+    m_FixedUnit: {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool: []
     m_ExtraCountRange: 0
@@ -32,12 +32,12 @@ MonoBehaviour:
     m_VariableUnitPool: []
     m_ExtraCountRange: 0
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool: []
     m_ExtraCountRange: 0
-    m_SpawnProbability: 0
+    m_SpawnProbability: 1
   - m_IsFixed: 0
     m_FixedUnit: {fileID: 0}
     m_FixedCount: 1
@@ -53,7 +53,7 @@ MonoBehaviour:
   m_TeamBGrid:
   - m_IsFixed: 1
     m_FixedUnit: {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
-    m_FixedCount: 1
+    m_FixedCount: 2
     m_VariableUnitPool: []
     m_ExtraCountRange: 0
     m_SpawnProbability: 1

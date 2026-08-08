@@ -25,6 +25,7 @@ namespace InTheArena.Unit
         [SerializeField, Min(0.01f)] private float m_HitDistance = 0.2f;
         [SerializeField] private ProjectileOrientationMode m_OrientationMode =
             ProjectileOrientationMode.FaceVelocity;
+        [SerializeField] private float m_OrientationAngleOffset;
 
         [Header("선택적 애니메이션")]
         [Tooltip("비어 있거나 Animator가 없으면 재생하지 않습니다.")]
@@ -38,6 +39,7 @@ namespace InTheArena.Unit
         public float Lifetime => Mathf.Max(0.1f, m_Lifetime);
         public float HitDistance => Mathf.Max(0.01f, m_HitDistance);
         public ProjectileOrientationMode OrientationMode => m_OrientationMode;
+        public float OrientationAngleOffset => m_OrientationAngleOffset;
         public string FlightStateName => m_FlightStateName;
         public string ImpactStateName => m_ImpactStateName;
         public float ImpactPresentationDuration => Mathf.Max(0f, m_ImpactPresentationDuration);
@@ -80,6 +82,7 @@ namespace InTheArena.Unit
             float lifetime,
             float hitDistance,
             ProjectileOrientationMode orientationMode,
+            float orientationAngleOffset = 0f,
             string flightStateName = null,
             string impactStateName = null,
             float impactPresentationDuration = 0f)
@@ -89,6 +92,7 @@ namespace InTheArena.Unit
             m_Lifetime = lifetime;
             m_HitDistance = hitDistance;
             m_OrientationMode = orientationMode;
+            m_OrientationAngleOffset = orientationAngleOffset;
             m_FlightStateName = flightStateName;
             m_ImpactStateName = impactStateName;
             m_ImpactPresentationDuration = impactPresentationDuration;

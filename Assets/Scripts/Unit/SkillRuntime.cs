@@ -29,6 +29,7 @@ namespace InTheArena.Unit
                 m_CurrentCooldown = Mathf.Max(0f, m_CurrentCooldown - deltaTime);
             if (m_RetryRemaining > 0f)
                 m_RetryRemaining = Mathf.Max(0f, m_RetryRemaining - deltaTime);
+            m_Behavior?.Tick(this, deltaTime);
         }
 
         public bool TryResolve(in SkillUseRequest request, SkillTargetSet targets)

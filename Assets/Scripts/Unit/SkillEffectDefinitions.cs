@@ -11,6 +11,10 @@ namespace InTheArena.Unit
         [SerializeField, Min(0f)] private float m_BaseDamage = 10f;
         [SerializeField, Min(0f)] private float m_AttackPowerRatio;
         [SerializeField, Range(0f, 1f)] private float m_CriticalChance;
+        [SerializeField] private GameObject m_ImpactVfxPrefab;
+        [SerializeField] private Vector3 m_ImpactVfxOffset;
+        [SerializeField, Min(0f)] private float m_ImpactVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_ImpactVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -31,6 +35,16 @@ namespace InTheArena.Unit
                 };
                 float actualDamage = target.ApplyDamage(in damage);
                 if (actualDamage <= 0f) continue;
+                SkillVfxUtility.TryRequest(
+                    m_ImpactVfxPrefab,
+                    SkillVfxSpawnPosition.TargetHitAnchor,
+                    m_ImpactVfxOffset,
+                    context.Owner,
+                    context.Targets,
+                    target,
+                    target.HitPosition,
+                    m_ImpactVfxScale,
+                    m_ImpactVfxDuration);
                 context.Owner.LogCombatAction(
                     SkillCombatLogUtility.GetSkillLogName(context.Runtime),
                     target,
@@ -46,6 +60,10 @@ namespace InTheArena.Unit
     public sealed class MultiHitDamageSkillEffect : SkillEffectDefinition
     {
         [SerializeField] private float[] m_Damages = { 4f, 5f, 6f };
+        [SerializeField] private GameObject m_HitVfxPrefab;
+        [SerializeField] private Vector3 m_HitVfxOffset;
+        [SerializeField, Min(0f)] private float m_HitVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_HitVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -71,6 +89,16 @@ namespace InTheArena.Unit
 
                 float actualDamage = target.ApplyDamage(in damage);
                 if (actualDamage <= 0f) continue;
+                SkillVfxUtility.TryRequest(
+                    m_HitVfxPrefab,
+                    SkillVfxSpawnPosition.TargetHitAnchor,
+                    m_HitVfxOffset,
+                    context.Owner,
+                    context.Targets,
+                    target,
+                    target.HitPosition,
+                    m_HitVfxScale,
+                    m_HitVfxDuration);
                 context.Owner.LogCombatAction(
                     SkillCombatLogUtility.GetSkillLogName(context.Runtime),
                     target,
@@ -88,6 +116,10 @@ namespace InTheArena.Unit
     {
         [SerializeField, Min(0f)] private float m_Damage = 10f;
         [SerializeField, Min(0f)] private float m_DefenseReduction;
+        [SerializeField] private GameObject m_ImpactVfxPrefab;
+        [SerializeField] private Vector3 m_ImpactVfxOffset;
+        [SerializeField, Min(0f)] private float m_ImpactVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_ImpactVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -109,6 +141,16 @@ namespace InTheArena.Unit
 
                 float actualDamage = target.ApplyDamage(in damage);
                 if (actualDamage <= 0f) continue;
+                SkillVfxUtility.TryRequest(
+                    m_ImpactVfxPrefab,
+                    SkillVfxSpawnPosition.TargetHitAnchor,
+                    m_ImpactVfxOffset,
+                    context.Owner,
+                    context.Targets,
+                    target,
+                    target.HitPosition,
+                    m_ImpactVfxScale,
+                    m_ImpactVfxDuration);
                 string skillName = SkillCombatLogUtility.GetSkillLogName(context.Runtime);
                 context.Owner.LogCombatAction(
                     skillName,
@@ -148,6 +190,10 @@ namespace InTheArena.Unit
         [SerializeField] private float m_BaseXRotationDegrees = 45f;
         [SerializeField] private float m_StartZRotationDegrees = -25f;
         [SerializeField] private float m_ZRotationDegrees = 180f;
+        [SerializeField] private GameObject m_ImpactVfxPrefab;
+        [SerializeField] private Vector3 m_ImpactVfxOffset;
+        [SerializeField, Min(0f)] private float m_ImpactVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_ImpactVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -182,7 +228,11 @@ namespace InTheArena.Unit
                 m_FallDuration,
                 m_BaseXRotationDegrees,
                 m_StartZRotationDegrees,
-                m_ZRotationDegrees);
+                m_ZRotationDegrees,
+                m_ImpactVfxPrefab,
+                m_ImpactVfxOffset,
+                m_ImpactVfxScale,
+                m_ImpactVfxDuration);
             return SkillExecutionResult.Success;
         }
 
@@ -214,6 +264,10 @@ namespace InTheArena.Unit
         [SerializeField, Min(0f)] private float m_BaseHeal = 10f;
         [SerializeField, Min(0f)] private float m_AttackPowerRatio;
         [SerializeField, Range(0f, 1f)] private float m_MaxHealthRatio;
+        [SerializeField] private GameObject m_HealVfxPrefab;
+        [SerializeField] private Vector3 m_HealVfxOffset;
+        [SerializeField, Min(0f)] private float m_HealVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_HealVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -233,6 +287,16 @@ namespace InTheArena.Unit
                     IsReaction = context.IsReaction
                 };
                 float actualHeal = target.Heal(in heal);
+                SkillVfxUtility.TryRequest(
+                    m_HealVfxPrefab,
+                    target == context.Owner ? SkillVfxSpawnPosition.CasterCastAnchor : SkillVfxSpawnPosition.TargetHitAnchor,
+                    m_HealVfxOffset,
+                    context.Owner,
+                    context.Targets,
+                    target,
+                    target.HitPosition,
+                    m_HealVfxScale,
+                    m_HealVfxDuration);
                 context.Owner.LogCombatAction(
                     SkillCombatLogUtility.GetSkillLogName(context.Runtime),
                     target,
@@ -305,13 +369,17 @@ namespace InTheArena.Unit
         public readonly Vector3 Position;
         public readonly UnitHandle Source;
         public readonly UnitHandle Target;
+        public readonly float Scale;
+        public readonly float Duration;
 
-        public SkillVfxRequest(GameObject prefab, Vector3 position, Unit source, Unit target)
+        public SkillVfxRequest(GameObject prefab, Vector3 position, Unit source, Unit target, float scale, float duration)
         {
             Prefab = prefab;
             Position = position;
             Source = new UnitHandle(source);
             Target = new UnitHandle(target);
+            Scale = Mathf.Max(0f, scale);
+            Duration = Mathf.Max(0f, duration);
         }
     }
 
@@ -322,26 +390,114 @@ namespace InTheArena.Unit
         public static void Request(in SkillVfxRequest request) => Requested?.Invoke(request);
     }
 
+    public enum SkillVfxSpawnPosition
+    {
+        TargetHitAnchor = 0,
+        TargetGround = 1,
+        CasterCastAnchor = 2,
+        CasterGround = 3,
+        GroundPosition = 4
+    }
+
+    internal static class SkillVfxUtility
+    {
+        public static bool TryRequest(
+            GameObject prefab,
+            SkillVfxSpawnPosition positionMode,
+            Vector3 offset,
+            Unit owner,
+            SkillTargetSet targets,
+            Unit target,
+            Vector3 fallbackPosition,
+            float scale = 1f,
+            float duration = 0f)
+        {
+            if (prefab == null || !SkillVfxRequestBus.HasListener || owner == null)
+                return false;
+
+            Unit requestTarget = ResolveRequestTarget(positionMode, owner, target);
+            Vector3 position = ResolvePosition(positionMode, owner, targets, target, fallbackPosition) + offset;
+            var request = new SkillVfxRequest(prefab, position, owner, requestTarget, scale, duration);
+            SkillVfxRequestBus.Request(in request);
+            return true;
+        }
+
+        private static Unit ResolveRequestTarget(
+            SkillVfxSpawnPosition positionMode,
+            Unit owner,
+            Unit target)
+        {
+            switch (positionMode)
+            {
+                case SkillVfxSpawnPosition.CasterCastAnchor:
+                case SkillVfxSpawnPosition.CasterGround:
+                    return owner;
+                default:
+                    return target;
+            }
+        }
+
+        private static Vector3 ResolvePosition(
+            SkillVfxSpawnPosition positionMode,
+            Unit owner,
+            SkillTargetSet targets,
+            Unit target,
+            Vector3 fallbackPosition)
+        {
+            switch (positionMode)
+            {
+                case SkillVfxSpawnPosition.TargetGround:
+                    return target != null ? target.GroundPosition : fallbackPosition;
+                case SkillVfxSpawnPosition.CasterCastAnchor:
+                    return owner.CastPosition;
+                case SkillVfxSpawnPosition.CasterGround:
+                    return owner.GroundPosition;
+                case SkillVfxSpawnPosition.GroundPosition:
+                    return targets != null && targets.HasGroundPosition ? targets.GroundPosition : fallbackPosition;
+                case SkillVfxSpawnPosition.TargetHitAnchor:
+                default:
+                    return target != null ? target.HitPosition : fallbackPosition;
+            }
+        }
+    }
+
     [Serializable]
     public sealed class SpawnVfxSkillEffect : SkillEffectDefinition
     {
         [SerializeField] private GameObject m_VfxPrefab;
+        [SerializeField] private SkillVfxSpawnPosition m_Position = SkillVfxSpawnPosition.TargetHitAnchor;
+        [SerializeField] private Vector3 m_Offset;
+        [SerializeField, Min(0f)] private float m_Scale = 1f;
+        [SerializeField, Min(0f)] private float m_Duration;
+        [SerializeField] private bool m_SpawnForEachTarget = true;
         [SerializeField] private bool m_UseHitAnchor;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
-            if (m_VfxPrefab == null || !SkillVfxRequestBus.HasListener)
+            if (m_VfxPrefab == null || !SkillVfxRequestBus.HasListener || context.Owner == null)
                 return SkillExecutionResult.NoEffect;
 
-            if (context.Targets.Count == 0 && context.Targets.HasGroundPosition)
+            SkillVfxSpawnPosition position = ResolvePositionMode();
+            if (position == SkillVfxSpawnPosition.CasterCastAnchor ||
+                position == SkillVfxSpawnPosition.CasterGround ||
+                position == SkillVfxSpawnPosition.GroundPosition ||
+                context.Targets.Count == 0)
             {
-                var groundRequest = new SkillVfxRequest(
+                Vector3 fallback = context.Targets.HasGroundPosition
+                    ? context.Targets.GroundPosition
+                    : context.Owner.HitPosition;
+                return SkillVfxUtility.TryRequest(
                     m_VfxPrefab,
-                    context.Targets.GroundPosition,
+                    position,
+                    m_Offset,
                     context.Owner,
-                    null);
-                SkillVfxRequestBus.Request(in groundRequest);
-                return SkillExecutionResult.Success;
+                    context.Targets,
+                    null,
+                    fallback,
+                    m_Scale,
+                    m_Duration)
+                    ? SkillExecutionResult.Success
+                    : SkillExecutionResult.NoEffect;
             }
 
             bool requested = false;
@@ -349,15 +505,29 @@ namespace InTheArena.Unit
             {
                 Unit target = context.Targets[i].Unit;
                 if (target == null) continue;
-                var request = new SkillVfxRequest(
+                requested |= SkillVfxUtility.TryRequest(
                     m_VfxPrefab,
-                    m_UseHitAnchor ? target.HitPosition : target.GroundPosition,
+                    position,
+                    m_Offset,
                     context.Owner,
-                    target);
-                SkillVfxRequestBus.Request(in request);
-                requested = true;
+                    context.Targets,
+                    target,
+                    target.HitPosition,
+                    m_Scale,
+                    m_Duration);
+                if (!m_SpawnForEachTarget) break;
             }
             return requested ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
+        }
+
+        private SkillVfxSpawnPosition ResolvePositionMode()
+        {
+            if (m_Position != SkillVfxSpawnPosition.TargetHitAnchor)
+                return m_Position;
+
+            return m_UseHitAnchor
+                ? SkillVfxSpawnPosition.TargetHitAnchor
+                : SkillVfxSpawnPosition.TargetGround;
         }
     }
 
@@ -373,6 +543,10 @@ namespace InTheArena.Unit
         [SerializeField, Min(0f)] private float m_ExplosionRadius;
         [SerializeField, Range(0f, 1f)] private float m_CriticalChance = 0.1f;
         [SerializeField] private StatusEffectData m_ImpactStatus;
+        [SerializeField] private GameObject m_ImpactVfxPrefab;
+        [SerializeField] private Vector3 m_ImpactVfxOffset;
+        [SerializeField, Min(0f)] private float m_ImpactVfxScale = 1f;
+        [SerializeField, Min(0f)] private float m_ImpactVfxDuration;
 
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
@@ -421,6 +595,16 @@ namespace InTheArena.Unit
             Vector3 impactPosition)
         {
             if (primaryTarget == null || primaryTarget.IsDead) return false;
+            SkillVfxUtility.TryRequest(
+                m_ImpactVfxPrefab,
+                SkillVfxSpawnPosition.GroundPosition,
+                m_ImpactVfxOffset,
+                payload.Source.Unit,
+                null,
+                primaryTarget,
+                impactPosition,
+                m_ImpactVfxScale,
+                m_ImpactVfxDuration);
             if (m_ExplosionRadius <= 0f)
                 return ApplyTo(in payload, primaryTarget, 1f);
 

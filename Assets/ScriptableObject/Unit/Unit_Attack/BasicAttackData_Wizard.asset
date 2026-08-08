@@ -15,6 +15,7 @@ MonoBehaviour:
   m_AttackPowerMultiplier: 1
   m_CriticalChance: 0.05
   m_FailureRetryDelay: 0.25
+  m_ProjectileReleaseFrameOffset: 0
   m_Delivery:
     rid: 6331182184304214084
   m_ImpactEffects:

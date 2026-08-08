@@ -42,3 +42,7 @@ MonoBehaviour:
         m_BaseHeal: 45
         m_AttackPowerRatio: 0
         m_MaxHealthRatio: 0
+        m_HealVfxPrefab: {fileID: 5879443292268764709, guid: 690be56a7ce75554dbc7a58c528018a0, type: 3}
+        m_HealVfxOffset: {x: 0, y: 0, z: 0}
+        m_HealVfxScale: 2
+        m_HealVfxDuration: 2

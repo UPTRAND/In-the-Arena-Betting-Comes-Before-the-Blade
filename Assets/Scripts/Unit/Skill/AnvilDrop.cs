@@ -19,6 +19,10 @@ namespace InTheArena.Unit
         private float m_ZRotationDegrees;
         private float m_Elapsed;
         private string m_ActionName;
+        private GameObject m_ImpactVfxPrefab;
+        private Vector3 m_ImpactVfxOffset;
+        private float m_ImpactVfxScale;
+        private float m_ImpactVfxDuration;
 
         public void Initialize(
             Unit source,
@@ -32,7 +36,11 @@ namespace InTheArena.Unit
             float fallDuration,
             float baseXRotationDegrees,
             float startZRotationDegrees,
-            float zRotationDegrees)
+            float zRotationDegrees,
+            GameObject impactVfxPrefab,
+            Vector3 impactVfxOffset,
+            float impactVfxScale,
+            float impactVfxDuration)
         {
             m_Source = new UnitHandle(source);
             m_ImpactPosition = visualImpactPosition;
@@ -46,6 +54,10 @@ namespace InTheArena.Unit
             m_BaseXRotationDegrees = baseXRotationDegrees;
             m_StartZRotationDegrees = startZRotationDegrees;
             m_ZRotationDegrees = zRotationDegrees;
+            m_ImpactVfxPrefab = impactVfxPrefab;
+            m_ImpactVfxOffset = impactVfxOffset;
+            m_ImpactVfxScale = Mathf.Max(0f, impactVfxScale);
+            m_ImpactVfxDuration = Mathf.Max(0f, impactVfxDuration);
             m_Elapsed = 0f;
             m_ActionName = string.IsNullOrWhiteSpace(actionName) ? "스킬" : actionName;
             transform.position = m_StartPosition;
@@ -82,6 +94,7 @@ namespace InTheArena.Unit
                 ? UnitRegistry.BlueTeam
                 : UnitRegistry.RedTeam;
             float radiusSqr = m_ImpactRadius * m_ImpactRadius;
+            Unit firstHitTarget = null;
             for (int i = 0; i < enemies.Count; i++)
             {
                 Unit target = enemies[i];
@@ -102,8 +115,20 @@ namespace InTheArena.Unit
                 };
                 float actualDamage = target.ApplyDamage(in damage);
                 if (actualDamage <= 0f) continue;
+                if (firstHitTarget == null) firstHitTarget = target;
                 source.LogCombatAction(m_ActionName, target, actualDamage, "피해");
             }
+
+            SkillVfxUtility.TryRequest(
+                m_ImpactVfxPrefab,
+                SkillVfxSpawnPosition.GroundPosition,
+                m_ImpactVfxOffset,
+                source,
+                null,
+                firstHitTarget,
+                m_ImpactPosition,
+                m_ImpactVfxScale,
+                m_ImpactVfxDuration);
         }
     }
 }

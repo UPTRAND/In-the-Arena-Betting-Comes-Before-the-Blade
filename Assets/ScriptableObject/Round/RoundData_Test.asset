@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.RoundData
   m_RoundNumber: 1
   m_TeamAGrid:
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -30,8 +30,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -46,8 +46,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -62,8 +62,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -78,8 +78,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -94,8 +94,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -111,8 +111,8 @@ MonoBehaviour:
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
   m_TeamBGrid:
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: b92f14df1a164f389c889fe016fc56b8, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -127,8 +127,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -143,8 +143,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
@@ -159,8 +159,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_ExtraCountRange: 1
     m_SpawnProbability: 1
-  - m_IsFixed: 0
-    m_FixedUnit: {fileID: 0}
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
     m_FixedCount: 1
     m_VariableUnitPool:
     - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}

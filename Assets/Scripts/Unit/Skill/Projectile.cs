@@ -79,6 +79,7 @@ namespace InTheArena.Unit
         private float m_HitDistance;
         private float m_RemainingLifetime;
         private float m_ImpactPresentationRemaining;
+        private float m_OrientationAngleOffset;
         private ProjectileOrientationMode m_OrientationMode;
         private ProjectileSimulationState m_State;
         private Transform m_CameraTransform;
@@ -101,6 +102,7 @@ namespace InTheArena.Unit
             m_OrientationMode = data != null
                 ? data.OrientationMode
                 : ProjectileOrientationMode.FullBillboard;
+            m_OrientationAngleOffset = data != null ? data.OrientationAngleOffset : 0f;
             m_ImpactPresentationRemaining = 0f;
             m_State = ProjectileSimulationState.Flying;
             UnityEngine.Camera mainCamera = UnityEngine.Camera.main;
@@ -110,6 +112,11 @@ namespace InTheArena.Unit
             Unit targetUnit = target.Unit;
             if (targetUnit != null)
                 ApplyOrientation(targetUnit.HitPosition - transform.position);
+        }
+
+        internal void ApplySpawnScale(Vector3 scale)
+        {
+            transform.localScale = scale;
         }
 
         internal void Initialize(
@@ -124,6 +131,7 @@ namespace InTheArena.Unit
             m_HitDistance = DefaultHitDistance;
             m_RemainingLifetime = Mathf.Max(0.1f, lifetime);
             m_OrientationMode = ProjectileOrientationMode.FullBillboard;
+            m_OrientationAngleOffset = 0f;
             m_ImpactPresentationRemaining = 0f;
             m_State = ProjectileSimulationState.Flying;
             UnityEngine.Camera mainCamera = UnityEngine.Camera.main;
@@ -208,7 +216,7 @@ namespace InTheArena.Unit
             Vector3 direction = velocity.normalized;
             float horizontal = Vector3.Dot(direction, m_CameraTransform.right);
             float vertical = Vector3.Dot(direction, m_CameraTransform.up);
-            float angle = Mathf.Atan2(vertical, horizontal) * Mathf.Rad2Deg;
+            float angle = Mathf.Atan2(vertical, horizontal) * Mathf.Rad2Deg + m_OrientationAngleOffset;
             transform.rotation = cameraRotation * Quaternion.AngleAxis(angle, Vector3.forward);
         }
 
@@ -238,6 +246,7 @@ namespace InTheArena.Unit
             m_HitDistance = 0f;
             m_RemainingLifetime = 0f;
             m_ImpactPresentationRemaining = 0f;
+            m_OrientationAngleOffset = 0f;
             m_OrientationMode = ProjectileOrientationMode.Fixed;
             m_State = ProjectileSimulationState.Inactive;
             m_CameraTransform = null;

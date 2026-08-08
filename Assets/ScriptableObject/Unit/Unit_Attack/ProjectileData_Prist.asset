@@ -16,7 +16,8 @@ MonoBehaviour:
   m_Speed: 12
   m_Lifetime: 5
   m_HitDistance: 0.2
-  m_OrientationMode: 1
+  m_OrientationMode: 0
+  m_OrientationAngleOffset: 0
   m_FlightStateName: FireBall
   m_ImpactStateName: Explosion
   m_ImpactPresentationDuration: 0.41666666

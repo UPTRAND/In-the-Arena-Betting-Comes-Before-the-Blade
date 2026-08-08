@@ -39,6 +39,7 @@ namespace InTheArena.Unit
             EnsureRegistered(prefab);
             if (!m_Factory.TryRent(prefab, PoolSpawnContext.At(position), out projectile))
                 return false;
+            projectile.ApplySpawnScale(prefab.transform.localScale);
             m_Active.Add(projectile);
             return true;
         }

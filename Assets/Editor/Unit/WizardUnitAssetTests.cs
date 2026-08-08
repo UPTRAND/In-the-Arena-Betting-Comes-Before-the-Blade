@@ -40,12 +40,12 @@ namespace InTheArena.Editor.Unit
 
             Assert.That(unitData.UnitName, Is.EqualTo("Wizard"));
             Assert.That(unitData.AttackType, Is.EqualTo(UnitAttackType.Ranged));
-            Assert.That(unitData.BaseStat.maxHp, Is.EqualTo(100f));
+            Assert.That(unitData.BaseStat.maxHp, Is.EqualTo(85f));
             Assert.That(unitData.BaseStat.attackPower, Is.EqualTo(7f));
             Assert.That(unitData.BaseStat.defense, Is.Zero);
-            Assert.That(unitData.BaseStat.attackSpeed, Is.EqualTo(1f));
-            Assert.That(unitData.BaseStat.moveSpeed, Is.EqualTo(1f));
-            Assert.That(unitData.BaseStat.attackRange, Is.EqualTo(2f));
+            Assert.That(unitData.BaseStat.attackSpeed, Is.EqualTo(0.65f));
+            Assert.That(unitData.BaseStat.moveSpeed, Is.EqualTo(0.9f));
+            Assert.That(unitData.BaseStat.attackRange, Is.EqualTo(3.5f));
             Assert.That(unitData.UnitPrefab, Is.SameAs(wizardPrefab));
             Assert.That(unitData.BasicAttackData, Is.SameAs(attack));
             Assert.That(unitData.SkillData, Is.SameAs(skill));
@@ -56,18 +56,19 @@ namespace InTheArena.Editor.Unit
                 Is.SameAs(projectile));
             Assert.That(projectile.Prefab.name, Is.EqualTo("Projectile_FireBall"));
             Assert.That(projectile.Speed, Is.EqualTo(12f));
-            Assert.That(projectile.OrientationMode, Is.EqualTo(ProjectileOrientationMode.FullBillboard));
+            Assert.That(projectile.OrientationMode, Is.EqualTo(ProjectileOrientationMode.FaceVelocity));
             Assert.That(projectile.FlightStateName, Is.EqualTo("FireBall"));
             Assert.That(projectile.ImpactStateName, Is.EqualTo("Explosion"));
             Assert.That(projectile.ImpactPresentationDuration, Is.EqualTo(5f / 12f).Within(0.0001f));
 
-            Assert.That(skill.SkillName, Is.EqualTo("Fire_Ball"));
-            Assert.That(skill.Range, Is.EqualTo(8f));
-            Assert.That(skill.Cooldown, Is.EqualTo(3f));
-            Assert.That(skill.CastTime, Is.EqualTo(0.4f));
+            Assert.That(skill.SkillName, Is.EqualTo("\uD30C\uC774\uC5B4 \uBCFC"));
+            Assert.That(skill.Range, Is.EqualTo(35f));
+            Assert.That(skill.Cooldown, Is.EqualTo(5f));
+            Assert.That(skill.CastTime, Is.EqualTo(0.75f));
             Assert.That(skill.Targeting, Is.TypeOf<SingleUnitSkillTargeting>());
             Assert.That(skill.Effects.Single(), Is.TypeOf<SpawnProjectileSkillEffect>());
-            Assert.That(skillProjectile.Prefab.transform.localScale, Is.EqualTo(Vector3.one * 0.3f));
+            Assert.That(skillProjectile.OrientationMode, Is.EqualTo(ProjectileOrientationMode.FaceVelocity));
+            Assert.That(skillProjectile.Prefab.transform.localScale, Is.EqualTo(Vector3.one * 10f));
             Assert.That(skillProjectile.ImpactStateName, Is.EqualTo("Explosion"));
 
             Assert.That(wizardPrefab.GetComponents<Component>().Select(component => component.GetType()),
@@ -77,7 +78,7 @@ namespace InTheArena.Editor.Unit
             Assert.That(wizardPrefab.GetComponent<Animator>().runtimeAnimatorController,
                 Is.SameAs(controller));
             Assert.That(controller.layers[0].stateMachine.states.Select(state => state.state.name),
-                Is.EquivalentTo(new[] { "Idle", "Walk", "Attack", "Death" }));
+                Is.EquivalentTo(new[] { "Idle", "Walk", "Jump", "Attack", "Attack2", "Skill", "Hit", "Death" }));
         }
     }
 }

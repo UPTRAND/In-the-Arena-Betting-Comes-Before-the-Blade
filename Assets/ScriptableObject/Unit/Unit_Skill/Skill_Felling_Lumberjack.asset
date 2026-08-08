@@ -45,3 +45,7 @@ MonoBehaviour:
       data:
         m_Damage: 28
         m_DefenseReduction: 4
+        m_ImpactVfxPrefab: {fileID: 1756099476910116836, guid: c695f09848c85fa449050563ff1954f9, type: 3}
+        m_ImpactVfxOffset: {x: 0, y: 0, z: 0}
+        m_ImpactVfxScale: 2
+        m_ImpactVfxDuration: 1

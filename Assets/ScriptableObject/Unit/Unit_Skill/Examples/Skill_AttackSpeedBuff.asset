@@ -26,6 +26,7 @@ MonoBehaviour:
     rid: 8871563067095777454
   m_Effects:
   - rid: 8871563067095777455
+  - rid: 8871563067095777456
   m_Behavior:
     rid: -2
   references:
@@ -41,3 +42,13 @@ MonoBehaviour:
       data:
         m_StatusEffect: {fileID: 11400000, guid: 33db7d4e631366145a73bd19db679e7a, type: 2}
         m_DurationOverride: 3
+    - rid: 8871563067095777456
+      type: {class: SpawnVfxSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
+      data:
+        m_VfxPrefab: {fileID: 2450563514967231863, guid: 9b408a25a8e92564ea2e3cd9c201df94, type: 3}
+        m_Position: 2
+        m_Offset: {x: 0, y: -0.5, z: 0}
+        m_Scale: 2
+        m_Duration: 3
+        m_SpawnForEachTarget: 1
+        m_UseHitAnchor: 0

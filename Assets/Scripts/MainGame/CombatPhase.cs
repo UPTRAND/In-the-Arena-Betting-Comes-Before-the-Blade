@@ -582,6 +582,7 @@ namespace InTheArena.MainGame
             InTheArena.Camera.CameraController.Instance?.EndFinalEliminationFocus();
             InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(false);
             m_CombatHud?.UnbindAndHide();
+            InTheArena.Unit.SkillVfxPresenter.ClearAllActive();
 
             if (m_CombatCts != null)
             {

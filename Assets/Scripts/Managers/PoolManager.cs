@@ -68,6 +68,7 @@ public sealed class PoolManager : Manager_Base
     {
         if (scope == PoolScope.Stage)
         {
+            SkillVfxPresenter.ClearAllActive();
             Units?.ClearStage();
             Projectiles?.ClearStage();
             m_UIFactory?.ClearScope(scope, returnActive);
@@ -80,6 +81,7 @@ public sealed class PoolManager : Manager_Base
 
     public void ClearRound()
     {
+        SkillVfxPresenter.ClearAllActive();
         Projectiles?.ClearRound();
         ClearScope(PoolScope.Round);
     }

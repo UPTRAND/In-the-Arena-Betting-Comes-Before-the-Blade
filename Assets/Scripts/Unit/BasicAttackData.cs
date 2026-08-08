@@ -221,6 +221,7 @@ namespace InTheArena.Unit
         [SerializeField, Min(0f)] private float m_AttackPowerMultiplier = 1f;
         [SerializeField, Range(0f, 1f)] private float m_CriticalChance = 0.05f;
         [SerializeField, Min(0.05f)] private float m_FailureRetryDelay = 0.25f;
+        [SerializeField, Min(0f)] private float m_ProjectileReleaseFrameOffset = 3f;
 
         [Header("전달 방식")]
         [SerializeReference, SubclassSelector] private AttackDeliveryDefinition m_Delivery =
@@ -233,6 +234,7 @@ namespace InTheArena.Unit
         public float AttackPowerMultiplier => Mathf.Max(0f, m_AttackPowerMultiplier);
         public float CriticalChance => Mathf.Clamp01(m_CriticalChance);
         public float FailureRetryDelay => Mathf.Max(0.05f, m_FailureRetryDelay);
+        public float ProjectileReleaseFrameOffset => Mathf.Max(0f, m_ProjectileReleaseFrameOffset);
         public AttackDeliveryDefinition Delivery => m_Delivery;
         public IReadOnlyList<AttackImpactEffectDefinition> ImpactEffects => m_ImpactEffects;
 
@@ -329,6 +331,7 @@ namespace InTheArena.Unit
             m_AttackPowerMultiplier = Mathf.Max(0f, m_AttackPowerMultiplier);
             m_CriticalChance = Mathf.Clamp01(m_CriticalChance);
             m_FailureRetryDelay = Mathf.Max(0.05f, m_FailureRetryDelay);
+            m_ProjectileReleaseFrameOffset = Mathf.Max(0f, m_ProjectileReleaseFrameOffset);
         }
 #endif
     }

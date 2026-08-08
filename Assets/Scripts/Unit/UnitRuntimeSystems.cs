@@ -267,6 +267,7 @@ namespace InTheArena.Unit
             s_Instance = this;
             StatusEffectRuntimePool.Prewarm(256);
             UnitHpBarPresenter.EnsureExists(transform);
+            SkillVfxPresenter.EnsureExists(transform);
         }
 
         private void Update()

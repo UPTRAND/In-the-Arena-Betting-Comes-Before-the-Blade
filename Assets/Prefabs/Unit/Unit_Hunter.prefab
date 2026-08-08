@@ -138,7 +138,6 @@ GameObject:
   - component: {fileID: 2643748903058006654}
   - component: {fileID: 3733895093702037321}
   - component: {fileID: 453584524544759064}
-  - component: {fileID: 811000000000000009}
   - component: {fileID: 261010819116085216}
   - component: {fileID: -25352915652631815}
   m_Layer: 0
@@ -371,28 +370,6 @@ MonoBehaviour:
   m_HitSound: {fileID: 0}
   m_DeathSound: {fileID: 0}
   m_AttackSound: {fileID: 0}
---- !u!114 &811000000000000009
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3164494858236416527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8e5e5f9d8b90474d9bdb03bcf75ec7cf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.HunterWeaponSwitcher
-  m_BowAttackData: {fileID: 11400000, guid: 23a6e27208e94e14a30ff242ff628bfc, type: 2}
-  m_DaggerAttackData: {fileID: 11400000, guid: 518192252f43422fa3be0d90e2d33dc9, type: 2}
-  m_SwitchToDaggerDistance: 1.2
-  m_SwitchToBowDistance: 1.6
-  m_BowAttackPower: 13
-  m_BowAttackSpeed: 0.5
-  m_BowAttackRange: 2.5
-  m_DaggerAttackPower: 8
-  m_DaggerAttackSpeed: 1.6
-  m_DaggerAttackRange: 1
 --- !u!114 &261010819116085216
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -656,7 +656,10 @@ namespace InTheArena.Unit
             float frameRate = clip != null && clip.frameRate > 0f
                 ? clip.frameRate
                 : DefaultAnimationFrameRate;
-            float releaseDelay = clipLength - (ProjectileReleaseFrameOffset / frameRate);
+            float frameOffset = attackData != null
+                ? attackData.ProjectileReleaseFrameOffset
+                : ProjectileReleaseFrameOffset;
+            float releaseDelay = clipLength - (frameOffset / frameRate);
             return Mathf.Clamp(releaseDelay, 0f, fallbackLock);
         }
 
