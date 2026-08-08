@@ -93,7 +93,7 @@ namespace InTheArena.MainGame
             m_CurrentStageData = stageData;
             m_PlayerState = playerState;
             m_Context.InitializeStage(stageData);
-            StageBackgroundController.ApplyToScene(stageData);
+            StageBackgroundController.HideBattleBackgrounds();
             CreateItemPurchaseUseCoordinator();
 
             Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
@@ -128,6 +128,7 @@ namespace InTheArena.MainGame
 
                 // 2. Betting Phase
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
+                StageBackgroundController.HideBattleBackgrounds();
                 m_ActivePhase = m_BettingPhase;
                 m_BettingPhase.InitializePhase(m_Context);
                 

@@ -18,7 +18,7 @@ MonoBehaviour:
   m_SkillType: 0
   m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
   m_Range: 0
-  m_Cooldown: 10
+  m_Cooldown: 15
   m_CastTime: 0.2
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0

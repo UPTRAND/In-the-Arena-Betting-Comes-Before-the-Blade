@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using InTheArena.MainGame;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace InTheArena.UI
 {
     public sealed class UI_LobbyStagePanel : UI_Base
     {
+        private const string LobbySceneName = "Lobby";
+
         [SerializeField] private TMP_Text m_LevelText;
         [SerializeField] private Button m_StartButton;
         [SerializeField] private TMP_Text m_StartButtonLabel;
@@ -16,6 +19,7 @@ namespace InTheArena.UI
         [SerializeField] private List<StageData> m_StageDatas = new List<StageData>();
 
         private StageData m_Target;
+        private bool m_IsStageTransitioning;
 
         protected override void Awake()
         {
@@ -31,11 +35,27 @@ namespace InTheArena.UI
 
         private void OnEnable()
         {
-            Refresh();
+            if (IsLobbySceneActive())
+            {
+                Refresh();
+            }
+            else
+            {
+                HideBackgroundForStageTransition();
+            }
         }
 
         public void Refresh()
         {
+            if (!IsLobbySceneActive())
+            {
+                HideBackgroundForStageTransition();
+                return;
+            }
+
+            m_IsStageTransitioning = false;
+            RestoreBackgroundForLobby();
+
             int next = GetNextStageNumber();
             m_Target = FindStage(next);
 
@@ -64,10 +84,38 @@ namespace InTheArena.UI
 
         private void RefreshBackground()
         {
+            if (m_IsStageTransitioning)
+            {
+                HideBackgroundForStageTransition();
+                return;
+            }
+
             if (m_BackgroundImage != null && m_Target != null && m_Target.BackgroundSprite != null)
             {
+                m_BackgroundImage.gameObject.SetActive(true);
                 m_BackgroundImage.sprite = m_Target.BackgroundSprite;
                 m_BackgroundImage.preserveAspect = true;
+            }
+        }
+
+        private static bool IsLobbySceneActive()
+        {
+            return SceneManager.GetActiveScene().name == LobbySceneName;
+        }
+
+        private void HideBackgroundForStageTransition()
+        {
+            if (m_BackgroundImage != null)
+            {
+                m_BackgroundImage.gameObject.SetActive(false);
+            }
+        }
+
+        private void RestoreBackgroundForLobby()
+        {
+            if (m_BackgroundImage != null)
+            {
+                m_BackgroundImage.gameObject.SetActive(true);
             }
         }
 
@@ -103,6 +151,9 @@ namespace InTheArena.UI
                 Debug.Log($"[Lobby] Not enough hearts. Next heart in {save?.GetRemainingHeartTime():mm\\:ss}");
                 return;
             }
+
+            m_IsStageTransitioning = true;
+            HideBackgroundForStageTransition();
 
             _ = StageManager.Instance.StartStageAsync(m_Target);
         }

@@ -1,12 +1,5 @@
 fileFormatVersion: 2
-guid: 8ca12a74c5ebb0945a8dacf119505bb8
-AssetOrigin:
-  serializedVersion: 1
-  productId: 186427
-  packageName: 4416 RPG Icons Pixel Art
-  packageVersion: 1.7
-  assetPath: "Assets/RPG Icons Pixel Art/\u0421rossbowman/PNG/Icon45.png"
-  uploadId: 644653
+guid: a7113bd57bb1c0c41a217cc5a8897016
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -46,7 +39,7 @@ TextureImporter:
     mipBias: 0
     wrapU: 1
     wrapV: 1
-    wrapW: 1
+    wrapW: 0
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
@@ -72,14 +65,14 @@ TextureImporter:
   ignorePngGamma: 0
   applyGammaDecoding: 0
   swizzle: 50462976
-  cookieLightType: 1
+  cookieLightType: 0
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 1
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
