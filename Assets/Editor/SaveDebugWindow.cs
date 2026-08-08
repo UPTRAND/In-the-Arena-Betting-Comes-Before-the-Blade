@@ -63,8 +63,47 @@ public class SaveDebugWindow : EditorWindow
         EditorGUILayout.LabelField("Cleared", $"Stage {save.ClearedStageNumber}");
         EditorGUILayout.LabelField("Next Stage", $"Stage {save.ClearedStageNumber + 1}");
 
-        // 기존 Gold, Stage, Stars UI...
+        EditorGUILayout.Space();
 
+        // Gold
+        if (GUILayout.Button("Gold +5000", GUILayout.Height(30)))
+        {
+            AddGold5000(save);
+        }
+
+        EditorGUILayout.Space();
+
+        // Next Stage
+        EditorGUILayout.BeginHorizontal();
+
+        m_InputNextStage = EditorGUILayout.IntField(
+            "Next Stage",
+            m_InputNextStage);
+
+        if (GUILayout.Button("Apply", GUILayout.Width(80)))
+        {
+            SetNextStage(save, m_InputNextStage);
+        }
+
+        EditorGUILayout.EndHorizontal();
+
+        // Stars
+        EditorGUILayout.BeginHorizontal();
+
+        m_InputStars = EditorGUILayout.IntField(
+            "Stars",
+            m_InputStars);
+
+        if (GUILayout.Button("Apply", GUILayout.Width(80)))
+        {
+            SetStars(save, m_InputStars);
+        }
+
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.Space();
+
+        // Hearts
         EditorGUILayout.BeginHorizontal();
 
         m_InputHearts = EditorGUILayout.IntField(
