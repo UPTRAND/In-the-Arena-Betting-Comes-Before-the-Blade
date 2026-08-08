@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Prist
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Prist
+  m_DisplayName: "\uC0AC\uC81C"
+  m_Description: "\uB3C5\uC2E4\uD55C \uC2E0\uC790"
   m_AttackType: 1
   m_BasicAttackData: {fileID: 11400000, guid: 0452b50dc84c4824f94de1343f68d4cf, type: 2}
   m_BaseStat:

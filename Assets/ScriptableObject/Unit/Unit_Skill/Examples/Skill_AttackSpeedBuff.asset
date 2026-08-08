@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
   m_Name: Skill_AttackSpeedBuff
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
-  m_SkillName: Rapid Fire
-  m_Description: "3\uCD08 \uB3D9\uC548 \uC790\uC2E0\uC758 \uACF5\uACA9\uC18D\uB3C4\uB97C
-    0.5 \uC99D\uAC00\uC2DC\uD0B5\uB2C8\uB2E4."
+  m_SkillName: "\uC18D\uC0AC"
+  m_Description: "3\uCD08 \uB3D9\uC548 \uC790\uC2E0\uC758 \uACF5\uACA9 \uC18D\uB3C4\uAC00
+    100% \uC99D\uAC00\uD55C\uB2E4."
   m_SkillType: 0
+  m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
   m_Range: 0
   m_Cooldown: 8
   m_CastTime: 3

@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Hunter
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Hunter
+  m_DisplayName: "\uC0AC\uB0E5\uAFBC"
+  m_Description: "\uAC70\uB9AC \uC870\uC808\uC758 \uB300\uAC00"
   m_AttackType: 1
   m_BasicAttackData: {fileID: 11400000, guid: 23a6e27208e94e14a30ff242ff628bfc, type: 2}
   m_BaseStat:
@@ -25,7 +27,8 @@ MonoBehaviour:
   m_UnitPrefab: {fileID: 3164494858236416527, guid: 4209ec22cdb946b0a38d841bf7b37f8c, type: 3}
   m_RedPortrait: {fileID: -833076062, guid: 4df83f9ba715c334788822eb27599356, type: 3}
   m_BluePortrait: {fileID: 1688037339, guid: 454049c095aecec48a813e6ac33370c0, type: 3}
-  m_SkillDatas: []
+  m_SkillDatas:
+  - {fileID: 11400000, guid: a97cb2e716c69c1499de1312dfbc190f, type: 2}
   m_AIData: {fileID: 11400000, guid: 94733aa653a82d34b8283cfb494cdfa2, type: 2}
   m_StartingStatusEffects: []
   m_VisualRadius: 0.5

@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
-  m_Name: Skill_AreaStun
+  m_Name: Skill_Stance_Change_Hunter
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
-  m_SkillName: AreaStun
-  m_Description: 
-  m_SkillType: 0
+  m_SkillName: "\uC0AC\uB0E5\uAFBC\uC758 \uBB34\uAE30\uC220"
+  m_Description: "\uC801\uACFC\uC758 \uAC70\uB9AC\uC5D0 \uB530\uB77C \uADFC\uC811\uACFC
+    \uC6D0\uAC70\uB9AC \uC0C1\uD0DC\uB85C \uC804\uD658\uD558\uC5EC \uACF5\uACA9\uD55C\uB2E4."
+  m_SkillType: 1
   m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
-  m_Range: 6
-  m_Cooldown: 8
-  m_CastTime: 0.8
+  m_Range: 3
+  m_Cooldown: 3
+  m_CastTime: 0
   m_FailureRetryDelay: 0.25
   m_ExecutionMode: 0
   m_Targeting:
-    rid: 8871563067095777437
+    rid: -2
   m_Effects:
-  - rid: 8871563067095777438
+  - rid: -2
   m_Behavior:
     rid: -2
   references:
@@ -32,14 +33,3 @@ MonoBehaviour:
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
-    - rid: 8871563067095777437
-      type: {class: AreaSkillTargeting, ns: InTheArena.Unit, asm: Assembly-CSharp}
-      data:
-        m_Relation: 0
-        m_Radius: 2.25
-        m_CenterOnOwner: 0
-    - rid: 8871563067095777438
-      type: {class: ApplyStatusEffectSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
-      data:
-        m_StatusEffect: {fileID: 11400000, guid: 57020a45b9c362f489dd8d212e046000, type: 2}
-        m_DurationOverride: -1

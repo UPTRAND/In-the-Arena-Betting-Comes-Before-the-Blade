@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Thief
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Thief
+  m_DisplayName: "\uB3C4\uB451"
+  m_Description: "\uB4B7\uACE8\uBAA9 \uC554\uC0B4\uC790"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: 9dcbbc50e2c04f1ba6a79b646ab3eee2, type: 2}
   m_BaseStat:

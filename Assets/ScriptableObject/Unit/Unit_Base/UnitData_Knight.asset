@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Knight
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Knight
+  m_DisplayName: "\uAE30\uC0AC"
+  m_Description: "\uAE30\uC0AC\uB2E8\uC758 \uBC29\uD328"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: ae140d131e4b3724c9c94559d5833491, type: 2}
   m_BaseStat:

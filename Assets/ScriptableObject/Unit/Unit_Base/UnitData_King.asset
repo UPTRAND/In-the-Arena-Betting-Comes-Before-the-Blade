@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_King
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: King
+  m_DisplayName: "\uC655"
+  m_Description: "\uCD95\uBC30\uC758 \uAD70\uC8FC"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: 91eb948848f2443aa2876b79fd264d29, type: 2}
   m_BaseStat:

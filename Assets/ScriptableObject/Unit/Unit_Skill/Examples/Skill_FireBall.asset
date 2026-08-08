@@ -15,6 +15,7 @@ MonoBehaviour:
   m_SkillName: FireBall
   m_Description: 
   m_SkillType: 0
+  m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
   m_Range: 8
   m_Cooldown: 3
   m_CastTime: 0.4
@@ -40,6 +41,7 @@ MonoBehaviour:
     - rid: 8871563067095777434
       type: {class: SpawnProjectileSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
       data:
+        m_ProjectileData: {fileID: 0}
         m_ProjectilePrefab: {fileID: 614600644479178426, guid: c9fd8e469ba93eb4cab28101bb433919, type: 3}
         m_Speed: 18
         m_Lifetime: 5

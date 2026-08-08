@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Blacksmith
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Blacksmith
+  m_DisplayName: "\uB300\uC7A5\uC7A5\uC774"
+  m_Description: "\uB9C8\uC744 \uCD5C\uACE0\uC758 \uC7A5\uC778"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: bca93f8deeed419f97606b7b2b72045c, type: 2}
   m_BaseStat:

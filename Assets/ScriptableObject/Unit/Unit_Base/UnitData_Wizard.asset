@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Wizard
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Wizard
+  m_DisplayName: "\uB9C8\uBC95\uC0AC"
+  m_Description: "\uC655\uAD6D \uAE30\uC0AC\uB2E8 \uC911\uAE09 \uB9C8\uBC95\uC0AC"
   m_AttackType: 1
   m_BasicAttackData: {fileID: 11400000, guid: c264b750232fc0d4daa3a37e2ce38ba0, type: 2}
   m_BaseStat:

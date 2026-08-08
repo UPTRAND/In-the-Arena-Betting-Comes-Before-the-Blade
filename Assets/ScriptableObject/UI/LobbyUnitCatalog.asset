@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab1835ddd40271043907bf86860e1998, type: 3}
+  m_Name: LobbyUnitCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.LobbyUnitCatalogData
+  m_Regions:
+  - m_DisplayName: "\uC655\uAD81 \uAE30\uC0AC\uB2E8"
+    m_Units:
+    - {fileID: 11400000, guid: 2be9596ddd3eabc4e8630124f49897a5, type: 2}
+    - {fileID: 11400000, guid: e45db4535c28e0d4ea590065455b6c11, type: 2}
+    - {fileID: 11400000, guid: 1d1e7dc7e0136274e810c44f136d1caf, type: 2}
+    - {fileID: 11400000, guid: 7dab8c906b48917409bda70365bc0e3c, type: 2}
+  - m_DisplayName: "\uC13C\uD2B8\uB7F4 \uCE90\uC2AC"
+    m_Units:
+    - {fileID: 11400000, guid: a6e76a51b0724a899dba496fed0d34b0, type: 2}
+    - {fileID: 11400000, guid: b92f14df1a164f389c889fe016fc56b8, type: 2}
+    - {fileID: 11400000, guid: adb513cc1c8645719d07488577e585ec, type: 2}
+  - m_DisplayName: "\uC13C\uD2B8\uB7F4 \uC678\uACFD \uB9C8\uC744"
+    m_Units:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}

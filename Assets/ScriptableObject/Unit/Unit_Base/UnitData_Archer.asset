@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Archer
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Archer
+  m_DisplayName: "\uAD81\uC218"
+  m_Description: "\uC18D\uC0AC\uC758 \uB2EC\uC778"
   m_AttackType: 1
   m_BasicAttackData: {fileID: 11400000, guid: f62262f4b576e6e4db9aebdb82003682, type: 2}
   m_BaseStat:

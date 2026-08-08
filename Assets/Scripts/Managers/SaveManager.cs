@@ -255,4 +255,28 @@ public class SaveManager : Manager_Base
 
     public override void OnApplicationPauseChanged(bool paused) { if (paused) Save(); }
     public override void Release() { Save(); if (Instance == this) Instance = null; base.Release(); }
+
+#if UNITY_EDITOR
+    public bool DebugTryModifyState(Action<PlayerProgressState> modifier, out string error)
+    {
+        error = null;
+
+        if (m_State == null || Availability != SaveAvailability.Ready)
+        {
+            error = "Save state is unavailable.";
+            return false;
+        }
+
+        PlayerProgressState candidate = m_State.DeepClone();
+        modifier?.Invoke(candidate);
+
+        if (!TrySave(candidate, out error))
+        {
+            return false;
+        }
+
+        m_State = candidate;
+        return true;
+    }
+#endif
 }

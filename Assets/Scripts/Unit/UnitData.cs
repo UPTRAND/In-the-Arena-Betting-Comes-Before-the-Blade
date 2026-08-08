@@ -14,8 +14,14 @@ namespace InTheArena.Unit
     public class UnitData : ScriptableObject
     {
         [Header("기본 정보")]
-        [Tooltip("유닛 이름")]
+        [Tooltip("유닛 내부 식별자 (영문 ID)")]
         [SerializeField] private string m_UnitName;
+
+        [Tooltip("유닛 표시 이름 (한글 등)")]
+        [SerializeField] private string m_DisplayName;
+
+        [Tooltip("유닛 설명 (도감용)")]
+        [SerializeField, TextArea(1, 3)] private string m_Description;
 
         [Tooltip("유닛 공격 타입 (근거리/원거리)")]
         [SerializeField] private UnitAttackType m_AttackType;
@@ -51,8 +57,14 @@ namespace InTheArena.Unit
         [Tooltip("카메라 프레이밍과 soft separation에서 사용할 유닛 반경")]
         [SerializeField, Min(0.1f)] private float m_VisualRadius = 0.5f;
 
-        /// <summary> 유닛 이름 </summary>
+        /// <summary> 유닛 내부 식별자 이름 </summary>
         public string UnitName => m_UnitName;
+
+        /// <summary> 유닛 표시 이름 (한글 등) </summary>
+        public string DisplayName => string.IsNullOrEmpty(m_DisplayName) ? m_UnitName : m_DisplayName;
+
+        /// <summary> 유닛 설명 (도감용) </summary>
+        public string Description => m_Description;
 
         /// <summary> 공격 타입 </summary>
         public UnitAttackType AttackType => m_AttackType;

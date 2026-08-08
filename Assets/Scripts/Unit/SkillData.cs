@@ -13,6 +13,9 @@ namespace InTheArena.Unit
         [SerializeField, TextArea(2, 4)] private string m_Description;
         [SerializeField] private SkillType m_SkillType;
 
+        [Header("UI")]
+        [SerializeField] private Sprite m_Icon;
+
         [Header("시전")]
         [SerializeField, Min(0f)] private float m_Range = 3f;
         [SerializeField, Min(0f)] private float m_Cooldown = 3f;
@@ -28,6 +31,7 @@ namespace InTheArena.Unit
 
         public string SkillName => m_SkillName;
         public string Description => m_Description;
+        public Sprite Icon => m_Icon;
         public SkillType SkillType => m_SkillType;
         public float Range => Mathf.Max(0f, m_Range);
         public float Cooldown => Mathf.Max(0f, m_Cooldown);

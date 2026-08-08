@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Peasant
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Peasant
+  m_DisplayName: "\uB18D\uBD80"
+  m_Description: "\uB0A0\uCE74\uB85C\uC6B4 \uCC3D"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: b0a99719aa274f2d8794d64fa96619af, type: 2}
   m_BaseStat:

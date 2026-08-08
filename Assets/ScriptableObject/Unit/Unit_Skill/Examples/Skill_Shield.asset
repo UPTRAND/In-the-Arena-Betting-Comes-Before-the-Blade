@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6fe636cbdb659f14788bf8dc9c390321, type: 3}
   m_Name: Skill_Shield
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.SkillData
-  m_SkillName: Shield
-  m_Description: 
+  m_SkillName: "\uCCA0\uBCBD \uBC29\uC5B4"
+  m_Description: "\uC801\uC5D0\uAC8C \uD53C\uD574\uB97C \uBC1B\uC744 \uB54C \uD574\uB2F9
+    \uD53C\uD574\uB97C 1\uD68C \uBB34\uD6A8\uD654\uD55C\uB2E4."
   m_SkillType: 0
+  m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
   m_Range: 0
   m_Cooldown: 10
   m_CastTime: 0.2

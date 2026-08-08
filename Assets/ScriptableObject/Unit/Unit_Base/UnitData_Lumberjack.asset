@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UnitData_Lumberjack
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Unit.UnitData
   m_UnitName: Lumberjack
+  m_DisplayName: "\uB098\uBB34\uAFBC"
+  m_Description: "\uAD34\uB825\uC758 \uB3C4\uB07C"
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: b970f7e26d374fcbadba3664610c89d3, type: 2}
   m_BaseStat:

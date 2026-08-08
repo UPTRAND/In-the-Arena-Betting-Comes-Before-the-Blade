@@ -10791,7 +10791,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_BettingPhase
   m_HasControl: 1
-  m_CanCloseControlWithBackButton: 1
+  m_CanCloseControlWithBackButton: 0
   m_BIsPlayerUI: 0
   m_AdditionalBetButton: {fileID: 940334861165619353}
   m_InsuranceButton: {fileID: 1539552470868373764}
