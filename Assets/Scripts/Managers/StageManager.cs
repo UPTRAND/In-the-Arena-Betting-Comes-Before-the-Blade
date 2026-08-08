@@ -290,6 +290,9 @@ namespace InTheArena.MainGame
         {
             try
             {
+                if (!Application.isPlaying)
+                    return;
+
                 if (SceneManager.GetActiveScene().name != m_LobbySceneName)
                 {
                     Debug.LogWarning("[StageManager] 오류/취소 복구를 위해 Lobby로 이동합니다.");
@@ -513,6 +516,9 @@ namespace InTheArena.MainGame
         {
             m_CurrentStageData = null;
             m_Context?.Clear();
+
+            if (!Application.isPlaying)
+                return;
 
             if (m_StageCts != null && m_StageCts.IsCancellationRequested)
                 return;

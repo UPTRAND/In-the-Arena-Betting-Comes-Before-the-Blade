@@ -12,8 +12,6 @@ public sealed class LobbyUIFlowController : MonoBehaviour
 
     private IEnumerator Start()
     {
-        yield return null;
-
         UI_LobbyHeader header = UIManager.Instance?.GetElement<UI_LobbyHeader>() ?? FindAnyObjectByType<UI_LobbyHeader>(FindObjectsInactive.Include);
         m_Navigation = UIManager.Instance?.GetElement<UI_LobbyNavigationBar>() ?? FindAnyObjectByType<UI_LobbyNavigationBar>(FindObjectsInactive.Include);
         UI_LobbyStagePanel stage = UIManager.Instance?.GetElement<UI_LobbyStagePanel>() ?? FindAnyObjectByType<UI_LobbyStagePanel>(FindObjectsInactive.Include);
@@ -22,6 +20,7 @@ public sealed class LobbyUIFlowController : MonoBehaviour
         GameObject unitsObject = units != null ? units.gameObject : FindSceneObject("UI_LobbyUnitPanel");
         GameObject socialObject = social != null ? social.gameObject : FindSceneObject("UI_LobbySocialPanel");
 
+        stage?.Refresh();
         header?.Open();
         yield return null;
 
@@ -35,7 +34,10 @@ public sealed class LobbyUIFlowController : MonoBehaviour
             m_TabSelectedHandler = tab =>
             {
                 if (tab == LobbyTab.Stage)
+                {
+                    stage?.Refresh();
                     Show(stage);
+                }
                 else if (tab == LobbyTab.Units)
                     Show(units != null ? (Object)units : unitsObject);
                 else
@@ -45,6 +47,7 @@ public sealed class LobbyUIFlowController : MonoBehaviour
             m_Navigation.TabSelected += m_TabSelectedHandler;
         }
 
+        stage?.Refresh();
         Show(stage);
     }
 

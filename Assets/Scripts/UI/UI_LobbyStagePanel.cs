@@ -11,24 +11,99 @@ namespace InTheArena.UI
     {
         [SerializeField] private TMP_Text m_LevelText;
         [SerializeField] private Button m_StartButton;
+        [SerializeField] private TMP_Text m_StartButtonLabel;
+        [SerializeField] private Image m_BackgroundImage;
         [SerializeField] private List<StageData> m_StageDatas = new List<StageData>();
+
         private StageData m_Target;
-        protected override void Awake() { base.Awake(); m_StartButton.onClick.AddListener(StartStage); }
-        public override void OnOpened() { base.OnOpened(); Refresh(); }
-        public void Refresh()
+
+        protected override void Awake()
         {
-            int next = (SaveManager.Instance != null ? SaveManager.Instance.ClearedStageNumber : 0) + 1;
-            m_LevelText.text = $"레벨 {next}";
-            m_Target = m_StageDatas.Find(stage => stage != null && stage.StageNum == next);
+            base.Awake();
+            m_StartButton.onClick.AddListener(StartStage);
         }
-        private void StartStage()
+
+        public override void OnOpened()
+        {
+            base.OnOpened();
+            Refresh();
+        }
+
+        private void OnEnable()
         {
             Refresh();
-            if (m_Target == null) { Debug.Log($"[Lobby] {m_LevelText.text}은 준비 중입니다."); return; }
-            if (StageManager.Instance == null) { Debug.LogError("[Lobby] StageManager를 찾을 수 없습니다."); return; }
-            if (StageManager.Instance.IsStageRunning || (InTheArena.Util.LoadingProgressService.Instance != null && InTheArena.Util.LoadingProgressService.Instance.IsLoading)) { return; }
+        }
+
+        public void Refresh()
+        {
+            int next = GetNextStageNumber();
+            m_Target = FindStage(next);
+
+            if (m_LevelText != null)
+            {
+                m_LevelText.text = m_Target != null ? m_Target.StageName : "\uC900\uBE44 \uC911";
+            }
+
+            if (m_StartButtonLabel != null)
+            {
+                m_StartButtonLabel.text = $"\uB808\uBCA8 {next}";
+            }
+
+            RefreshBackground();
+        }
+
+        private int GetNextStageNumber()
+        {
+            return (SaveManager.Instance != null ? SaveManager.Instance.ClearedStageNumber : 0) + 1;
+        }
+
+        private StageData FindStage(int stageNumber)
+        {
+            return m_StageDatas.Find(stage => stage != null && stage.StageNum == stageNumber);
+        }
+
+        private void RefreshBackground()
+        {
+            if (m_BackgroundImage != null && m_Target != null && m_Target.BackgroundSprite != null)
+            {
+                m_BackgroundImage.sprite = m_Target.BackgroundSprite;
+                m_BackgroundImage.preserveAspect = true;
+            }
+        }
+
+        private void StartStage()
+        {
+            if (m_Target == null)
+            {
+                m_Target = FindStage(GetNextStageNumber());
+            }
+
+            if (m_Target == null)
+            {
+                Debug.Log("[Lobby] Target stage is not ready.");
+                return;
+            }
+
+            if (StageManager.Instance == null)
+            {
+                Debug.LogError("[Lobby] StageManager was not found.");
+                return;
+            }
+
+            if (StageManager.Instance.IsStageRunning ||
+                (InTheArena.Util.LoadingProgressService.Instance != null &&
+                 InTheArena.Util.LoadingProgressService.Instance.IsLoading))
+            {
+                return;
+            }
+
             SaveManager save = SaveManager.Instance;
-            if (save == null || !save.TrySpendHeart()) { Debug.Log($"[Lobby] 하트가 부족합니다. 다음 하트까지 {save?.GetRemainingHeartTime():mm\\:ss}"); return; }
+            if (save == null || !save.TrySpendHeart())
+            {
+                Debug.Log($"[Lobby] Not enough hearts. Next heart in {save?.GetRemainingHeartTime():mm\\:ss}");
+                return;
+            }
+
             _ = StageManager.Instance.StartStageAsync(m_Target);
         }
     }

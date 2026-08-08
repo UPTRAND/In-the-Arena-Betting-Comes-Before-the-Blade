@@ -198,6 +198,9 @@ namespace InTheArena.MainGame
             }
             else
             {
+                if (m_SpawnProbability <= 0f)
+                    return true;
+
                 return m_VariableUnitPool != null && m_VariableUnitPool.Count > 0 && 
                        m_VariableUnitPool.Exists(u => u != null && u.IsValid());
             }

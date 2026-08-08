@@ -749,12 +749,14 @@ namespace InTheArena.MainGame
         {
             UnsubscribeEvents();
             CanvasGroup canvasGroup = m_BettingCanvasGroup;
-            if (canvasGroup != null)
+            if (canvasGroup != null && canvasGroup.gameObject != null)
             {
                 await AwaitTweenAsync(canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad), token);
-                canvasGroup.gameObject.SetActive(false);
+                if (canvasGroup != null && canvasGroup.gameObject != null)
+                    canvasGroup.gameObject.SetActive(false);
             }
-            transform.DOKill();
+            if (this != null && transform != null)
+                transform.DOKill();
         }
 
         private static async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
@@ -762,10 +764,17 @@ namespace InTheArena.MainGame
             if (tween == null || !tween.IsActive()) return;
             using (token.Register(() =>
             {
-                if (tween.IsActive()) tween.Kill();
+                if (tween != null && tween.IsActive()) tween.Kill();
             }))
             {
-                await tween.AsyncWaitForCompletion();
+                try
+                {
+                    await tween.AsyncWaitForCompletion();
+                }
+                catch (MissingReferenceException)
+                {
+                    // The UI can be destroyed while the phase is being cancelled or the scene is unloading.
+                }
             }
         }
 

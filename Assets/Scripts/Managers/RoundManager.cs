@@ -93,6 +93,7 @@ namespace InTheArena.MainGame
             m_CurrentStageData = stageData;
             m_PlayerState = playerState;
             m_Context.InitializeStage(stageData);
+            StageBackgroundController.ApplyToScene(stageData);
             CreateItemPurchaseUseCoordinator();
 
             Debug.Log($"[RoundManager] 컨텍스트 초기화 완료 - 스테이지: {stageData?.FullStageName}");
@@ -138,6 +139,7 @@ namespace InTheArena.MainGame
                 token.ThrowIfCancellationRequested();
 
                 await CleanupActivePhaseAsync();
+                StageBackgroundController.ShowBattleBackgrounds();
 
                 token.ThrowIfCancellationRequested();
 
