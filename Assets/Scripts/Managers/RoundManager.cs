@@ -239,6 +239,7 @@ namespace InTheArena.MainGame
                 m_Context.BetTicket,
                 m_Context.CombatResult);
             m_Context.StageSession.ApplySettlement(m_Context.Settlement);
+            m_Context.RecordCompletedRoundSettlement(m_Context.Settlement);
         }
 
         private void ApplyRoundRule(RoundRule rule)

@@ -39,6 +39,8 @@ namespace InTheArena.MainGame
         public RoundBetTicket BetTicket { get; set; }
         public CombatResultSnapshot CombatResult { get; set; }
         public BetSettlement Settlement { get; set; }
+        private readonly List<BetSettlement> m_CompletedRoundSettlements = new List<BetSettlement>();
+        public IReadOnlyList<BetSettlement> CompletedRoundSettlements => m_CompletedRoundSettlements;
 
         // 라운드 결과
         public bool IsRoundCompleted { get; set; }
@@ -68,6 +70,7 @@ namespace InTheArena.MainGame
             CurrentStageId = stageData.StageId;
             MaxRounds = stageData.TotalRounds;
             StageSession.Initialize(stageData);
+            m_CompletedRoundSettlements.Clear();
             CurrentRound = 0;
             m_ItemUsageRoundIndex = -1;
             RoundItemUsage.Reset();
@@ -125,6 +128,13 @@ namespace InTheArena.MainGame
             CurrentRoundRule = RoundRule.None;
 
             RefreshActiveSpecialBets();
+        }
+
+        public void RecordCompletedRoundSettlement(BetSettlement settlement)
+        {
+            if (settlement == null) return;
+            if (m_CompletedRoundSettlements.Contains(settlement)) return;
+            m_CompletedRoundSettlements.Add(settlement);
         }
 
         public bool RerollSpecialBets()
@@ -263,6 +273,7 @@ namespace InTheArena.MainGame
             BetTicket = null;
             CombatResult = null;
             Settlement = null;
+            m_CompletedRoundSettlements.Clear();
             IsRoundCompleted = false;
             CombatWinner = Team.None;
             CurrentRoundRule = RoundRule.None;

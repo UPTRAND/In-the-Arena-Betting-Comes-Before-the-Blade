@@ -23,8 +23,19 @@ namespace InTheArena.UI
         [SerializeField] private Button m_SpeedButton;
         [SerializeField] private TMP_Text m_SpeedMultiplierText;
 
+        [Header("View Switch")]
+        [SerializeField] private GameObject m_BattleGroup;
+        [SerializeField] private GameObject m_BettingGroup;
+        [SerializeField] private Button m_BattleSwapButton;
+        [SerializeField] private Button m_BettingSwapButton;
+        [SerializeField] private Image[] m_RedUnitSlotImages = new Image[6];
+        [SerializeField] private Image[] m_BlueUnitSlotImages = new Image[6];
+        [SerializeField] private Image[] m_RedUnitPortraitImages = new Image[6];
+        [SerializeField] private Image[] m_BlueUnitPortraitImages = new Image[6];
+        [SerializeField] private TMP_Text[] m_RedUnitSlotTexts = new TMP_Text[6];
+        [SerializeField] private TMP_Text[] m_BlueUnitSlotTexts = new TMP_Text[6];
+
         [Header("Stage Information")]
-        [SerializeField] private TMP_Text m_MoneyText;
         [SerializeField] private GameObject m_WinningTeamHistoryRoot;
         [SerializeField] private TMP_Text m_WinningTeamHistoryText;
         [SerializeField] private GameObject m_GameEndTimeHistoryRoot;
@@ -65,6 +76,7 @@ namespace InTheArena.UI
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             m_TargetingLifetimeCancellation = new CancellationTokenSource();
             ApplyItemIcons();
+            SetBattleView(true);
             ResetDisplay();
         }
 
@@ -93,6 +105,7 @@ namespace InTheArena.UI
 
             Enable();
             ApplyItemIcons();
+            SetBattleView(true);
             Refresh();
         }
 
@@ -295,6 +308,8 @@ namespace InTheArena.UI
             {
                 m_SpeedButton.onClick.AddListener(OnSpeedButtonClicked);
             }
+            if (m_BattleSwapButton != null) m_BattleSwapButton.onClick.AddListener(OnBattleSwapClicked);
+            if (m_BettingSwapButton != null) m_BettingSwapButton.onClick.AddListener(OnBettingSwapClicked);
 
             if (m_ItemSlot1Button != null)
             {
@@ -312,6 +327,7 @@ namespace InTheArena.UI
             }
 
             m_CombatPhase.OnItemUsed += OnCombatItemUsed;
+            m_CombatPhase.OnCombatStateChanged += RefreshCombatState;
             m_IsSubscribed = true;
         }
 
@@ -326,6 +342,8 @@ namespace InTheArena.UI
             {
                 m_SpeedButton.onClick.RemoveListener(OnSpeedButtonClicked);
             }
+            if (m_BattleSwapButton != null) m_BattleSwapButton.onClick.RemoveListener(OnBattleSwapClicked);
+            if (m_BettingSwapButton != null) m_BettingSwapButton.onClick.RemoveListener(OnBettingSwapClicked);
 
             if (m_ItemSlot1Button != null)
             {
@@ -345,6 +363,7 @@ namespace InTheArena.UI
             if (m_CombatPhase != null)
             {
                 m_CombatPhase.OnItemUsed -= OnCombatItemUsed;
+                m_CombatPhase.OnCombatStateChanged -= RefreshCombatState;
             }
 
             m_IsSubscribed = false;
@@ -359,6 +378,15 @@ namespace InTheArena.UI
 
             m_CombatPhase.ToggleCombatSpeed();
             RefreshCombatState();
+        }
+
+        private void OnBattleSwapClicked() => SetBattleView(true);
+        private void OnBettingSwapClicked() => SetBattleView(false);
+
+        private void SetBattleView(bool showBattle)
+        {
+            SetActive(m_BattleGroup, showBattle);
+            SetActive(m_BettingGroup, !showBattle);
         }
 
         private void RequestItemUse(ItemData itemData)
@@ -460,17 +488,42 @@ namespace InTheArena.UI
             if (m_BattleTimerText != null)
             {
                 int totalSeconds = Mathf.CeilToInt(m_CombatPhase.RemainingCombatTime);
-                m_BattleTimerText.text = $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
+                m_BattleTimerText.text = totalSeconds.ToString();
             }
 
             if (m_SpeedMultiplierText != null)
             {
-                m_SpeedMultiplierText.text = $"x{m_CombatPhase.CurrentSpeed:0.#}";
+                m_SpeedMultiplierText.text = $"\u00D7{m_CombatPhase.CurrentSpeed:0.#}";
             }
 
             if (m_SpeedButton != null)
             {
                 m_SpeedButton.interactable = CanAcceptCombatInput();
+            }
+            RefreshUnitSlots();
+        }
+
+        private void RefreshUnitSlots()
+        {
+            RefreshTeamUnitSlots(Team.Red, m_RedUnitSlotImages, m_RedUnitPortraitImages, m_RedUnitSlotTexts, m_CombatPhase.RedAliveCount == 0);
+            RefreshTeamUnitSlots(Team.Blue, m_BlueUnitSlotImages, m_BlueUnitPortraitImages, m_BlueUnitSlotTexts, m_CombatPhase.BlueAliveCount == 0);
+        }
+
+        private void RefreshTeamUnitSlots(Team team, Image[] backgrounds, Image[] portraits, TMP_Text[] texts, bool teamEliminated)
+        {
+            for (int i = 0; i < backgrounds.Length; i++)
+            {
+                int alive = m_CombatPhase.GetAliveCount(team, i);
+                bool empty = teamEliminated || alive == 0;
+                if (backgrounds[i] != null) backgrounds[i].color = empty ? Color.gray : Color.white;
+                if (portraits != null && i < portraits.Length && portraits[i] != null)
+                {
+                    Sprite portrait = m_CombatPhase.GetSlotPortrait(team, i);
+                    portraits[i].sprite = portrait;
+                    portraits[i].gameObject.SetActive(portrait != null);
+                    portraits[i].color = empty ? Color.gray : Color.white;
+                }
+                if (texts != null && i < texts.Length && texts[i] != null) texts[i].text = alive > 0 ? $"x{alive}" : string.Empty;
             }
         }
 
@@ -483,10 +536,6 @@ namespace InTheArena.UI
 
             FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include)?.RefreshTopBar(m_RoundContext);
 
-            if (m_MoneyText != null)
-            {
-                m_MoneyText.text = $"{(m_PlayerState != null ? m_PlayerState.Gold : 0)} COL";
-            }
         }
 
         private void RefreshBetHistory()
@@ -710,9 +759,8 @@ namespace InTheArena.UI
             if (m_BlueTeamCountText != null) m_BlueTeamCountText.text = "0";
             if (m_RedTeamSlider != null) m_RedTeamSlider.value = 0f;
             if (m_BlueTeamSlider != null) m_BlueTeamSlider.value = 0f;
-            if (m_BattleTimerText != null) m_BattleTimerText.text = "00:00";
-            if (m_SpeedMultiplierText != null) m_SpeedMultiplierText.text = "x1";
-            if (m_MoneyText != null) m_MoneyText.text = "0 COL";
+            if (m_BattleTimerText != null) m_BattleTimerText.text = "0";
+            if (m_SpeedMultiplierText != null) m_SpeedMultiplierText.text = "×1";
             SetActive(m_WinningTeamHistoryRoot, true);
             SetActive(m_GameEndTimeHistoryRoot, false);
             SetActive(m_OddEvenHistoryRoot, false);

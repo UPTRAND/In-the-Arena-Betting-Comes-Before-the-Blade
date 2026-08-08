@@ -22,6 +22,7 @@ namespace InTheArena.MainGame
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private bool m_IsWin;
         private int m_RewardCall;
+        private BettingPhase m_BettingPhase;
 
 #pragma warning disable 1998
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
@@ -90,12 +91,28 @@ namespace InTheArena.MainGame
 
         private void SubscribeEvents()
         {
-            if (m_ResultUi != null) m_ResultUi.ContinueClicked += OnContinueClicked;
+            if (m_ResultUi != null)
+            {
+                m_ResultUi.ContinueClicked += OnContinueClicked;
+                m_ResultUi.PayoutRevealStarted += OnPayoutRevealStarted;
+            }
+            m_BettingPhase = FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include);
         }
 
         private void UnsubscribeEvents()
         {
-            if (m_ResultUi != null) m_ResultUi.ContinueClicked -= OnContinueClicked;
+            if (m_ResultUi != null)
+            {
+                m_ResultUi.ContinueClicked -= OnContinueClicked;
+                m_ResultUi.PayoutRevealStarted -= OnPayoutRevealStarted;
+            }
+        }
+
+        private void OnPayoutRevealStarted()
+        {
+            if (m_BettingPhase == null || Context?.Settlement == null) return;
+            int from = Mathf.Max(0, Context.CurrentCall - Context.Settlement.PayoutCall);
+            m_BettingPhase.AnimateNowCol(from, Context.CurrentCall);
         }
 
         private void OnContinueClicked()

@@ -38,6 +38,7 @@ namespace InTheArena.UI
         private bool m_HasSummaryStartPositions;
 
         public event Action ContinueClicked;
+        public event Action PayoutRevealStarted;
 
         protected override void Awake()
         {
@@ -214,6 +215,7 @@ namespace InTheArena.UI
         {
             if (m_MyResult == null) return;
             int payout = Mathf.Max(0, m_Settlement?.PayoutCall ?? 0);
+            PayoutRevealStarted?.Invoke();
             m_MyResult.gameObject.SetActive(true);
             m_MyResult.localScale = Vector3.one * 0.82f;
             CanvasGroup group = GetCanvasGroup(m_MyResult);
@@ -351,6 +353,7 @@ namespace InTheArena.UI
             CancelResultAnimation();
             if (m_ContinueButton != null) m_ContinueButton.onClick.RemoveListener(OnContinueButtonClicked);
             ContinueClicked = null;
+            PayoutRevealStarted = null;
             base.OnDestroy();
         }
 

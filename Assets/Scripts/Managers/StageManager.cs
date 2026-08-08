@@ -399,9 +399,8 @@ namespace InTheArena.MainGame
                         SetStageClearCommitState(StageClearCommitState.Failed);
                     }
                     
-                    // Fire off the panel presentation
-                    Debug.Log("[StageManager] STAGE CLEAR (Pending Save)!");
-                    _ = ShowResultPanelAsync(true, token); // Fire and forget, we wait for completion later
+                    // Commit before showing the result so the player can safely leave immediately.
+                    ProcessPendingStageClearSave();
                 }
 
                 if (m_StageClearCommitState == StageClearCommitState.Pending || m_StageClearCommitState == StageClearCommitState.Failed)
@@ -444,6 +443,7 @@ namespace InTheArena.MainGame
                 {
                     if (UIManager.Instance != null)
                     {
+                        await ShowResultPanelAsync(true, token);
                         var panel = UIManager.Instance.GetStageResultPanel();
                         if (panel != null)
                         {
@@ -506,10 +506,12 @@ namespace InTheArena.MainGame
 
             Debug.Log($"[StageManager] Stage Result - Clear: {isClear}, CurrentCall: {m_Context.CurrentCall}, TargetCall: {m_CurrentStageData.TargetCall}");
 
-            panel.Prepare(isClear, m_Context.CurrentCall, m_CurrentStageData.TargetCall);
+            int initialCall = m_Context.CurrentStageData != null ? m_Context.CurrentStageData.InitialCall : 0;
+            panel.Prepare(isClear, initialCall, m_Context.CompletedRoundSettlements);
             
             // ScreenFaderTransition may cause issues if called concurrently, but in this sequence it's called once at end of round
             await ScreenFaderTransition.FadeInAsync(1f, token);
+            panel.PlayResultAnimation();
         }
 
         private async Awaitable ReturnToLobbyAsync()

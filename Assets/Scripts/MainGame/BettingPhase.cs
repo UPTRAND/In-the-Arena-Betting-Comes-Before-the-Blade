@@ -8,6 +8,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using InTheArena.UI;
 
 namespace InTheArena.MainGame
 {
@@ -78,6 +80,19 @@ namespace InTheArena.MainGame
         [SerializeField] private TMP_Text m_NewCurrentCallText;
         [SerializeField] private TMP_Text m_NewMultiplierText;
 
+        [Header("Shared UI References")]
+        [SerializeField] private UI_BettingPhase m_BettingUi;
+        [SerializeField] private CanvasGroup m_BettingContentCanvasGroup;
+        [SerializeField] private TMP_Text m_NowColInfoText;
+        [SerializeField] private EventTrigger m_SliderHandlePointerTrigger;
+        private Tween m_SliderAttentionTween;
+        private Tween m_ConfirmAttentionTween;
+        private bool m_SliderTouched;
+        private EventTrigger.Entry m_SliderPointerDownEntry;
+        private Graphic m_ConfirmAttentionGraphic;
+        private Color m_ConfirmAttentionGraphicColor;
+        private bool m_HasConfirmAttentionGraphicColor;
+
         private static readonly Color AgreeTextColor = Color.black;
         private static readonly Color AgreeWarningColor = new Color(0.783f, 0.084f, 0.070f, 1f);
         private AwaitableCompletionSource m_PhaseCompletionSource;
@@ -123,6 +138,7 @@ namespace InTheArena.MainGame
             }
 
             InitializePhaseData();
+            EnsureSharedTopBar();
             SetupUI();
             SubscribeEvents();
 
@@ -134,6 +150,8 @@ namespace InTheArena.MainGame
                 canvasGroup.interactable = false;
                 canvasGroup.blocksRaycasts = false;
             }
+            SetBettingContentVisible(true);
+            SetNowCol(Context.CurrentCall);
         }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
@@ -147,6 +165,7 @@ namespace InTheArena.MainGame
             }
 
             m_PhaseCompletionSource = new AwaitableCompletionSource();
+            StartSliderAttention();
             using (token.Register(() => m_PhaseCompletionSource?.TrySetResult()))
             {
                 await m_PhaseCompletionSource.Awaitable;
@@ -266,20 +285,7 @@ namespace InTheArena.MainGame
 
         private void EnsureSurvivingRowDropdown()
         {
-            Transform root = (m_SurvivingRowDropdownRoot != null
-                ? m_SurvivingRowDropdownRoot
-                : m_SurvivingSlotsRoot)?.transform;
-            if (root == null || m_SurvivingRowDropdown != null) return;
-
-            m_SurvivingRowDropdown = root.GetComponentInChildren<TMP_Dropdown>(true);
-            if (m_SurvivingRowDropdown != null || m_FirstAnnihilatedDropdown == null) return;
-
-            GameObject clone = Instantiate(m_FirstAnnihilatedDropdown.gameObject, root);
-            clone.name = "SurvivingRow_Dropdown";
-            m_SurvivingRowDropdown = clone.GetComponent<TMP_Dropdown>();
-
-            Transform guide = root.Find("Guide_Text");
-            if (guide != null) guide.gameObject.SetActive(false);
+            // UI_BettingPhase serializes this reference. Do not clone or search a dropdown at runtime.
         }
 
         private static void SetOptions(TMP_Dropdown dropdown, params string[] options)
@@ -370,6 +376,13 @@ namespace InTheArena.MainGame
         private void SubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.AddListener(OnWagerChanged);
+            if (m_SliderHandlePointerTrigger != null && m_SliderPointerDownEntry == null)
+            {
+                m_SliderHandlePointerTrigger.triggers ??= new List<EventTrigger.Entry>();
+                m_SliderPointerDownEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
+                m_SliderPointerDownEntry.callback.AddListener(_ => StopSliderAttention());
+                m_SliderHandlePointerTrigger.triggers.Add(m_SliderPointerDownEntry);
+            }
             if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.AddListener(OnWinningTeamChanged);
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.AddListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.AddListener(OnOddEvenChanged);
@@ -406,6 +419,11 @@ namespace InTheArena.MainGame
         private void UnsubscribeEvents()
         {
             if (m_WagerSlider != null) m_WagerSlider.onValueChanged.RemoveAllListeners();
+            if (m_SliderHandlePointerTrigger != null && m_SliderPointerDownEntry != null)
+            {
+                m_SliderHandlePointerTrigger.triggers.Remove(m_SliderPointerDownEntry);
+                m_SliderPointerDownEntry = null;
+            }
             if (m_WinningTeamDropdown != null) m_WinningTeamDropdown.onValueChanged.RemoveListener(OnWinningTeamChanged);
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.RemoveListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.RemoveListener(OnOddEvenChanged);
@@ -430,8 +448,9 @@ namespace InTheArena.MainGame
         private void OnWagerChanged(float value)
         {
             int steps = Mathf.Clamp(Mathf.RoundToInt(value), 1, GetMaximumWagerCall() / WagerStepCall);
+            if (m_DraftTicket.WagerCall == steps * WagerStepCall) return;
             m_DraftTicket.SetWager(steps * WagerStepCall);
-            RefreshBetSummary();
+            RefreshWagerDisplay();
         }
 
         private void OnWinningTeamChanged(int value) => SetFaction(value switch
@@ -542,9 +561,16 @@ namespace InTheArena.MainGame
             int wager = Mathf.Clamp(m_DraftTicket.WagerCall, WagerStepCall, GetMaximumWagerCall());
             m_DraftTicket.SetWager(wager);
             if (m_WagerSlider != null) m_WagerSlider.SetValueWithoutNotify(wager / WagerStepCall);
+            RefreshWagerDisplay();
+        }
+
+        private void RefreshWagerDisplay()
+        {
+            int wager = Mathf.Clamp(m_DraftTicket.WagerCall, WagerStepCall, GetMaximumWagerCall());
+            m_DraftTicket.SetWager(wager);
             int remainingCall = Mathf.Max(0, Context.CurrentCall - wager);
             if (m_CurrentCallText != null) m_CurrentCallText.text = $"{remainingCall} Call";
-            if (m_NewCurrentCallText != null) m_NewCurrentCallText.text = $"{remainingCall} Call";
+            SetNowCol(Context.CurrentCall);
             if (m_WagerCallText != null) m_WagerCallText.text = $"{wager} Call";
             string multiplierLabel = m_DraftTicket.Multiplier > 0
                 ? $"×{m_DraftTicket.Multiplier}"
@@ -558,6 +584,7 @@ namespace InTheArena.MainGame
 
             bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out _);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
+            RefreshConfirmAttention(valid);
             if (m_ValidationText != null)
             {
                 m_ValidationText.text = string.Empty;
@@ -673,6 +700,96 @@ namespace InTheArena.MainGame
             return Context?.SpecialBetOrder;
         }
 
+        public void AnimateNowCol(int targetCall)
+        {
+            if (m_NowColInfoText == null) return;
+            int from = Context != null ? Mathf.Max(0, Context.CurrentCall - (Context.Settlement?.PayoutCall ?? 0)) : 0;
+            AnimateNowCol(from, targetCall);
+        }
+
+        public void AnimateNowCol(int fromCall, int targetCall) => DOTween.To(() => fromCall, SetNowCol, Mathf.Max(0, targetCall), 0.45f).SetEase(Ease.OutCubic).SetTarget(m_NowColInfoText);
+
+        private void EnsureSharedTopBar()
+        {
+            if (m_BettingUi != null)
+            {
+                if (!m_BettingUi.BIsOpened) m_BettingUi.Open();
+                m_BettingUi.Enable();
+            }
+        }
+
+        private void SetBettingContentVisible(bool visible)
+        {
+            if (m_BettingContentCanvasGroup == null) return;
+            m_BettingContentCanvasGroup.gameObject.SetActive(true);
+            m_BettingContentCanvasGroup.alpha = visible ? 1f : 0f;
+            m_BettingContentCanvasGroup.interactable = visible;
+            m_BettingContentCanvasGroup.blocksRaycasts = visible;
+        }
+
+        private void SetNowCol(int value)
+        {
+            if (m_NowColInfoText != null) m_NowColInfoText.text = $"{Mathf.Max(0, value)} Col";
+        }
+
+        private void StartSliderAttention()
+        {
+            m_SliderTouched = false;
+            if (m_WagerSlider?.handleRect == null) return;
+            Transform handle = m_WagerSlider.handleRect;
+            handle.DOKill();
+            m_SliderAttentionTween = handle.DOScale(1.12f, 0.5f).SetLoops(-1, LoopType.Yoyo).SetUpdate(true);
+        }
+
+        private void StopSliderAttention()
+        {
+            if (m_SliderTouched) return;
+            m_SliderTouched = true;
+            if (m_WagerSlider?.handleRect != null)
+            {
+                m_WagerSlider.handleRect.DOKill();
+                m_WagerSlider.handleRect.localScale = Vector3.one;
+            }
+        }
+
+        private void RefreshConfirmAttention(bool valid)
+        {
+            if (!valid || m_ConfirmBetButton == null)
+            {
+                m_ConfirmAttentionTween?.Kill();
+                RestoreConfirmAttentionGraphic();
+                return;
+            }
+            if (m_ConfirmAttentionTween != null && m_ConfirmAttentionTween.IsActive()) return;
+            m_ConfirmAttentionGraphic = m_ConfirmBetButton.targetGraphic;
+            if (m_ConfirmAttentionGraphic == null) return;
+            if (!m_HasConfirmAttentionGraphicColor)
+            {
+                m_ConfirmAttentionGraphicColor = m_ConfirmAttentionGraphic.color;
+                m_HasConfirmAttentionGraphicColor = true;
+            }
+            m_ConfirmAttentionGraphic.DOKill();
+            m_ConfirmAttentionGraphic.color = m_ConfirmAttentionGraphicColor;
+            m_ConfirmAttentionTween = m_ConfirmAttentionGraphic
+                .DOFade(0.55f, 0.55f)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true);
+        }
+
+        private void StopAttention()
+        {
+            StopSliderAttention();
+            m_ConfirmAttentionTween?.Kill();
+            RestoreConfirmAttentionGraphic();
+        }
+
+        private void RestoreConfirmAttentionGraphic()
+        {
+            if (m_ConfirmAttentionGraphic == null || !m_HasConfirmAttentionGraphicColor) return;
+            m_ConfirmAttentionGraphic.DOKill();
+            m_ConfirmAttentionGraphic.color = m_ConfirmAttentionGraphicColor;
+        }
+
         private void OnConfirmBetClicked()
         {
             if (IsPhaseCompleted) return;
@@ -680,6 +797,7 @@ namespace InTheArena.MainGame
             m_DraftTicket.SetItemUsages(
                 Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket),
                 Context.RoundItemUsage.HasUsed(ItemType.Insurance));
+            int callBeforeBet = Context.CurrentCall;
             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
             {
                 Debug.LogError($"[BettingPhase] {error}");
@@ -687,6 +805,8 @@ namespace InTheArena.MainGame
             }
 
             Context.BetTicket = m_DraftTicket;
+            StopAttention();
+            AnimateNowCol(callBeforeBet, Context.CurrentCall);
             CompletePhase();
             m_PhaseCompletionSource?.TrySetResult();
         }
@@ -694,7 +814,8 @@ namespace InTheArena.MainGame
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             UnsubscribeEvents();
-            CanvasGroup canvasGroup = m_BettingCanvasGroup;
+            StopAttention();
+            CanvasGroup canvasGroup = m_BettingContentCanvasGroup ?? m_BettingCanvasGroup;
             if (canvasGroup != null && canvasGroup.gameObject != null)
             {
                 await AwaitTweenAsync(canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad), token);

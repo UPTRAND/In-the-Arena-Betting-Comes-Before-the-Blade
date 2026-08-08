@@ -77,6 +77,7 @@ namespace InTheArena.MainGame
                 this,
                 Context,
                 StageManager.Instance?.PlayerState);
+            OnCombatStateChanged?.Invoke();
         }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
@@ -223,6 +224,7 @@ namespace InTheArena.MainGame
             bool teamEliminated = key.Team == Team.Red
                 ? UnitRegistry.RedAliveCount == 0
                 : UnitRegistry.BlueAliveCount == 0;
+            OnCombatStateChanged?.Invoke();
             if (!teamEliminated || m_FinalDeathPresentationUnits.Contains(deadUnit)) return;
 
             deadUnit.HoldDeathPresentation();
@@ -553,7 +555,10 @@ namespace InTheArena.MainGame
         public void ToggleCombatSpeed()
         {
             if (m_IsFinalEliminationPlaying || m_IsCombatEnded) return;
-            m_CurrentSpeed = (m_CurrentSpeed == m_NormalSpeed) ? m_FastSpeed : m_NormalSpeed;
+            m_CurrentSpeed = Mathf.Approximately(m_CurrentSpeed, 1f) ? 2f
+                : Mathf.Approximately(m_CurrentSpeed, 2f) ? 3f
+                : Mathf.Approximately(m_CurrentSpeed, 3f) ? 0.5f
+                : 1f;
             Time.timeScale = m_CurrentSpeed;
             InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(m_CurrentSpeed > m_NormalSpeed);
             Debug.Log($"[CombatPhase] 전투 속도 변경: {m_CurrentSpeed}x");
@@ -573,6 +578,29 @@ namespace InTheArena.MainGame
         public int RedParticipantCount => m_RedParticipantCount;
         public int BlueParticipantCount => m_BlueParticipantCount;
         public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
+
+        public int GetAliveCount(Team team, int cellIndex)
+        {
+            int count = 0;
+            foreach (var pair in m_UnitSlots)
+            {
+                if (pair.Value.Team == team && pair.Value.CellIndex == cellIndex && pair.Key != null && !pair.Key.IsDead)
+                    count++;
+            }
+            return count;
+        }
+
+        public Sprite GetSlotPortrait(Team team, int cellIndex)
+        {
+            foreach (var pair in m_UnitSlots)
+            {
+                if (pair.Value.Team == team && pair.Value.CellIndex == cellIndex && pair.Key?.UnitData != null)
+                    return pair.Key.UnitData.GetPortrait(team);
+            }
+            return null;
+        }
+
+        public event Action OnCombatStateChanged;
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
