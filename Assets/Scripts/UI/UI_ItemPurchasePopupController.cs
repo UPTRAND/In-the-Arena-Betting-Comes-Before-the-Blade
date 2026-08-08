@@ -13,10 +13,15 @@ namespace InTheArena.UI
     {
         [SerializeField] private Button m_BuyButton;
         [SerializeField] private TMP_Text m_ItemInfoText;
+        [SerializeField] private TMP_Text m_SecondaryInfoText;
+        [SerializeField] private TMP_Text m_GoldText;
         [SerializeField] private TMP_Text m_PriceText;
         [SerializeField] private RectTransform m_PopupPanel;
 
         private AwaitableCompletionSource m_CompletionSource;
+        private Button m_PopupPanelButton;
+        private ItemData m_ActiveItem;
+        private int m_CurrentGold;
         private bool m_IsShowing;
         private bool m_IsRequestCompleted;
         private bool m_ListenersRegistered;
@@ -94,7 +99,18 @@ namespace InTheArena.UI
 
         private void OnBuyClicked()
         {
+            if (m_ActiveItem == null || m_CurrentGold < m_ActiveItem.PriceGold)
+            {
+                ShowInsufficientGold();
+                return;
+            }
+
             Complete(ItemPurchaseDecision.Confirmed);
+        }
+
+        private void OnPopupPanelClicked()
+        {
+            Complete(ItemPurchaseDecision.Cancelled);
         }
 
         private void Complete(ItemPurchaseDecision decision)
@@ -116,9 +132,19 @@ namespace InTheArena.UI
 
             Transform innerPanel = transform.Find("PopupPanel/InnerPanel");
             m_ItemInfoText ??= innerPanel?.Find("Text_Info1")?.GetComponent<TMP_Text>();
+            m_SecondaryInfoText ??= innerPanel?.Find("Text_Info2")?.GetComponent<TMP_Text>();
+            m_GoldText ??= innerPanel?.Find("Gold_Box/Gold_text")?.GetComponent<TMP_Text>();
             m_PriceText ??= innerPanel?.Find("Text")?.GetComponent<TMP_Text>()
                 ?? innerPanel?.Find("Btn_Buy/InnerButton/Text")?.GetComponent<TMP_Text>();
             m_PopupPanel ??= transform.Find("PopupPanel") as RectTransform;
+
+            if (m_PopupPanel != null && m_PopupPanelButton == null)
+            {
+                m_PopupPanelButton = m_PopupPanel.GetComponent<Button>() ??
+                    m_PopupPanel.gameObject.AddComponent<Button>();
+                m_PopupPanelButton.targetGraphic = m_PopupPanel.GetComponent<Graphic>();
+                m_PopupPanelButton.transition = Selectable.Transition.None;
+            }
         }
 
         private void RegisterListeners()
@@ -133,6 +159,11 @@ namespace InTheArena.UI
                 m_BuyButton.onClick.AddListener(OnBuyClicked);
             }
 
+            if (m_PopupPanelButton != null)
+            {
+                m_PopupPanelButton.onClick.AddListener(OnPopupPanelClicked);
+            }
+
             m_ListenersRegistered = true;
         }
 
@@ -144,14 +175,48 @@ namespace InTheArena.UI
 
         private void SetDisplay(ItemData itemData, int currentGold)
         {
+            m_ActiveItem = itemData;
+            m_CurrentGold = Mathf.Max(0, currentGold);
+
             if (m_ItemInfoText != null)
             {
-                m_ItemInfoText.text = $"{itemData.ItemName}을(를) 구매할까요?\n보유 골드: {currentGold}";
+                m_ItemInfoText.text = "아이템이 부족합니다.";
+            }
+
+            if (m_SecondaryInfoText != null)
+            {
+                m_SecondaryInfoText.text = "바로 구매할까요?";
+            }
+
+            if (m_GoldText != null)
+            {
+                m_GoldText.text = $"{m_CurrentGold} G";
             }
 
             if (m_PriceText != null)
             {
                 m_PriceText.text = $"{itemData.PriceGold} G";
+            }
+
+            if (m_CurrentGold < itemData.PriceGold)
+            {
+                ShowInsufficientGold();
+            }
+        }
+
+        private void ShowInsufficientGold()
+        {
+            if (m_ItemInfoText != null)
+            {
+                m_ItemInfoText.text = "골드가 부족합니다.";
+            }
+
+            if (m_SecondaryInfoText != null)
+            {
+                int shortage = m_ActiveItem == null ? 0 : Mathf.Max(0, m_ActiveItem.PriceGold - m_CurrentGold);
+                m_SecondaryInfoText.text = shortage > 0
+                    ? $"{shortage} G가 더 필요합니다."
+                    : "구매할 수 없습니다.";
             }
         }
 
@@ -186,6 +251,11 @@ namespace InTheArena.UI
             if (m_ListenersRegistered && m_BuyButton != null)
             {
                 m_BuyButton.onClick.RemoveListener(OnBuyClicked);
+            }
+
+            if (m_ListenersRegistered && m_PopupPanelButton != null)
+            {
+                m_PopupPanelButton.onClick.RemoveListener(OnPopupPanelClicked);
             }
 
             Complete(ItemPurchaseDecision.Cancelled);

@@ -49,17 +49,9 @@ namespace InTheArena.MainGame
         public RoundRule CurrentRoundRule { get; set; } = RoundRule.None;
 
         public List<SpecialBetType> ActiveSpecialBets { get; } = new List<SpecialBetType>();
+        private readonly List<SpecialBetType> m_SpecialBetOrder = new List<SpecialBetType>(4);
+        public IReadOnlyList<SpecialBetType> SpecialBetOrder => m_SpecialBetOrder;
         public event System.Action OnSpecialBetChanged;
-
-        public void SetActiveSpecialBets(IEnumerable<SpecialBetType> bets)
-        {
-            ActiveSpecialBets.Clear();
-            if (bets != null)
-            {
-                ActiveSpecialBets.AddRange(bets);
-            }
-            OnSpecialBetChanged?.Invoke();
-        }
 
         /// <summary>
         /// 스테이지 런타임 상태를 한 번 초기화합니다.
@@ -79,6 +71,7 @@ namespace InTheArena.MainGame
             CurrentRound = 0;
             m_ItemUsageRoundIndex = -1;
             RoundItemUsage.Reset();
+            ShuffleSpecialBetOrder();
             ResetRoundState();
         }
 
@@ -131,11 +124,74 @@ namespace InTheArena.MainGame
             IsRoundCompleted = false;
             CurrentRoundRule = RoundRule.None;
 
-            ActiveSpecialBets.Clear();
-            if (CurrentStageData != null && CurrentStageData.SpecialBetTypes != null)
+            RefreshActiveSpecialBets();
+        }
+
+        public bool RerollSpecialBets()
+        {
+            int activeCount = GetActiveSpecialBetCount();
+            if (activeCount == 0 || m_SpecialBetOrder.Count == 0) return false;
+
+            var previousActive = new HashSet<SpecialBetType>(ActiveSpecialBets);
+            ShuffleSpecialBetOrder();
+
+            bool sameActiveSet = true;
+            for (int i = 0; i < activeCount; i++)
             {
-                ActiveSpecialBets.AddRange(CurrentStageData.SpecialBetTypes);
+                if (!previousActive.Contains(m_SpecialBetOrder[i]))
+                {
+                    sameActiveSet = false;
+                    break;
+                }
             }
+
+            if (sameActiveSet)
+            {
+                int inactiveIndex = activeCount;
+                SpecialBetType swap = m_SpecialBetOrder[0];
+                m_SpecialBetOrder[0] = m_SpecialBetOrder[inactiveIndex];
+                m_SpecialBetOrder[inactiveIndex] = swap;
+            }
+
+            RefreshActiveSpecialBets();
+            return true;
+        }
+
+        public void RestoreSpecialBetOrder(IEnumerable<SpecialBetType> order)
+        {
+            m_SpecialBetOrder.Clear();
+            if (order != null) m_SpecialBetOrder.AddRange(order);
+            RefreshActiveSpecialBets();
+        }
+
+        private void ShuffleSpecialBetOrder()
+        {
+            m_SpecialBetOrder.Clear();
+            m_SpecialBetOrder.Add(SpecialBetType.RemainingTime);
+            m_SpecialBetOrder.Add(SpecialBetType.SurvivingRow);
+            m_SpecialBetOrder.Add(SpecialBetType.OddEven);
+            m_SpecialBetOrder.Add(SpecialBetType.FirstEliminatedColumn);
+
+            for (int i = m_SpecialBetOrder.Count - 1; i > 0; i--)
+            {
+                int swapIndex = Random.Range(0, i + 1);
+                SpecialBetType swap = m_SpecialBetOrder[i];
+                m_SpecialBetOrder[i] = m_SpecialBetOrder[swapIndex];
+                m_SpecialBetOrder[swapIndex] = swap;
+            }
+        }
+
+        private int GetActiveSpecialBetCount()
+        {
+            return Mathf.Clamp((CurrentRound - 1) / 2, 0, 3);
+        }
+
+        private void RefreshActiveSpecialBets()
+        {
+            ActiveSpecialBets.Clear();
+            int count = Mathf.Min(GetActiveSpecialBetCount(), m_SpecialBetOrder.Count);
+            for (int i = 0; i < count; i++) ActiveSpecialBets.Add(m_SpecialBetOrder[i]);
+            OnSpecialBetChanged?.Invoke();
         }
 
         /// <summary>
@@ -213,6 +269,7 @@ namespace InTheArena.MainGame
             m_ItemUsageRoundIndex = -1;
             RoundItemUsage.Reset();
             ActiveSpecialBets.Clear();
+            m_SpecialBetOrder.Clear();
             OnSpecialBetChanged = null;
         }
     }

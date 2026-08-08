@@ -1,4 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
+using System.Collections.Generic;
 using System.Threading;
 using InTheArena.MainGame;
 using TMPro;
@@ -24,9 +25,16 @@ namespace InTheArena.UI
 
         [Header("Stage Information")]
         [SerializeField] private TMP_Text m_MoneyText;
+        [SerializeField] private GameObject m_WinningTeamHistoryRoot;
         [SerializeField] private TMP_Text m_WinningTeamHistoryText;
+        [SerializeField] private GameObject m_GameEndTimeHistoryRoot;
         [SerializeField] private TMP_Text m_GameEndTimeHistoryText;
+        [SerializeField] private GameObject m_OddEvenHistoryRoot;
+        [SerializeField] private TMP_Text m_OddEvenHistoryText;
+        [SerializeField] private GameObject m_FirstAnnihilatedHistoryRoot;
         [SerializeField] private TMP_Text m_FirstAnnihilatedHistoryText;
+        [SerializeField] private GameObject m_SurvivingSlotsHistoryRoot;
+        [SerializeField] private TMP_Text m_SurvivingSlotsHistoryText;
 
         [Header("Combat Items")]
         [SerializeField] private Button m_ItemSlot1Button;
@@ -485,6 +493,12 @@ namespace InTheArena.UI
         {
             RoundBetTicket ticket = m_RoundContext?.BetTicket;
 
+            SetActive(m_WinningTeamHistoryRoot, m_RoundContext?.CurrentStageData?.EnableFactionBet == true);
+            SetActive(m_GameEndTimeHistoryRoot, HasSpecial(SpecialBetType.RemainingTime));
+            SetActive(m_OddEvenHistoryRoot, HasSpecial(SpecialBetType.OddEven));
+            SetActive(m_FirstAnnihilatedHistoryRoot, HasSpecial(SpecialBetType.FirstEliminatedColumn));
+            SetActive(m_SurvivingSlotsHistoryRoot, HasSpecial(SpecialBetType.SurvivingRow));
+
             if (m_WinningTeamHistoryText != null)
             {
                 m_WinningTeamHistoryText.text = ticket == null ? "-" : FormatFaction(ticket.Faction);
@@ -497,12 +511,36 @@ namespace InTheArena.UI
                     : FormatRemainingTime(ticket.RemainingTime.Value);
             }
 
+            if (m_OddEvenHistoryText != null)
+            {
+                m_OddEvenHistoryText.text = ticket?.OddEven == null
+                    ? "-"
+                    : ticket.OddEven == OddEvenPrediction.Odd ? "홀수" : "짝수";
+            }
+
             if (m_FirstAnnihilatedHistoryText != null)
             {
-                m_FirstAnnihilatedHistoryText.text = ticket?.FirstEliminatedSlot == null
+                m_FirstAnnihilatedHistoryText.text = ticket?.FirstEliminatedColumn == null
                     ? "-"
-                    : $"Slot {ticket.FirstEliminatedSlot.Value}";
+                    : FormatFirstEliminatedColumn(ticket.FirstEliminatedColumn.Value);
             }
+
+            if (m_SurvivingSlotsHistoryText != null)
+            {
+                m_SurvivingSlotsHistoryText.text = ticket?.SurvivingRow == null
+                    ? "-"
+                    : FormatSurvivingRow(ticket.SurvivingRow.Value);
+            }
+        }
+
+        private bool HasSpecial(SpecialBetType type)
+        {
+            return m_RoundContext != null && m_RoundContext.ActiveSpecialBets.Contains(type);
+        }
+
+        private static void SetActive(GameObject target, bool active)
+        {
+            if (target != null) target.SetActive(active);
         }
 
         private void RefreshItemButtons()
@@ -640,6 +678,32 @@ namespace InTheArena.UI
             };
         }
 
+        private static string FormatFirstEliminatedColumn(FirstEliminatedColumnPrediction prediction)
+        {
+            return prediction switch
+            {
+                FirstEliminatedColumnPrediction.RedFront => "레드 / 전열",
+                FirstEliminatedColumnPrediction.RedBack => "레드 / 후열",
+                FirstEliminatedColumnPrediction.BlueFront => "블루 / 전열",
+                FirstEliminatedColumnPrediction.BlueBack => "블루 / 후열",
+                _ => "-"
+            };
+        }
+
+        private static string FormatSurvivingRow(SurvivingRowPrediction prediction)
+        {
+            return prediction switch
+            {
+                SurvivingRowPrediction.RedRow1 => "레드 / 1행",
+                SurvivingRowPrediction.RedRow2 => "레드 / 2행",
+                SurvivingRowPrediction.RedRow3 => "레드 / 3행",
+                SurvivingRowPrediction.BlueRow1 => "블루 / 1행",
+                SurvivingRowPrediction.BlueRow2 => "블루 / 2행",
+                SurvivingRowPrediction.BlueRow3 => "블루 / 3행",
+                _ => "-"
+            };
+        }
+
         private void ResetDisplay()
         {
             if (m_RedTeamCountText != null) m_RedTeamCountText.text = "0";
@@ -649,9 +713,16 @@ namespace InTheArena.UI
             if (m_BattleTimerText != null) m_BattleTimerText.text = "00:00";
             if (m_SpeedMultiplierText != null) m_SpeedMultiplierText.text = "x1";
             if (m_MoneyText != null) m_MoneyText.text = "0 COL";
+            SetActive(m_WinningTeamHistoryRoot, true);
+            SetActive(m_GameEndTimeHistoryRoot, false);
+            SetActive(m_OddEvenHistoryRoot, false);
+            SetActive(m_FirstAnnihilatedHistoryRoot, false);
+            SetActive(m_SurvivingSlotsHistoryRoot, false);
             if (m_WinningTeamHistoryText != null) m_WinningTeamHistoryText.text = "-";
             if (m_GameEndTimeHistoryText != null) m_GameEndTimeHistoryText.text = "-";
+            if (m_OddEvenHistoryText != null) m_OddEvenHistoryText.text = "-";
             if (m_FirstAnnihilatedHistoryText != null) m_FirstAnnihilatedHistoryText.text = "-";
+            if (m_SurvivingSlotsHistoryText != null) m_SurvivingSlotsHistoryText.text = "-";
             if (m_SpeedButton != null) m_SpeedButton.interactable = false;
             if (m_ItemSlot1Button != null) m_ItemSlot1Button.interactable = false;
             if (m_ItemSlot2Button != null) m_ItemSlot2Button.interactable = false;

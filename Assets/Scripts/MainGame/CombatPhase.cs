@@ -57,7 +57,7 @@ namespace InTheArena.MainGame
         private readonly Dictionary<UnitType, UnitSlotKey> m_UnitSlots = new Dictionary<UnitType, UnitSlotKey>();
         private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
-        private int m_FirstEliminatedSlot = -1;
+        private FirstEliminatedColumnPrediction? m_FirstEliminatedColumn;
         private bool m_IsFinalEliminationPlaying;
 
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
@@ -102,7 +102,7 @@ namespace InTheArena.MainGame
             m_UnitSlots.Clear();
             m_DeathHandlers.Clear();
             m_FinalDeathPresentationUnits.Clear();
-            m_FirstEliminatedSlot = -1;
+            m_FirstEliminatedColumn = null;
             m_IsFinalEliminationPlaying = false;
 
             // 컨텍스트에서 유닛 데이터로 런타임 유닛 생성
@@ -201,23 +201,23 @@ namespace InTheArena.MainGame
             Team team = key.Team;
             Debug.Log($"[Phase1C Test] 유닛 사망. Team: {team}, RuntimeListCount: {(team == Team.Red ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
 
-            if (m_FirstEliminatedSlot <= 0)
+            if (!m_FirstEliminatedColumn.HasValue)
             {
-                bool slotHasLivingUnit = false;
+                bool columnHasLivingUnit = false;
                 foreach (var pair in m_UnitSlots)
                 {
                     if (pair.Value.Team == key.Team &&
-                        pair.Value.CellIndex == key.CellIndex &&
+                        pair.Value.CellIndex % TeamGridColumnCount == key.CellIndex % TeamGridColumnCount &&
                         pair.Key != null &&
                         !pair.Key.IsDead)
                     {
-                        slotHasLivingUnit = true;
+                        columnHasLivingUnit = true;
                         break;
                     }
                 }
 
-                if (!slotHasLivingUnit)
-                    m_FirstEliminatedSlot = key.CellIndex + 1;
+                if (!columnHasLivingUnit)
+                    m_FirstEliminatedColumn = GetColumnPrediction(key.Team, key.CellIndex);
             }
 
             bool teamEliminated = key.Team == Team.Red
@@ -227,6 +227,20 @@ namespace InTheArena.MainGame
 
             deadUnit.HoldDeathPresentation();
             m_FinalDeathPresentationUnits.Add(deadUnit);
+        }
+
+        internal static FirstEliminatedColumnPrediction GetColumnPrediction(Team team, int cellIndex)
+        {
+            bool isLeftColumn = cellIndex % TeamGridColumnCount == 0;
+            return team == Team.Red
+                ? isLeftColumn ? FirstEliminatedColumnPrediction.RedBack : FirstEliminatedColumnPrediction.RedFront
+                : isLeftColumn ? FirstEliminatedColumnPrediction.BlueFront : FirstEliminatedColumnPrediction.BlueBack;
+        }
+
+        internal static SurvivingRowPrediction GetRowPrediction(Team team, int cellIndex)
+        {
+            int row = cellIndex / TeamGridColumnCount;
+            return (SurvivingRowPrediction)(row + (team == Team.Red ? 0 : 3));
         }
 
         private RoundData GetCurrentRoundData()
@@ -514,23 +528,14 @@ namespace InTheArena.MainGame
         {
             int redAlive = RedAliveCount;
             int blueAlive = BlueAliveCount;
-            var redSlots = new HashSet<int>();
-            var blueSlots = new HashSet<int>();
+            var survivingRows = new HashSet<SurvivingRowPrediction>();
 
             foreach (var pair in m_UnitSlots)
             {
                 UnitType unit = pair.Key;
                 if (unit == null || unit.IsDead) continue;
 
-                int slot = pair.Value.CellIndex + 1;
-                if (pair.Value.Team == Team.Red)
-                {
-                    redSlots.Add(slot);
-                }
-                else if (pair.Value.Team == Team.Blue)
-                {
-                    blueSlots.Add(slot);
-                }
+                survivingRows.Add(GetRowPrediction(pair.Value.Team, pair.Value.CellIndex));
             }
 
             return new CombatResultSnapshot(
@@ -538,9 +543,8 @@ namespace InTheArena.MainGame
                 m_RemainingCombatTime,
                 redAlive,
                 blueAlive,
-                redSlots,
-                blueSlots,
-                m_FirstEliminatedSlot);
+                survivingRows,
+                m_FirstEliminatedColumn);
         }
 
         /// <summary>

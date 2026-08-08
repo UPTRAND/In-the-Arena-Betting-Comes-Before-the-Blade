@@ -6,8 +6,7 @@ namespace InTheArena.MainGame
     public sealed class BettingItemUseExecutor : IReversibleItemPurchaseUseExecutor
     {
         private readonly BettingPhase m_BettingPhase;
-        private List<SpecialBetType> m_PreviousSpecialBets;
-        private SpecialBetType? m_PreviousOverride;
+        private List<SpecialBetType> m_PreviousSpecialBetOrder;
         private bool m_HasSnapshot;
 
         public BettingItemUseExecutor(BettingPhase bettingPhase)
@@ -24,11 +23,10 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            IReadOnlyList<SpecialBetType> activeSpecialBets = m_BettingPhase.GetActiveSpecialBetsForItemUse();
-            m_PreviousSpecialBets = activeSpecialBets != null
-                ? new List<SpecialBetType>(activeSpecialBets)
+            IReadOnlyList<SpecialBetType> specialBetOrder = m_BettingPhase.GetSpecialBetOrderForItemUse();
+            m_PreviousSpecialBetOrder = specialBetOrder != null
+                ? new List<SpecialBetType>(specialBetOrder)
                 : new List<SpecialBetType>();
-            m_PreviousOverride = m_BettingPhase.OverriddenSpecialBet;
             m_HasSnapshot = true;
             return m_BettingPhase.TryApplyPurchasedItemEffect(itemData, out message);
         }
@@ -40,7 +38,7 @@ namespace InTheArena.MainGame
                 return;
             }
 
-            m_BettingPhase.RestorePurchasedItemState(m_PreviousSpecialBets, m_PreviousOverride);
+            m_BettingPhase.RestorePurchasedItemState(m_PreviousSpecialBetOrder);
             m_HasSnapshot = false;
         }
     }

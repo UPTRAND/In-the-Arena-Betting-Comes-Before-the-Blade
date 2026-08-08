@@ -97,6 +97,26 @@ namespace InTheArena.MainGame.Editor
                 }
             }
 
+            Transform survivingRowGroup = FindDescendant(root, "SurvivingSlots_Group");
+            TMP_Text survivingRowLabel = FindDescendant(survivingRowGroup, "Label_Text")?.GetComponent<TMP_Text>();
+            if (survivingRowLabel != null) survivingRowLabel.text = "마지막 생존 행";
+            if (survivingRowGroup != null && survivingRowGroup.GetComponentInChildren<TMP_Dropdown>(true) == null)
+            {
+                TMP_Dropdown source = FindDescendant(root, "FirstAnnihilated_Group")
+                    ?.GetComponentInChildren<TMP_Dropdown>(true);
+                if (source != null)
+                {
+                    GameObject dropdown = Object.Instantiate(source.gameObject, survivingRowGroup);
+                    dropdown.name = "SurvivingRow_Dropdown";
+                    Transform guide = FindDescendant(survivingRowGroup, "Guide_Text");
+                    if (guide != null) Object.DestroyImmediate(guide.gameObject);
+                }
+            }
+
+            TMP_Text firstColumnLabel = FindDescendant(FindDescendant(root, "FirstAnnihilated_Group"), "Label_Text")
+                ?.GetComponent<TMP_Text>();
+            if (firstColumnLabel != null) firstColumnLabel.text = "첫 전멸 열";
+
             Transform stamp = FindDescendant(root, "ConfirmStamp_Group") ?? FindDescendant(root, "BottomBar");
             if (stamp != null && FindDescendant(stamp, "Validation_Text") == null)
             {
@@ -132,6 +152,8 @@ namespace InTheArena.MainGame.Editor
                 Image image = slot.GetComponent<Image>();
                 Button button = slot.GetComponent<Button>() ?? slot.gameObject.AddComponent<Button>();
                 button.targetGraphic = image;
+                button.transition = Selectable.Transition.None;
+                button.interactable = false;
                 if (slot.GetComponentInChildren<TMP_Text>(true) != null) continue;
 
                 GameObject label = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
@@ -160,10 +182,12 @@ namespace InTheArena.MainGame.Editor
             SetObject(serialized, "m_WinningTeamDropdown", FindDescendant(root, "WinningTeam_Dropdown")?.GetComponent<TMP_Dropdown>());
             SetObject(serialized, "m_GameEndTimeDropdown", FindDescendant(root, "GameEndTime_Dropdown")?.GetComponent<TMP_Dropdown>());
             SetObject(serialized, "m_OddEvenDropdown", FindDescendant(root, "OddEven_Group")?.GetComponentInChildren<TMP_Dropdown>(true));
-            SetObject(serialized, "m_FirstAnnihilatedDropdown", FindDescendant(root, "FirstAnnihilated_Dropdown")?.GetComponent<TMP_Dropdown>());
+            SetObject(serialized, "m_FirstAnnihilatedDropdown", FindDescendant(root, "FirstAnnihilated_Group")?.GetComponentInChildren<TMP_Dropdown>(true));
+            SetObject(serialized, "m_SurvivingRowDropdown", FindDescendant(root, "SurvivingRow_Dropdown")?.GetComponent<TMP_Dropdown>());
             SetObject(serialized, "m_GameEndTimeDropdownRoot", FindDescendant(root, "GameEndTime_Group")?.gameObject);
             SetObject(serialized, "m_OddEvenDropdownRoot", FindDescendant(root, "OddEven_Group")?.gameObject);
             SetObject(serialized, "m_FirstAnnihilatedDropdownRoot", FindDescendant(root, "FirstAnnihilated_Group")?.gameObject);
+            SetObject(serialized, "m_SurvivingRowDropdownRoot", FindDescendant(root, "SurvivingSlots_Group")?.gameObject);
             SetObject(serialized, "m_NewRoundText", FindDescendant(root, "RoundInfo_Text")?.GetComponent<TMP_Text>());
             SetObject(serialized, "m_NewCurrentCallText", FindDescendant(root, "Money_Text")?.GetComponent<TMP_Text>());
             SetObject(serialized, "m_NewMultiplierText", FindDescendant(root, "Multiplier_Text")?.GetComponent<TMP_Text>());

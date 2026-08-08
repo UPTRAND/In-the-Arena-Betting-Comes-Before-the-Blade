@@ -14,9 +14,9 @@ namespace InTheArena.MainGame
     public enum SpecialBetType
     {
         RemainingTime = 0,
-        SurvivingSlots = 1,
+        SurvivingRow = 1,
         OddEven = 2,
-        FirstEliminatedSlot = 3
+        FirstEliminatedColumn = 3
     }
 
     public enum FactionPrediction
@@ -42,6 +42,24 @@ namespace InTheArena.MainGame
         Even = 1
     }
 
+    public enum FirstEliminatedColumnPrediction
+    {
+        RedFront = 0,
+        RedBack = 1,
+        BlueFront = 2,
+        BlueBack = 3
+    }
+
+    public enum SurvivingRowPrediction
+    {
+        RedRow1 = 0,
+        RedRow2 = 1,
+        RedRow3 = 2,
+        BlueRow1 = 3,
+        BlueRow2 = 4,
+        BlueRow3 = 5
+    }
+
     /// <summary>
     /// 한 라운드에 확정된 단일 복합 베팅입니다.
     /// 슬롯 번호는 에디터 표기와 동일하게 1~6을 사용합니다.
@@ -53,10 +71,8 @@ namespace InTheArena.MainGame
         public FactionPrediction Faction { get; private set; } = FactionPrediction.NotSelected;
         public RemainingTimePrediction? RemainingTime { get; private set; }
         public OddEvenPrediction? OddEven { get; private set; }
-        public int? FirstEliminatedSlot { get; private set; }
-        public Team SurvivorTeam { get; private set; } = Team.None;
-        public HashSet<int> SurvivingSlots { get; } = new HashSet<int>();
-        public bool HasSurvivingSlotsPrediction { get; private set; }
+        public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; private set; }
+        public SurvivingRowPrediction? SurvivingRow { get; private set; }
         public bool IsPlaced { get; private set; }
         public bool IsSettled { get; private set; }
 
@@ -70,8 +86,8 @@ namespace InTheArena.MainGame
                 int count = Faction != FactionPrediction.NotSelected ? 1 : 0;
                 if (RemainingTime.HasValue) count++;
                 if (OddEven.HasValue) count++;
-                if (FirstEliminatedSlot.HasValue) count++;
-                if (HasSurvivingSlotsPrediction) count++;
+                if (FirstEliminatedColumn.HasValue) count++;
+                if (SurvivingRow.HasValue) count++;
                 return count;
             }
         }
@@ -81,6 +97,7 @@ namespace InTheArena.MainGame
             1 => 2,
             2 => 4,
             3 => 8,
+            4 => 16,
             _ => 0
         };
 
@@ -89,30 +106,17 @@ namespace InTheArena.MainGame
         public void SetRemainingTime(RemainingTimePrediction? prediction) => RemainingTime = prediction;
         public void SetOddEven(OddEvenPrediction? prediction) => OddEven = prediction;
 
-        public void SetFirstEliminatedSlot(int? slot)
-        {
-            FirstEliminatedSlot = slot;
-        }
+        public void SetFirstEliminatedColumn(FirstEliminatedColumnPrediction? prediction) =>
+            FirstEliminatedColumn = prediction;
 
-        public void SetSurvivingSlots(Team team, IEnumerable<int> slots)
-        {
-            SurvivorTeam = team;
-            SurvivingSlots.Clear();
-            if (slots != null)
-            {
-                foreach (int slot in slots)
-                {
-                    if (slot >= 1 && slot <= 6) SurvivingSlots.Add(slot);
-                }
-            }
-            HasSurvivingSlotsPrediction = true;
-        }
+        public void SetSurvivingRow(SurvivingRowPrediction? prediction) => SurvivingRow = prediction;
 
-        public void ClearSurvivingSlots()
+        public void ClearSpecialPredictions()
         {
-            SurvivorTeam = Team.None;
-            SurvivingSlots.Clear();
-            HasSurvivingSlotsPrediction = false;
+            RemainingTime = null;
+            OddEven = null;
+            FirstEliminatedColumn = null;
+            SurvivingRow = null;
         }
 
         public void SetItemUsages(bool hasAdditionalBet, bool hasInsurance)
@@ -141,9 +145,9 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (SelectedCategoryCount < 1 || SelectedCategoryCount > 3)
+            if (SelectedCategoryCount < 1 || SelectedCategoryCount > 4)
             {
-                error = "베팅 항목은 1~3개를 선택해야 합니다.";
+                error = "베팅 항목은 1~4개를 선택해야 합니다.";
                 return false;
             }
 
@@ -155,40 +159,11 @@ namespace InTheArena.MainGame
 
             if (RemainingTime.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.RemainingTime) ||
                 OddEven.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.OddEven) ||
-                FirstEliminatedSlot.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedSlot) ||
-                HasSurvivingSlotsPrediction && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingSlots))
+                FirstEliminatedColumn.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedColumn) ||
+                SurvivingRow.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingRow))
             {
                 error = "스테이지에서 제공하지 않는 특수 베팅이 선택되었습니다.";
                 return false;
-            }
-
-            if (FirstEliminatedSlot.HasValue &&
-                (FirstEliminatedSlot.Value < 1 || FirstEliminatedSlot.Value > 6))
-            {
-                error = "최초 전멸 슬롯은 1~6이어야 합니다.";
-                return false;
-            }
-
-            if (HasSurvivingSlotsPrediction)
-            {
-                if (SurvivingSlots.Count == 0)
-                {
-                    error = "생존 슬롯은 한 개 이상 선택해야 합니다.";
-                    return false;
-                }
-
-                Team factionTeam = Faction switch
-                {
-                    FactionPrediction.Red => Team.Red,
-                    FactionPrediction.Blue => Team.Blue,
-                    _ => Team.None
-                };
-
-                if (factionTeam == Team.None || SurvivorTeam != factionTeam)
-                {
-                    error = "생존 슬롯 베팅은 선택한 Red/Blue 진영에 종속되어야 합니다.";
-                    return false;
-                }
             }
 
             error = null;
@@ -205,9 +180,8 @@ namespace InTheArena.MainGame
         public float RemainingTime { get; }
         public int RedAliveCount { get; }
         public int BlueAliveCount { get; }
-        public HashSet<int> RedSurvivingSlots { get; }
-        public HashSet<int> BlueSurvivingSlots { get; }
-        public int FirstEliminatedSlot { get; }
+        public HashSet<SurvivingRowPrediction> SurvivingRows { get; }
+        public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; }
 
         public int TotalAliveCount => RedAliveCount + BlueAliveCount;
 
@@ -216,17 +190,16 @@ namespace InTheArena.MainGame
             float remainingTime,
             int redAliveCount,
             int blueAliveCount,
-            IEnumerable<int> redSurvivingSlots,
-            IEnumerable<int> blueSurvivingSlots,
-            int firstEliminatedSlot)
+            IEnumerable<SurvivingRowPrediction> survivingRows,
+            FirstEliminatedColumnPrediction? firstEliminatedColumn)
         {
             Winner = winner;
             RemainingTime = Math.Max(0f, remainingTime);
             RedAliveCount = Math.Max(0, redAliveCount);
             BlueAliveCount = Math.Max(0, blueAliveCount);
-            RedSurvivingSlots = new HashSet<int>(redSurvivingSlots ?? Array.Empty<int>());
-            BlueSurvivingSlots = new HashSet<int>(blueSurvivingSlots ?? Array.Empty<int>());
-            FirstEliminatedSlot = firstEliminatedSlot;
+            SurvivingRows = new HashSet<SurvivingRowPrediction>(
+                survivingRows ?? Array.Empty<SurvivingRowPrediction>());
+            FirstEliminatedColumn = firstEliminatedColumn;
         }
     }
 
@@ -284,18 +257,16 @@ namespace InTheArena.MainGame
                 if (!matched) failed.Add("OddEven");
             }
 
-            if (ticket.FirstEliminatedSlot.HasValue &&
-                ticket.FirstEliminatedSlot.Value != result.FirstEliminatedSlot)
+            if (ticket.FirstEliminatedColumn.HasValue &&
+                ticket.FirstEliminatedColumn != result.FirstEliminatedColumn)
             {
-                failed.Add("FirstEliminatedSlot");
+                failed.Add("FirstEliminatedColumn");
             }
 
-            if (ticket.HasSurvivingSlotsPrediction)
+            if (ticket.SurvivingRow.HasValue &&
+                !result.SurvivingRows.Contains(ticket.SurvivingRow.Value))
             {
-                HashSet<int> actual = ticket.SurvivorTeam == Team.Red
-                    ? result.RedSurvivingSlots
-                    : result.BlueSurvivingSlots;
-                if (!actual.SetEquals(ticket.SurvivingSlots)) failed.Add("SurvivingSlots");
+                failed.Add("SurvivingRow");
             }
 
             bool isWin = failed.Count == 0;

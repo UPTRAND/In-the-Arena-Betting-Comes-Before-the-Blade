@@ -46,7 +46,7 @@ namespace InTheArena.MainGame
 
         [Header("베팅 설정")]
         [SerializeField] private bool m_EnableFactionBet = true;
-        [SerializeField] private List<SpecialBetType> m_SpecialBetTypes = new List<SpecialBetType>();
+        [SerializeField, HideInInspector] private List<SpecialBetType> m_SpecialBetTypes = new List<SpecialBetType>();
 
         // Properties
         public string StageName => m_StageName;
@@ -98,18 +98,13 @@ namespace InTheArena.MainGame
                 isValid = false;
             }
 
-            if (!m_EnableFactionBet && (m_SpecialBetTypes == null || m_SpecialBetTypes.Count == 0))
+            if (!m_EnableFactionBet)
             {
-                Debug.LogError($"[StageData] {name}: 선택 가능한 베팅이 하나도 없습니다.");
+                Debug.LogError($"[StageData] {name}: 승리 팀 베팅이 비활성화되어 있습니다.");
                 isValid = false;
             }
 
-            if (m_SpecialBetTypes == null || m_SpecialBetTypes.Count > 2)
-            {
-                Debug.LogError($"[StageData] {name}: 특수 베팅은 최대 2종까지 설정할 수 있습니다.");
-                isValid = false;
-            }
-            else
+            if (m_SpecialBetTypes != null)
             {
                 var uniqueTypes = new HashSet<SpecialBetType>(m_SpecialBetTypes);
                 if (uniqueTypes.Count != m_SpecialBetTypes.Count)
@@ -194,10 +189,6 @@ namespace InTheArena.MainGame
         private void OnValidate()
         {
             m_InitialCall = 500;
-            if (m_SpecialBetTypes != null && m_SpecialBetTypes.Count > 2)
-            {
-                m_SpecialBetTypes.RemoveRange(2, m_SpecialBetTypes.Count - 2);
-            }
             IsValid();
         }
 #endif

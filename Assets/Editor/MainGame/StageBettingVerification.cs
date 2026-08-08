@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using System;
-using System.Collections.Generic;
 using System.Reflection;
 using InTheArena.MainGame;
 using UnityEditor;
@@ -35,11 +34,6 @@ namespace InTheArena.MainGame.Editor
             SetField(stageData, "m_InitialCall", 500);
             SetField(stageData, "m_TargetCall", 1200);
             SetField(stageData, "m_EnableFactionBet", true);
-            SetField(stageData, "m_SpecialBetTypes", new List<SpecialBetType>
-            {
-                SpecialBetType.OddEven,
-                SpecialBetType.FirstEliminatedSlot
-            });
         }
 
         private static void VerifyTimeBoundaries()
@@ -60,14 +54,23 @@ namespace InTheArena.MainGame.Editor
             ticket.SetWager(100);
             ticket.SetFaction(FactionPrediction.Red);
             ticket.SetOddEven(OddEvenPrediction.Odd);
-            ticket.SetFirstEliminatedSlot(3);
+            ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.BlueFront);
 
             var context = new RoundContext();
             context.InitializeStage(stageData);
+            context.RestoreSpecialBetOrder(new[]
+            {
+                SpecialBetType.OddEven,
+                SpecialBetType.FirstEliminatedColumn,
+                SpecialBetType.RemainingTime,
+                SpecialBetType.SurvivingRow
+            });
+            context.SetRoundData(stageData, 4);
             if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
             var result = new CombatResultSnapshot(
                 Team.Red, 12f, 3, 0,
-                new[] { 1, 3 }, Array.Empty<int>(), 3);
+                new[] { SurvivingRowPrediction.RedRow1, SurvivingRowPrediction.RedRow2 },
+                FirstEliminatedColumnPrediction.BlueFront);
             BetSettlement settlement = BetSettlementService.Settle(ticket, result);
             session.ApplySettlement(settlement);
 
@@ -88,10 +91,18 @@ namespace InTheArena.MainGame.Editor
 
             var context = new RoundContext();
             context.InitializeStage(stageData);
+            context.RestoreSpecialBetOrder(new[]
+            {
+                SpecialBetType.OddEven,
+                SpecialBetType.RemainingTime,
+                SpecialBetType.SurvivingRow,
+                SpecialBetType.FirstEliminatedColumn
+            });
+            context.SetRoundData(stageData, 2);
             if (!session.TryPlaceBet(ticket, context, out string error)) throw new InvalidOperationException(error);
             var result = new CombatResultSnapshot(
                 Team.Blue, 4f, 0, 3,
-                Array.Empty<int>(), new[] { 1, 2 }, -1);
+                new[] { SurvivingRowPrediction.BlueRow1 }, null);
             BetSettlement settlement = BetSettlementService.Settle(ticket, result);
             session.ApplySettlement(settlement);
 

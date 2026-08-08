@@ -38,7 +38,7 @@ namespace InTheArena.MainGame
 
             if (m_ResultUi != null)
             {
-                m_ResultUi.Configure(Context.CombatResult, Context.Settlement, Context.CurrentCall);
+                m_ResultUi.Configure(Context.BetTicket, Context.CombatResult, Context.Settlement);
                 if (!m_ResultUi.BIsOpened) m_ResultUi.Open();
                 m_ResultUi.Enable();
                 if (m_ResultUi.CanvasGroup != null)
@@ -63,6 +63,7 @@ namespace InTheArena.MainGame
                     ? m_ResultUi.CanvasGroup.DOFade(1f, m_FadeDuration).SetEase(Ease.OutQuad)
                     : null;
                 await AwaitTweenAsync(tween, token);
+                m_ResultUi.PlayResultAnimation();
             }
             else
             {
@@ -114,6 +115,7 @@ namespace InTheArena.MainGame
 
             if (m_ResultUi != null && m_ResultUi.BIsOpened)
             {
+                m_ResultUi.CancelResultAnimation();
                 if (m_ResultUi.CanvasGroup != null)
                 {
                     m_ResultUi.CanvasGroup.DOKill();

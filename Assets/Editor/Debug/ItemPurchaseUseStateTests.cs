@@ -337,17 +337,17 @@ public sealed class ItemPurchaseUseStateTests
         GameObject phaseObject = new GameObject("RerollItemExecutorTest");
         try
         {
-            SetField(stageData, "m_SpecialBetTypes", new List<SpecialBetType>
-            {
-                SpecialBetType.RemainingTime,
-                SpecialBetType.OddEven
-            });
             context.InitializeStage(stageData);
-            context.SetRoundData(stageData, 0);
+            context.SetRoundData(stageData, 6);
             SetField(itemData, "m_ItemType", ItemType.RerollTicket);
             var bettingPhase = phaseObject.AddComponent<BettingPhase>();
             bettingPhase.InitializePhase(context);
-            SetField(bettingPhase, "m_DraftTicket", new RoundBetTicket());
+            var ticket = new RoundBetTicket();
+            ticket.SetRemainingTime(RemainingTimePrediction.Seconds0To5);
+            ticket.SetOddEven(OddEvenPrediction.Odd);
+            ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
+            SetField(bettingPhase, "m_DraftTicket", ticket);
+            var previousActive = new HashSet<SpecialBetType>(context.ActiveSpecialBets);
 
             var service = new ItemPurchaseUseService(context, playerState);
             var executor = new BettingItemUseExecutor(bettingPhase);
@@ -355,8 +355,9 @@ public sealed class ItemPurchaseUseStateTests
             Assert.That(service.TryUse(itemData, executor, 100, out _), Is.True);
             Assert.That(playerState.Gold, Is.EqualTo(50));
             Assert.That(context.RoundItemUsage.HasUsed(ItemType.RerollTicket), Is.True, "Reroll usage should be recorded");
-            Assert.That(context.ActiveSpecialBets.Count, Is.EqualTo(1));
-            Assert.That(bettingPhase.OverriddenSpecialBet.HasValue, Is.True, "Reroll should set an override");
+            Assert.That(context.ActiveSpecialBets.Count, Is.EqualTo(3));
+            Assert.That(new HashSet<SpecialBetType>(context.ActiveSpecialBets).SetEquals(previousActive), Is.False);
+            Assert.That(ticket.SelectedCategoryCount, Is.Zero, "Reroll should clear special predictions");
         }
         finally
         {

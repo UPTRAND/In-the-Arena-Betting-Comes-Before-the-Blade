@@ -61,9 +61,11 @@ namespace InTheArena.MainGame
         [SerializeField] private TMP_Dropdown m_GameEndTimeDropdown;
         [SerializeField] private TMP_Dropdown m_OddEvenDropdown;
         [SerializeField] private TMP_Dropdown m_FirstAnnihilatedDropdown;
+        [SerializeField] private TMP_Dropdown m_SurvivingRowDropdown;
         [SerializeField] private GameObject m_GameEndTimeDropdownRoot;
         [SerializeField] private GameObject m_OddEvenDropdownRoot;
         [SerializeField] private GameObject m_FirstAnnihilatedDropdownRoot;
+        [SerializeField] private GameObject m_SurvivingRowDropdownRoot;
         [SerializeField] private Button[] m_RedSurvivingSlotButtons = new Button[6];
         [SerializeField] private TMP_Text[] m_RedSurvivingSlotTexts = new TMP_Text[6];
         [SerializeField] private Image[] m_RedSurvivingSlotImages = new Image[6];
@@ -76,14 +78,12 @@ namespace InTheArena.MainGame
         [SerializeField] private TMP_Text m_NewCurrentCallText;
         [SerializeField] private TMP_Text m_NewMultiplierText;
 
-        private readonly HashSet<int> m_SelectedSurvivingSlots = new HashSet<int>();
         private static readonly Color AgreeTextColor = Color.black;
         private static readonly Color AgreeWarningColor = new Color(0.783f, 0.084f, 0.070f, 1f);
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
 
         // 아이템 상태 트래킹
-        private SpecialBetType? m_OverriddenSpecialBet = null;
 
         private void Awake()
         {
@@ -95,14 +95,6 @@ namespace InTheArena.MainGame
             get
             {
                 return m_DraftTicket;
-            }
-        }
-
-        public SpecialBetType? OverriddenSpecialBet
-        {
-            get
-            {
-                return m_OverriddenSpecialBet;
             }
         }
 
@@ -165,13 +157,10 @@ namespace InTheArena.MainGame
         private void InitializePhaseData()
         {
             IsPhaseCompleted = false;
-            m_OverriddenSpecialBet = null;
-
             Context.AssignUnitsForBetting();
             PrewarmConfirmedPools(Context.TeamAUnitDatas, Context.TeamBUnitDatas);
             m_DraftTicket = new RoundBetTicket();
-            m_DraftTicket.SetWager(GetMaximumWagerCall());
-            m_SelectedSurvivingSlots.Clear();
+            m_DraftTicket.SetWager(WagerStepCall);
         }
 
         private static void PrewarmConfirmedPools(List<UnitData> red, List<UnitData> blue)
@@ -266,11 +255,31 @@ namespace InTheArena.MainGame
         private void SetupNewUi()
         {
             RefreshTopBar(Context);
+            EnsureSurvivingRowDropdown();
 
             SetOptions(m_WinningTeamDropdown, "미선택", "레드", "블루", "무승부");
             SetOptions(m_GameEndTimeDropdown, "미선택", "0~5초", "5~10초", "10~15초", "15~20초", "20초 이상");
             SetOptions(m_OddEvenDropdown, "미선택", "홀", "짝");
-            SetOptions(m_FirstAnnihilatedDropdown, "미선택", "1번", "2번", "3번", "4번", "5번", "6번");
+            SetOptions(m_FirstAnnihilatedDropdown, "미선택", "레드 / 전열", "레드 / 후열", "블루 / 전열", "블루 / 후열");
+            SetOptions(m_SurvivingRowDropdown, "미선택", "레드 / 1행", "레드 / 2행", "레드 / 3행", "블루 / 1행", "블루 / 2행", "블루 / 3행");
+        }
+
+        private void EnsureSurvivingRowDropdown()
+        {
+            Transform root = (m_SurvivingRowDropdownRoot != null
+                ? m_SurvivingRowDropdownRoot
+                : m_SurvivingSlotsRoot)?.transform;
+            if (root == null || m_SurvivingRowDropdown != null) return;
+
+            m_SurvivingRowDropdown = root.GetComponentInChildren<TMP_Dropdown>(true);
+            if (m_SurvivingRowDropdown != null || m_FirstAnnihilatedDropdown == null) return;
+
+            GameObject clone = Instantiate(m_FirstAnnihilatedDropdown.gameObject, root);
+            clone.name = "SurvivingRow_Dropdown";
+            m_SurvivingRowDropdown = clone.GetComponent<TMP_Dropdown>();
+
+            Transform guide = root.Find("Guide_Text");
+            if (guide != null) guide.gameObject.SetActive(false);
         }
 
         private static void SetOptions(TMP_Dropdown dropdown, params string[] options)
@@ -345,11 +354,12 @@ namespace InTheArena.MainGame
         {
             SetActive(m_RemainingTimeRoot, HasSpecial(SpecialBetType.RemainingTime));
             SetActive(m_GameEndTimeDropdownRoot, HasSpecial(SpecialBetType.RemainingTime));
-            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingSlots));
+            SetActive(m_SurvivingSlotsRoot, HasSpecial(SpecialBetType.SurvivingRow));
+            SetActive(m_SurvivingRowDropdownRoot, HasSpecial(SpecialBetType.SurvivingRow));
             SetActive(m_OddEvenRoot, HasSpecial(SpecialBetType.OddEven));
             SetActive(m_OddEvenDropdownRoot, HasSpecial(SpecialBetType.OddEven));
-            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
-            SetActive(m_FirstAnnihilatedDropdownRoot, HasSpecial(SpecialBetType.FirstEliminatedSlot));
+            SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedColumn));
+            SetActive(m_FirstAnnihilatedDropdownRoot, HasSpecial(SpecialBetType.FirstEliminatedColumn));
         }
 
         private static void SetActive(GameObject target, bool active)
@@ -364,6 +374,7 @@ namespace InTheArena.MainGame
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.AddListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.AddListener(OnOddEvenChanged);
             if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.onValueChanged.AddListener(OnFirstAnnihilatedChanged);
+            if (m_SurvivingRowDropdown != null) m_SurvivingRowDropdown.onValueChanged.AddListener(OnSurvivingRowChanged);
             AddClick(m_RedButton, () => SetFaction(FactionPrediction.Red));
             AddClick(m_BlueButton, () => SetFaction(FactionPrediction.Blue));
             AddClick(m_DrawButton, () => SetFaction(FactionPrediction.Draw));
@@ -379,28 +390,12 @@ namespace InTheArena.MainGame
                 int index = i;
                 AddClick(m_OddEvenButtons[i], () => ToggleOddEven((OddEvenPrediction)index));
             }
-            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+            for (int i = 0; i < Mathf.Min(4, m_FirstEliminatedSlotButtons.Length); i++)
             {
-                int slot = i + 1;
-                AddClick(m_FirstEliminatedSlotButtons[i], () => ToggleFirstEliminatedSlot(slot));
+                FirstEliminatedColumnPrediction prediction = (FirstEliminatedColumnPrediction)i;
+                AddClick(m_FirstEliminatedSlotButtons[i], () => ToggleFirstEliminatedColumn(prediction));
             }
-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
-            {
-                int slot = i + 1;
-                AddClick(m_SurvivingSlotButtons[i], () => ToggleSurvivingSlot(slot));
-            }
-            AddSurvivingSlotClicks(m_RedSurvivingSlotButtons);
-            AddSurvivingSlotClicks(m_BlueSurvivingSlotButtons);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.onClick.AddListener(OnConfirmBetClicked);
-        }
-
-        private void AddSurvivingSlotClicks(Button[] buttons)
-        {
-            for (int i = 0; i < buttons.Length; i++)
-            {
-                int slot = i + 1;
-                AddClick(buttons[i], () => ToggleSurvivingSlot(slot));
-            }
         }
 
         private static void AddClick(Button button, UnityEngine.Events.UnityAction action)
@@ -415,13 +410,12 @@ namespace InTheArena.MainGame
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.onValueChanged.RemoveListener(OnGameEndTimeChanged);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.onValueChanged.RemoveListener(OnOddEvenChanged);
             if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.onValueChanged.RemoveListener(OnFirstAnnihilatedChanged);
+            if (m_SurvivingRowDropdown != null) m_SurvivingRowDropdown.onValueChanged.RemoveListener(OnSurvivingRowChanged);
             RemoveClicks(m_RedButton, m_BlueButton, m_DrawButton, m_ClearFactionButton, m_ConfirmBetButton);
             RemoveClicks(m_RemainingTimeButtons);
             RemoveClicks(m_OddEvenButtons);
             RemoveClicks(m_FirstEliminatedSlotButtons);
             RemoveClicks(m_SurvivingSlotButtons);
-            RemoveClicks(m_RedSurvivingSlotButtons);
-            RemoveClicks(m_BlueSurvivingSlotButtons);
         }
 
         private static void RemoveClicks(params Button[] buttons)
@@ -462,30 +456,21 @@ namespace InTheArena.MainGame
 
         private void OnFirstAnnihilatedChanged(int value)
         {
-            m_DraftTicket.SetFirstEliminatedSlot(value == 0 ? null : value);
+            m_DraftTicket.SetFirstEliminatedColumn(
+                value == 0 ? null : (FirstEliminatedColumnPrediction?)(value - 1));
+            RefreshBetSummary();
+        }
+
+        private void OnSurvivingRowChanged(int value)
+        {
+            m_DraftTicket.SetSurvivingRow(value == 0 ? null : (SurvivingRowPrediction?)(value - 1));
             RefreshBetSummary();
         }
 
         private void SetFaction(FactionPrediction prediction)
         {
             m_DraftTicket.SetFaction(prediction);
-            if (prediction != FactionPrediction.Red && prediction != FactionPrediction.Blue)
-            {
-                m_SelectedSurvivingSlots.Clear();
-                m_DraftTicket.ClearSurvivingSlots();
-            }
-            else if (m_DraftTicket.HasSurvivingSlotsPrediction)
-            {
-                m_DraftTicket.SetSurvivingSlots(GetSelectedTeam(), m_SelectedSurvivingSlots);
-            }
-            UpdateSurvivingSlotAvailability();
             RefreshBetSummary();
-        }
-
-        private Team GetSelectedTeam()
-        {
-            return m_DraftTicket.Faction == FactionPrediction.Red ? Team.Red :
-                m_DraftTicket.Faction == FactionPrediction.Blue ? Team.Blue : Team.None;
         }
 
         private void ToggleRemainingTime(RemainingTimePrediction value)
@@ -500,45 +485,27 @@ namespace InTheArena.MainGame
             RefreshBetSummary();
         }
 
-        private void ToggleFirstEliminatedSlot(int slot)
+        private void ToggleFirstEliminatedColumn(FirstEliminatedColumnPrediction prediction)
         {
-            m_DraftTicket.SetFirstEliminatedSlot(m_DraftTicket.FirstEliminatedSlot == slot ? null : slot);
-            RefreshBetSummary();
-        }
-
-        private void ToggleSurvivingSlot(int slot)
-        {
-            Team team = GetSelectedTeam();
-            if (team == Team.None || !IsOccupiedSlot(team, slot)) return;
-
-            if (!m_SelectedSurvivingSlots.Add(slot)) m_SelectedSurvivingSlots.Remove(slot);
-            if (m_SelectedSurvivingSlots.Count == 0)
-                m_DraftTicket.ClearSurvivingSlots();
-            else
-                m_DraftTicket.SetSurvivingSlots(team, m_SelectedSurvivingSlots);
+            m_DraftTicket.SetFirstEliminatedColumn(
+                m_DraftTicket.FirstEliminatedColumn == prediction ? null : prediction);
             RefreshBetSummary();
         }
 
         private void UpdateSurvivingSlotAvailability()
         {
-            Team team = GetSelectedTeam();
-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
-            {
-                Button button = m_SurvivingSlotButtons[i];
-                if (button != null) button.interactable = team != Team.None && IsOccupiedSlot(team, i + 1);
-            }
-            UpdateNewSurvivingSlotAvailability(m_RedSurvivingSlotButtons, Team.Red);
-            UpdateNewSurvivingSlotAvailability(m_BlueSurvivingSlotButtons, Team.Blue);
+            SetButtonsInteractable(m_SurvivingSlotButtons, false);
+            SetButtonsInteractable(m_RedSurvivingSlotButtons, false);
+            SetButtonsInteractable(m_BlueSurvivingSlotButtons, false);
         }
 
-        private void UpdateNewSurvivingSlotAvailability(Button[] buttons, Team buttonTeam)
+        private static void SetButtonsInteractable(Button[] buttons, bool interactable)
         {
-            Team selectedTeam = GetSelectedTeam();
-            bool isAvailable = HasSpecial(SpecialBetType.SurvivingSlots);
-            for (int i = 0; i < buttons.Length; i++)
+            foreach (Button button in buttons)
             {
-                if (buttons[i] != null)
-                    buttons[i].interactable = isAvailable && selectedTeam == buttonTeam && IsOccupiedSlot(buttonTeam, i + 1);
+                if (button == null) continue;
+                if (!interactable) button.transition = Selectable.Transition.None;
+                button.interactable = interactable;
             }
         }
 
@@ -569,14 +536,6 @@ namespace InTheArena.MainGame
             }
         }
 
-        private bool IsOccupiedSlot(Team team, int slot)
-        {
-            List<TeamUnitDeployment> deployments = team == Team.Red
-                ? Context.TeamADeployments
-                : Context.TeamBDeployments;
-            return deployments.Exists(item => item.CellIndex == slot - 1 && item.Units.Count > 0);
-        }
-
         private void RefreshBetSummary()
         {
             RefreshSelectionVisuals();
@@ -597,7 +556,7 @@ namespace InTheArena.MainGame
                 m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
             }
 
-            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out string error);
+            bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out _);
             if (m_ConfirmBetButton != null) m_ConfirmBetButton.interactable = valid;
             if (m_ValidationText != null)
             {
@@ -635,24 +594,17 @@ namespace InTheArena.MainGame
             });
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.SetValueWithoutNotify(m_DraftTicket.RemainingTime.HasValue ? (int)m_DraftTicket.RemainingTime.Value + 1 : 0);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.SetValueWithoutNotify(m_DraftTicket.OddEven.HasValue ? (int)m_DraftTicket.OddEven.Value + 1 : 0);
-            if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.SetValueWithoutNotify(m_DraftTicket.FirstEliminatedSlot ?? 0);
+            if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.SetValueWithoutNotify(
+                m_DraftTicket.FirstEliminatedColumn.HasValue ? (int)m_DraftTicket.FirstEliminatedColumn.Value + 1 : 0);
+            if (m_SurvivingRowDropdown != null) m_SurvivingRowDropdown.SetValueWithoutNotify(
+                m_DraftTicket.SurvivingRow.HasValue ? (int)m_DraftTicket.SurvivingRow.Value + 1 : 0);
 
             for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
                 SetSelected(m_RemainingTimeButtons[i], m_DraftTicket.RemainingTime == (RemainingTimePrediction)i);
             for (int i = 0; i < m_OddEvenButtons.Length; i++)
                 SetSelected(m_OddEvenButtons[i], m_DraftTicket.OddEven == (OddEvenPrediction)i);
             for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
-                SetSelected(m_FirstEliminatedSlotButtons[i], m_DraftTicket.FirstEliminatedSlot == i + 1);
-            for (int i = 0; i < m_SurvivingSlotButtons.Length; i++)
-                SetSelected(m_SurvivingSlotButtons[i], m_SelectedSurvivingSlots.Contains(i + 1));
-            RefreshNewSlotSelection(m_RedSurvivingSlotButtons);
-            RefreshNewSlotSelection(m_BlueSurvivingSlotButtons);
-        }
-
-        private void RefreshNewSlotSelection(Button[] buttons)
-        {
-            for (int i = 0; i < buttons.Length; i++)
-                SetSelected(buttons[i], m_SelectedSurvivingSlots.Contains(i + 1));
+                SetSelected(m_FirstEliminatedSlotButtons[i], i < 4 && m_DraftTicket.FirstEliminatedColumn == (FirstEliminatedColumnPrediction)i);
         }
 
         private static void SetSelected(Button button, bool selected)
@@ -693,38 +645,32 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            IReadOnlyList<SpecialBetType> specialBets = Context.CurrentStageData?.SpecialBetTypes;
-            if (specialBets == null || specialBets.Count == 0)
+            if (!Context.RerollSpecialBets())
             {
-                message = "변경할 특수 베팅 규칙이 없습니다.";
+                message = "현재 라운드에는 리롤할 특수 베팅이 없습니다.";
                 return false;
             }
 
-            int randomIndex = UnityEngine.Random.Range(0, specialBets.Count);
-            m_OverriddenSpecialBet = specialBets[randomIndex];
-            Context.SetActiveSpecialBets(new[] { m_OverriddenSpecialBet.Value });
+            m_DraftTicket?.ClearSpecialPredictions();
             RefreshSpecialBetAvailability();
             UpdateSurvivingSlotAvailability();
             RefreshBetSummary();
 
-            message = $"특수 배팅이 {m_OverriddenSpecialBet}로 변경되었습니다.";
+            message = $"특수 배팅이 {string.Join(", ", Context.ActiveSpecialBets)}로 변경되었습니다.";
             return true;
         }
 
-        internal void RestorePurchasedItemState(
-            IReadOnlyList<SpecialBetType> previousSpecialBets,
-            SpecialBetType? previousOverride)
+        internal void RestorePurchasedItemState(IReadOnlyList<SpecialBetType> previousSpecialBetOrder)
         {
-            m_OverriddenSpecialBet = previousOverride;
-            Context?.SetActiveSpecialBets(previousSpecialBets);
+            Context?.RestoreSpecialBetOrder(previousSpecialBetOrder);
             RefreshSpecialBetAvailability();
             UpdateSurvivingSlotAvailability();
             RefreshBetSummary();
         }
 
-        internal IReadOnlyList<SpecialBetType> GetActiveSpecialBetsForItemUse()
+        internal IReadOnlyList<SpecialBetType> GetSpecialBetOrderForItemUse()
         {
-            return Context?.ActiveSpecialBets;
+            return Context?.SpecialBetOrder;
         }
 
         private void OnConfirmBetClicked()
