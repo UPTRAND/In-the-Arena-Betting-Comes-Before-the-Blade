@@ -361,7 +361,7 @@ TextureImporter:
         height: 64
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 23, y: 23, z: 23, w: 23}
+      border: {x: 31, y: 31, z: 31, w: 31}
       customData: 
       outline: []
       physicsShape: []
@@ -449,7 +449,7 @@ TextureImporter:
         height: 27
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
+      border: {x: 10, y: 7, z: 9, w: 16}
       customData: 
       outline: []
       physicsShape: []
@@ -602,7 +602,7 @@ TextureImporter:
         width: 27
         height: 15
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -611,6 +611,138 @@ TextureImporter:
       bones: []
       spriteID: 073b8967062be3544849dc193f3dc427
       internalID: -1119506185
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_23
+      rect:
+        serializedVersion: 2
+        x: 199
+        y: 172
+        width: 82
+        height: 4
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 3, y: 0, z: 3, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 835cd8228d8ce19468934c56f1941f5c
+      internalID: 89176273
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_24
+      rect:
+        serializedVersion: 2
+        x: 296
+        y: 204
+        width: 82
+        height: 4
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 3, y: 0, z: 3, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 671db3bb06035bc4b91e54d6a20a042b
+      internalID: 1380731987
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_25
+      rect:
+        serializedVersion: 2
+        x: 172
+        y: 52
+        width: 8
+        height: 55
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cf54d5ad5738fab45b90deb63397ffd2
+      internalID: -211885533
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_26
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 52
+        width: 8
+        height: 55
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 295770ec915a2c44abbd897b8a4f2fc5
+      internalID: 1833183777
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_27
+      rect:
+        serializedVersion: 2
+        x: 294
+        y: 76
+        width: 85
+        height: 10
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6b0edc35d28c5e245b2b26da994d5e85
+      internalID: 782494019
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_28
+      rect:
+        serializedVersion: 2
+        x: 324
+        y: 139
+        width: 56
+        height: 21
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 159a87ff1aee94f48bdbe7652c369437
+      internalID: -147293978
       vertices: []
       indices: 
       edges: []
@@ -645,6 +777,12 @@ TextureImporter:
       32x32-Tilesheet_20: 1322949569
       32x32-Tilesheet_21: 478559915
       32x32-Tilesheet_22: -1119506185
+      32x32-Tilesheet_23: 89176273
+      32x32-Tilesheet_24: 1380731987
+      32x32-Tilesheet_25: -211885533
+      32x32-Tilesheet_26: 1833183777
+      32x32-Tilesheet_27: 782494019
+      32x32-Tilesheet_28: -147293978
       32x32-Tilesheet_3: -333696598
       32x32-Tilesheet_4: 2123483889
       32x32-Tilesheet_5: 526565082
