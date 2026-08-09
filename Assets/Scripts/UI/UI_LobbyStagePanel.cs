@@ -19,7 +19,6 @@ namespace InTheArena.UI
         [SerializeField] private List<StageData> m_StageDatas = new List<StageData>();
 
         private StageData m_Target;
-        private bool m_IsStageTransitioning;
 
         protected override void Awake()
         {
@@ -39,21 +38,15 @@ namespace InTheArena.UI
             {
                 Refresh();
             }
-            else
-            {
-                HideBackgroundForStageTransition();
-            }
         }
 
         public void Refresh()
         {
             if (!IsLobbySceneActive())
             {
-                HideBackgroundForStageTransition();
                 return;
             }
 
-            m_IsStageTransitioning = false;
             RestoreBackgroundForLobby();
 
             int next = GetNextStageNumber();
@@ -84,12 +77,6 @@ namespace InTheArena.UI
 
         private void RefreshBackground()
         {
-            if (m_IsStageTransitioning)
-            {
-                HideBackgroundForStageTransition();
-                return;
-            }
-
             if (m_BackgroundImage != null && m_Target != null && m_Target.BackgroundSprite != null)
             {
                 m_BackgroundImage.gameObject.SetActive(true);
@@ -101,14 +88,6 @@ namespace InTheArena.UI
         private static bool IsLobbySceneActive()
         {
             return SceneManager.GetActiveScene().name == LobbySceneName;
-        }
-
-        private void HideBackgroundForStageTransition()
-        {
-            if (m_BackgroundImage != null)
-            {
-                m_BackgroundImage.gameObject.SetActive(false);
-            }
         }
 
         private void RestoreBackgroundForLobby()
@@ -151,9 +130,6 @@ namespace InTheArena.UI
                 Debug.Log($"[Lobby] Not enough hearts. Next heart in {save?.GetRemainingHeartTime():mm\\:ss}");
                 return;
             }
-
-            m_IsStageTransitioning = true;
-            HideBackgroundForStageTransition();
 
             _ = StageManager.Instance.StartStageAsync(m_Target);
         }

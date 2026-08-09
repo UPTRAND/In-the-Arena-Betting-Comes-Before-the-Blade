@@ -15,6 +15,7 @@ namespace InTheArena.UI
         [SerializeField] private Button m_InsuranceButton;
         [SerializeField] private Button m_RerollButton;
         [SerializeField] private Button m_SettingsButton;
+        [SerializeField] private UI_OptionsPopup m_OptionsPopupPrefab;
 
         [Header("Betting Item Data")]
         [SerializeField] private ItemData m_AdditionalBetData;
@@ -48,7 +49,7 @@ namespace InTheArena.UI
 
             if (m_SettingsButton != null)
             {
-                m_SettingsButton.onClick.AddListener(UI_OptionsPopup.Show);
+                m_SettingsButton.onClick.AddListener(OpenOptionsPopup);
             }
 
             if (m_AdditionalBetButton != null)
@@ -225,7 +226,7 @@ namespace InTheArena.UI
 
             if (m_SettingsButton != null)
             {
-                m_SettingsButton.onClick.RemoveListener(UI_OptionsPopup.Show);
+                m_SettingsButton.onClick.RemoveListener(OpenOptionsPopup);
             }
 
             if (m_AdditionalBetButton != null)
@@ -415,6 +416,11 @@ namespace InTheArena.UI
             }
 
             return null;
+        }
+
+        private void OpenOptionsPopup()
+        {
+            UI_OptionsPopup.Show(m_OptionsPopupPrefab, GetComponentInParent<UI_Root>());
         }
     }
 }

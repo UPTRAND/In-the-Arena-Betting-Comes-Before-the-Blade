@@ -11951,6 +11951,8 @@ MonoBehaviour:
   m_AdditionalBetButton: {fileID: 940334861165619353}
   m_InsuranceButton: {fileID: 1539552470868373764}
   m_RerollButton: {fileID: 4647184912575015322}
+  m_SettingsButton: {fileID: 0}
+  m_OptionsPopupPrefab: {fileID: 1003, guid: 51b2e3c4467a4d1e9c1d9d8804b8a1f0, type: 3}
   m_AdditionalBetData: {fileID: 11400000, guid: 02608a05aae711b42904902f15cb23c7, type: 2}
   m_InsuranceData: {fileID: 11400000, guid: c454c07d67522744bace110c1dc9ebe1, type: 2}
   m_RerollData: {fileID: 11400000, guid: 1f9e233786c48fc459491e7178655e66, type: 2}

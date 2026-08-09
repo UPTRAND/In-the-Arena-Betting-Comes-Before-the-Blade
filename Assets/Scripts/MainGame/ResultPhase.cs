@@ -94,7 +94,7 @@ namespace InTheArena.MainGame
             if (m_ResultUi != null)
             {
                 m_ResultUi.ContinueClicked += OnContinueClicked;
-                m_ResultUi.PayoutRevealStarted += OnPayoutRevealStarted;
+                m_ResultUi.PayoutRevealCompleted += OnPayoutRevealCompleted;
             }
             m_BettingPhase = FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include);
         }
@@ -104,15 +104,15 @@ namespace InTheArena.MainGame
             if (m_ResultUi != null)
             {
                 m_ResultUi.ContinueClicked -= OnContinueClicked;
-                m_ResultUi.PayoutRevealStarted -= OnPayoutRevealStarted;
+                m_ResultUi.PayoutRevealCompleted -= OnPayoutRevealCompleted;
             }
         }
 
-        private void OnPayoutRevealStarted()
+        private void OnPayoutRevealCompleted()
         {
-            if (m_BettingPhase == null || Context?.Settlement == null) return;
+            if (m_BettingPhase == null || Context?.Settlement == null || !Context.Settlement.IsWin || Context.Settlement.PayoutCall <= 0) return;
             int from = Mathf.Max(0, Context.CurrentCall - Context.Settlement.PayoutCall);
-            m_BettingPhase.AnimateNowCol(from, Context.CurrentCall);
+            m_BettingPhase.PlayNowColRewardAnimation(m_ResultUi != null ? m_ResultUi.MyResultTransform : null, from, Context.CurrentCall);
         }
 
         private void OnContinueClicked()

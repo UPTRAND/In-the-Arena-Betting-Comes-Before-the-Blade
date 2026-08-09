@@ -1321,6 +1321,7 @@ MonoBehaviour:
   m_TimerBox: {fileID: 3527507684895506976}
   m_StarText: {fileID: 6929327877901314870}
   m_SettingsButton: {fileID: 279913095838729545}
+  m_OptionsPopupPrefab: {fileID: 1003, guid: 51b2e3c4467a4d1e9c1d9d8804b8a1f0, type: 3}
 --- !u!1 &9207683272714963863
 GameObject:
   m_ObjectHideFlags: 0

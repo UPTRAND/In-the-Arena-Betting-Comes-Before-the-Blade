@@ -71,7 +71,11 @@ public static class ScreenFaderTransition
 
     private static ScreenFader GetOrCreateFader()
     {
-        if (ScreenFader.Instance != null) return ScreenFader.Instance;
+        if (ScreenFader.Instance != null)
+        {
+            ConfigureOverlayCanvas(ScreenFader.Instance.gameObject);
+            return ScreenFader.Instance;
+        }
         if (CanvasGroupField == null || FadeImageField == null)
         {
             Debug.LogError("[ScreenFaderTransition] ScreenFader 필드를 찾을 수 없습니다.");
@@ -94,10 +98,7 @@ public static class ScreenFaderTransition
         rectTransform.offsetMin = Vector2.zero;
         rectTransform.offsetMax = Vector2.zero;
 
-        var canvas = root.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.overrideSorting = true;
-        canvas.sortingOrder = 1000;
+        ConfigureOverlayCanvas(root);
 
         var canvasGroup = root.GetComponent<CanvasGroup>();
         var image = root.GetComponent<Image>();
@@ -111,6 +112,29 @@ public static class ScreenFaderTransition
         canvasGroup.blocksRaycasts = false;
         canvasGroup.interactable = false;
         return fader;
+    }
+
+    private static void ConfigureOverlayCanvas(GameObject faderObject)
+    {
+        Canvas canvas = faderObject.GetComponent<Canvas>();
+        if (canvas == null)
+        {
+            canvas = faderObject.AddComponent<Canvas>();
+        }
+
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.worldCamera = null;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 32767;
+
+        RectTransform rectTransform = faderObject.GetComponent<RectTransform>();
+        if (rectTransform != null)
+        {
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+        }
     }
 }
 #endif

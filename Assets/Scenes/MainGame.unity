@@ -2747,6 +2747,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -224
       objectReference: {fileID: 0}
+    - target: {fileID: 7107506861719809550, guid: bc1ea841b2db555498f2003f5fc09bb1, type: 3}
+      propertyPath: m_Name
+      value: NowCol_Image
+      objectReference: {fileID: 0}
     - target: {fileID: 7276006742533210029, guid: bc1ea841b2db555498f2003f5fc09bb1, type: 3}
       propertyPath: m_SizeDelta.y
       value: 324

@@ -4,6 +4,7 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
+using InTheArena.UI;
 
 namespace InTheArena.MainGame
 {
@@ -54,11 +55,14 @@ namespace InTheArena.MainGame
         private RoundContext m_Context;
         private CancellationTokenSource m_StageCts;
         private bool m_IsStageRunning = false;
+        private bool m_IsReturningToLobby;
         private int m_CurrentRoundIndex = 0;
 
         private StageClearCommitState m_StageClearCommitState = StageClearCommitState.None;
         private string m_LastStageClearSaveError = null;
         private InTheArena.Save.PlayerProgressState m_PendingStageClearCandidate = null;
+        private const int StageClearGoldReward = 100;
+        private const int StageClearStarReward = 1;
 
         public event Action<StageClearCommitState> OnStageClearCommitStateChanged;
 
@@ -146,10 +150,10 @@ namespace InTheArena.MainGame
             m_PendingStageClearCandidate = null;
             m_LastStageClearSaveError = null;
 
-            using var session = InTheArena.Util.LoadingProgressService.Instance?.BeginSession();
-
             try
             {
+                using (var session = InTheArena.Util.LoadingProgressService.Instance?.BeginSession())
+                {
                 session?.Report(0f);
                 await ScreenFaderTransition.FadeOutAsync(LoadingEntryFadeSeconds, m_StageCts.Token);
                 Debug.Log($"[StageManager] {stageData.FullStageName} 스테이지 시작 - Loading 씬 로드 중...");
@@ -203,6 +207,7 @@ namespace InTheArena.MainGame
                 await ScreenFaderTransition.FadeInAsync(LoadingExitFadeSeconds, m_StageCts.Token);
 
                 session?.Complete();
+                }
 
                 await WaitForMainGameReadyAsync(m_StageCts.Token);
                 await RunStageLoopAsync(m_StageCts.Token);
@@ -229,6 +234,38 @@ namespace InTheArena.MainGame
             }
         }
 
+        public void ReturnToLobbyFromOptions()
+        {
+            if (m_IsReturningToLobby || !Application.isPlaying || SceneManager.GetActiveScene().name == m_LobbySceneName)
+                return;
+
+            ReturnToLobbyFromOptionsInternal();
+        }
+
+        private async void ReturnToLobbyFromOptionsInternal()
+        {
+            m_IsReturningToLobby = true;
+
+            try
+            {
+                m_StageCts?.Cancel();
+                await Awaitable.NextFrameAsync();
+                await AsyncSceneLoader.LoadSceneAsync(m_LobbySceneName);
+            }
+            catch (OperationCanceledException)
+            {
+                // The loader owns cancellation after the return transition starts.
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            finally
+            {
+                m_IsReturningToLobby = false;
+            }
+        }
+
         public bool RetryStageClearSave()
         {
             if (m_StageClearCommitState != StageClearCommitState.Failed)
@@ -241,6 +278,7 @@ namespace InTheArena.MainGame
             {
                 if (SaveManager.Instance.TryCommitPendingStageClear(m_PendingStageClearCandidate, out string error))
                 {
+                    QueueLobbyRewardPresentation();
                     SetStageClearCommitState(StageClearCommitState.Committed);
                     return true;
                 }
@@ -299,6 +337,7 @@ namespace InTheArena.MainGame
             }
             else
             {
+                QueueLobbyRewardPresentation();
                 SetStageClearCommitState(StageClearCommitState.Committed);
             }
         }
@@ -395,6 +434,7 @@ namespace InTheArena.MainGame
                     m_Context.CurrentRound = m_CurrentRoundIndex + 1;
                     Debug.Log($"[StageManager] Round {m_Context.CurrentRound} / {totalRounds} 시작");
                     await RoundManager.Instance.RunRoundAsync(m_CurrentRoundIndex, token);
+                    token.ThrowIfCancellationRequested();
                 }
 
                 if (m_StageClearCommitState == StageClearCommitState.None && CheckStageClear())
@@ -403,7 +443,7 @@ namespace InTheArena.MainGame
 
                     if (SaveManager.Instance != null)
                     {
-                        m_PendingStageClearCandidate = SaveManager.Instance.CreatePendingStageClearCandidate(PlayerState, m_CurrentStageData.StageNum, 100, 1);
+                        m_PendingStageClearCandidate = SaveManager.Instance.CreatePendingStageClearCandidate(PlayerState, m_CurrentStageData.StageNum, StageClearGoldReward, StageClearStarReward);
                         if (m_PendingStageClearCandidate == null)
                         {
                             m_LastStageClearSaveError = "Failed to create candidate (Invalid state).";
@@ -547,6 +587,15 @@ namespace InTheArena.MainGame
             {
                 await op.ToAwaitable();
             }
+        }
+
+        private static void QueueLobbyRewardPresentation()
+        {
+            SaveManager save = SaveManager.Instance;
+            if (save == null) return;
+            StageClearRewardPresentation.Queue(new StageClearRewardPresentation.RewardData(
+                Mathf.Max(0, save.Gold - StageClearGoldReward), save.Gold,
+                Mathf.Max(0, save.Stars - StageClearStarReward), save.Stars));
         }
 
         public void SetCurrentStageData(StageData stageData)

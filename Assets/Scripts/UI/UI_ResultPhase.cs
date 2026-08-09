@@ -38,7 +38,9 @@ namespace InTheArena.UI
         private bool m_HasSummaryStartPositions;
 
         public event Action ContinueClicked;
-        public event Action PayoutRevealStarted;
+        public event Action PayoutRevealCompleted;
+
+        public RectTransform MyResultTransform => m_MyResult;
 
         protected override void Awake()
         {
@@ -215,7 +217,6 @@ namespace InTheArena.UI
         {
             if (m_MyResult == null) return;
             int payout = Mathf.Max(0, m_Settlement?.PayoutCall ?? 0);
-            PayoutRevealStarted?.Invoke();
             m_MyResult.gameObject.SetActive(true);
             m_MyResult.localScale = Vector3.one * 0.82f;
             CanvasGroup group = GetCanvasGroup(m_MyResult);
@@ -229,6 +230,7 @@ namespace InTheArena.UI
             {
                 if (m_ResultText != null) m_ResultText.text = $"{value} Col";
             }, payout, payout > 0 ? 0.65f : 0.15f).SetEase(Ease.OutCubic));
+            m_FinalResultSequence.OnComplete(() => PayoutRevealCompleted?.Invoke());
         }
 
         private void ResolveReferences()
@@ -353,7 +355,7 @@ namespace InTheArena.UI
             CancelResultAnimation();
             if (m_ContinueButton != null) m_ContinueButton.onClick.RemoveListener(OnContinueButtonClicked);
             ContinueClicked = null;
-            PayoutRevealStarted = null;
+            PayoutRevealCompleted = null;
             base.OnDestroy();
         }
 

@@ -111,6 +111,7 @@ namespace InTheArena.MainGame
         [SerializeField] private UI_BettingPhase m_BettingUi;
         [SerializeField] private CanvasGroup m_BettingContentCanvasGroup;
         [SerializeField] private TMP_Text m_NowColInfoText;
+        [SerializeField] private Image m_NowColImage;
         [SerializeField] private EventTrigger m_SliderHandlePointerTrigger;
         private Tween m_SliderAttentionTween;
         private Tween m_ConfirmAttentionTween;
@@ -764,12 +765,62 @@ namespace InTheArena.MainGame
 
         public void AnimateNowCol(int fromCall, int targetCall) => DOTween.To(() => fromCall, SetNowCol, Mathf.Max(0, targetCall), 0.45f).SetEase(Ease.OutCubic).SetTarget(m_NowColInfoText);
 
+        public void PlayNowColRewardAnimation(RectTransform source, int fromCall, int targetCall)
+        {
+            int reward = Mathf.Max(0, targetCall - fromCall);
+            ResolveNowColImage();
+            if (source == null || m_NowColImage == null || m_NowColImage.sprite == null || reward <= 0)
+            {
+                AnimateNowCol(fromCall, targetCall);
+                return;
+            }
+
+            int received = 0;
+            int displayed = fromCall;
+            SetNowCol(fromCall);
+            UI_FlyingRewardEffect.Play(source, m_NowColImage.rectTransform, m_NowColImage.sprite, reward, amount =>
+            {
+                received += amount;
+                int nextValue = fromCall + received;
+                m_NowColInfoText.DOKill();
+                DOTween.To(() => displayed, value =>
+                {
+                    displayed = value;
+                    SetNowCol(value);
+                }, nextValue, 0.18f).SetEase(Ease.OutCubic).SetTarget(m_NowColInfoText).SetUpdate(true);
+            }, () =>
+            {
+                m_NowColInfoText.DOKill();
+                SetNowCol(targetCall);
+            }, previewText: $"+{reward} Col");
+        }
+
         private void EnsureSharedTopBar()
         {
             if (m_BettingUi != null)
             {
                 m_BettingUi.BindAndShow(this, Context, StageManager.Instance?.PlayerState);
             }
+        }
+
+        private void ResolveNowColImage()
+        {
+            if (m_NowColImage != null) return;
+            Transform root = m_BettingUi != null ? m_BettingUi.transform : transform;
+            Transform icon = FindDescendant(root, "NowCol_Image");
+            if (icon != null) m_NowColImage = icon.GetComponent<Image>();
+        }
+
+        private static Transform FindDescendant(Transform root, string objectName)
+        {
+            if (root == null) return null;
+            if (root.name == objectName) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform found = FindDescendant(root.GetChild(i), objectName);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void SetBettingContentVisible(bool visible)
