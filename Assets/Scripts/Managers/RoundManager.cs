@@ -120,6 +120,7 @@ namespace InTheArena.MainGame
             m_CurrentRoundIndex = roundIndex;
             m_RoundCts = CancellationTokenSource.CreateLinkedTokenSource(token);
             m_IsRoundRunning = true;
+            bool combatToResultFadeNeedsRecovery = false;
 
             try
             {
@@ -137,12 +138,12 @@ namespace InTheArena.MainGame
                 await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
                 await ScreenFaderTransition.FadeOutAsync(1f, m_RoundCts.Token);
                 
-                token.ThrowIfCancellationRequested();
+                m_RoundCts.Token.ThrowIfCancellationRequested();
 
                 await CleanupActivePhaseAsync();
                 StageBackgroundController.ShowBattleBackgrounds();
 
-                token.ThrowIfCancellationRequested();
+                m_RoundCts.Token.ThrowIfCancellationRequested();
 
                 // 3. Combat Phase
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
@@ -152,10 +153,21 @@ namespace InTheArena.MainGame
                 await m_CombatPhase.PreparePhaseAsync(m_RoundCts.Token);
                 await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
                 await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
-                
-                await CleanupActivePhaseAsync();
 
-                token.ThrowIfCancellationRequested();
+                m_RoundCts.Token.ThrowIfCancellationRequested();
+                combatToResultFadeNeedsRecovery = true;
+                await ScreenFaderTransition.FadeOutAsync(0.3f, m_RoundCts.Token);
+                m_RoundCts.Token.ThrowIfCancellationRequested();
+                var cameraController = InTheArena.Camera.CameraController.Instance;
+                if (cameraController != null)
+                {
+                    await cameraController.SetPhaseAsync(
+                        InTheArena.Camera.CameraPhase.Result,
+                        m_RoundCts.Token);
+                }
+
+                await CleanupActivePhaseAsync();
+                m_RoundCts.Token.ThrowIfCancellationRequested();
 
                 // 4. 베팅 정산 - StageSession만 Call을 변경한다.
                 SettleRound();
@@ -166,7 +178,8 @@ namespace InTheArena.MainGame
                 m_ResultPhase.InitializePhase(m_Context);
                 
                 await m_ResultPhase.PreparePhaseAsync(m_RoundCts.Token);
-                await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
+                await ScreenFaderTransition.FadeInAsync(0.3f, m_RoundCts.Token);
+                combatToResultFadeNeedsRecovery = false;
                 await m_ResultPhase.EnterPhaseAsync(m_RoundCts.Token);
                 
                 // 다음 라운드를 위해 화면을 완전히 어둡게 만듭니다.
@@ -186,6 +199,18 @@ namespace InTheArena.MainGame
             }
             finally
             {
+                if (combatToResultFadeNeedsRecovery)
+                {
+                    try
+                    {
+                        await ScreenFaderTransition.FadeInAsync(0.3f, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                    }
+                }
+
                 await CleanupActivePhaseAsync();
                 DisposeItemPurchaseUseCoordinator();
                 m_IsRoundRunning = false;

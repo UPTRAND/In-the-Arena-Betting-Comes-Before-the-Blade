@@ -27,8 +27,8 @@ namespace InTheArena.Camera.Test
         private const string MainGameSceneName = "MainGame";
         private const string BackgroundName = "pixel_background_elven-hall_bg";
         private const string TemporaryCoverageRootName = "BackgroundCoverageRoot (Phase0C Temporary)";
-        private const string BettingRootName = "UI_BettingPhase";
-        private const string BettingContentName = "MainContent";
+        private const string ViewportRootName = "UI_BattlePhaseHUD";
+        private const string ViewportSpacerName = "MainCameraArea_Spacer";
         private const string CaptureDirectoryName = "CodexPhase0C";
 
         private static readonly BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
@@ -228,26 +228,26 @@ namespace InTheArena.Camera.Test
             m_MainCamera = m_Controller.MainCamera != null ? m_Controller.MainCamera : m_Controller.GetComponent<UnityCamera>();
             m_OriginalSettings = m_Controller.Settings;
 
-            GameObject bettingRoot = FindInSceneIncludingInactive(scene, BettingRootName);
-            m_MainContent = bettingRoot != null
-                ? bettingRoot.transform.Find(BettingContentName) as RectTransform
+            GameObject viewportRoot = FindInSceneIncludingInactive(scene, ViewportRootName);
+            m_MainContent = viewportRoot != null
+                ? viewportRoot.transform.Find(ViewportSpacerName) as RectTransform
                 : null;
             m_MainContentCanvas = m_MainContent != null ? m_MainContent.GetComponentInParent<Canvas>() : null;
 
             AppendReferenceResult("Main Camera", m_MainCamera != null, m_MainCamera != null ? GetPath(m_MainCamera.transform) : "not found");
             AppendReferenceResult("CameraSettings", m_OriginalSettings != null, m_OriginalSettings != null ? m_OriginalSettings.name : "not found");
-            AppendReferenceResult("Betting UI", bettingRoot != null, bettingRoot != null ? GetPath(bettingRoot.transform) : "not found");
-            AppendReferenceResult("MainContent", m_MainContent != null, m_MainContent != null ? GetPath(m_MainContent) : "not found");
+            AppendReferenceResult("Combat HUD", viewportRoot != null, viewportRoot != null ? GetPath(viewportRoot.transform) : "not found");
+            AppendReferenceResult("MainCameraArea_Spacer", m_MainContent != null, m_MainContent != null ? GetPath(m_MainContent) : "not found");
             AppendReferenceResult("Canvas", m_MainContentCanvas != null, m_MainContentCanvas != null ? GetPath(m_MainContentCanvas.transform) : "not found");
 
             if (m_MainCamera == null)
                 error = "Main Camera 참조가 없습니다.";
             else if (m_OriginalSettings == null)
                 error = "CameraSettings 참조가 없습니다.";
-            else if (bettingRoot == null)
-                error = "UI_BettingPhase를 찾지 못했습니다.";
+            else if (viewportRoot == null)
+                error = "UI_BattlePhaseHUD를 찾지 못했습니다.";
             else if (m_MainContent == null)
-                error = "UI_BettingPhase/MainContent를 찾지 못했습니다.";
+                error = "UI_BattlePhaseHUD/MainCameraArea_Spacer를 찾지 못했습니다.";
             else if (m_MainContentCanvas == null)
                 error = "MainContent의 부모 Canvas를 찾지 못했습니다.";
 
@@ -359,9 +359,40 @@ namespace InTheArena.Camera.Test
             m_OriginalViewportCamera = m_ViewportCameraField.GetValue(m_ViewportProvider) as UnityCamera;
             m_OriginalViewportProviderReference = m_ControllerViewportProviderField.GetValue(m_Controller) as CameraViewportProvider;
 
-            m_ViewportRectField.SetValue(m_ViewportProvider, m_MainContent);
-            m_ViewportCameraField.SetValue(m_ViewportProvider, m_MainCamera);
-            m_ControllerViewportProviderField.SetValue(m_Controller, m_ViewportProvider);
+            if (!m_CreatedViewportProvider)
+            {
+                if (m_OriginalViewportRect == null)
+                {
+                    error = "Scene CameraViewportProvider.m_UIRect가 비어 있습니다.";
+                    return false;
+                }
+
+                if (m_OriginalViewportRect != m_MainContent)
+                {
+                    error = "Scene CameraViewportProvider.m_UIRect가 UI_BattlePhaseHUD/MainCameraArea_Spacer를 가리키지 않습니다.";
+                    return false;
+                }
+
+                if (!m_OriginalViewportRect.gameObject.scene.IsValid() ||
+                    m_OriginalViewportRect.gameObject.scene != m_MainContent.gameObject.scene)
+                {
+                    error = "Scene CameraViewportProvider.m_UIRect가 prefab asset을 직접 가리킵니다. 씬 Hierarchy의 MainCameraArea_Spacer를 연결해야 합니다.";
+                    return false;
+                }
+
+                if (m_OriginalViewportCamera != m_MainCamera)
+                {
+                    error = "Scene CameraViewportProvider.m_Camera가 Main Camera를 가리키지 않습니다.";
+                    return false;
+                }
+            }
+            else
+            {
+                m_ViewportRectField.SetValue(m_ViewportProvider, m_MainContent);
+                m_ViewportCameraField.SetValue(m_ViewportProvider, m_MainCamera);
+                m_ControllerViewportProviderField.SetValue(m_Controller, m_ViewportProvider);
+            }
+
             m_InitialMainContentReference = m_MainContent;
 
             if ((m_ViewportRectField.GetValue(m_ViewportProvider) as RectTransform) != m_MainContent ||
@@ -889,9 +920,9 @@ namespace InTheArena.Camera.Test
                 return null;
 
             UnityScene scene = m_Controller.gameObject.scene;
-            GameObject bettingRoot = FindInSceneIncludingInactive(scene, BettingRootName);
-            return bettingRoot != null
-                ? bettingRoot.transform.Find(BettingContentName) as RectTransform
+            GameObject viewportRoot = FindInSceneIncludingInactive(scene, ViewportRootName);
+            return viewportRoot != null
+                ? viewportRoot.transform.Find(ViewportSpacerName) as RectTransform
                 : null;
         }
 

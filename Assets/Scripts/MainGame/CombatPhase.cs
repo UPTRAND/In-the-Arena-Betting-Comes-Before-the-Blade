@@ -82,6 +82,17 @@ namespace InTheArena.MainGame
                 this,
                 Context,
                 StageManager.Instance?.PlayerState);
+
+            Canvas.ForceUpdateCanvases();
+            var cameraController = InTheArena.Camera.CameraController.Instance;
+            if (cameraController != null)
+            {
+                await cameraController.SetPhaseAsync(
+                    InTheArena.Camera.CameraPhase.Combat,
+                    m_CombatCts.Token);
+            }
+            if (m_CombatCts.IsCancellationRequested) return;
+
             OnCombatStateChanged?.Invoke();
         }
 
@@ -293,14 +304,6 @@ namespace InTheArena.MainGame
                 if (unit != null) unit.gameObject.SetActive(true);
             }
             await Awaitable.NextFrameAsync();
-            if (token.IsCancellationRequested) return;
-
-            var cameraController = InTheArena.Camera.CameraController.Instance;
-            if (cameraController != null)
-                await cameraController.SetPhaseAsync(
-                    InTheArena.Camera.CameraPhase.Combat,
-                    token);
-            if (token.IsCancellationRequested) return;
         }
 
         private void StartUnitAI()
@@ -405,8 +408,6 @@ namespace InTheArena.MainGame
             m_IsCombatEnded = true;
             m_IsItemCastingSlowMotion = false;
             Time.timeScale = 1f;
-            InTheArena.Camera.CameraController.Instance?.SetPhase(
-                InTheArena.Camera.CameraPhase.Result);
             CompletePhase();
         }
 
@@ -450,8 +451,6 @@ namespace InTheArena.MainGame
                 if (cameraController != null)
                 {
                     cameraController.EndFinalEliminationFocus();
-                    if (!token.IsCancellationRequested)
-                        cameraController.SetPhase(InTheArena.Camera.CameraPhase.Result);
                 }
                 m_IsFinalEliminationPlaying = false;
             }

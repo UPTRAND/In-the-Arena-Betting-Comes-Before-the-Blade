@@ -20,7 +20,7 @@ namespace InTheArena.Camera
         private Vector3[] m_CornersCache = new Vector3[4];
 
         private const float ViewportEpsilon = 0.001f;
-        private bool m_HasReportedError = false;
+        private static readonly Rect FullViewport = new Rect(0f, 0f, 1f, 1f);
 
         private void Awake()
         {
@@ -35,12 +35,36 @@ namespace InTheArena.Camera
         }
 #endif
 
+        public bool TryGetTargetCameraRect(out Rect targetRect)
+        {
+            targetRect = FullViewport;
+            if (m_Camera == null ||
+                m_UIRect == null ||
+                !m_UIRect.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            // Camera.rect is normalized against the physical screen, independent of its current pixelRect.
+            Rect fullScreenRect = new Rect(0f, 0f, Screen.width, Screen.height);
+            if (fullScreenRect.width <= 0f || fullScreenRect.height <= 0f)
+                return false;
+
+            targetRect = CalculateViewport(fullScreenRect);
+            return IsValidViewport(targetRect);
+        }
+
         public Rect GetEffectiveViewportRect()
         {
-            if (m_Camera == null || m_UIRect == null)
-                return new Rect(0, 0, 1, 1);
+            if (m_Camera == null ||
+                m_UIRect == null ||
+                !m_UIRect.gameObject.activeInHierarchy)
+            {
+                return FullViewport;
+            }
 
-            Rect newViewport = CalculateViewport();
+            // Framing is normalized inside the camera's current pixelRect.
+            Rect newViewport = CalculateViewport(m_Camera.pixelRect);
 
             if (Mathf.Abs(m_CachedViewport.x - newViewport.x) > ViewportEpsilon ||
                 Mathf.Abs(m_CachedViewport.y - newViewport.y) > ViewportEpsilon ||
@@ -53,16 +77,26 @@ namespace InTheArena.Camera
             return m_CachedViewport;
         }
 
-        private Rect CalculateViewport()
+        private Rect CalculateViewport(Rect normalizationRect)
         {
+            if (!TryGetUiScreenRect(out Vector2 minScreen, out Vector2 maxScreen))
+                return FullViewport;
+
+            return NormalizeScreenRect(minScreen, maxScreen, normalizationRect);
+        }
+
+        private bool TryGetUiScreenRect(out Vector2 minScreen, out Vector2 maxScreen)
+        {
+            minScreen = Vector2.zero;
+            maxScreen = Vector2.zero;
+
             Canvas canvas = m_UIRect.GetComponentInParent<Canvas>();
             if (canvas == null)
-                return new Rect(0, 0, 1, 1);
+                return false;
 
             m_UIRect.GetWorldCorners(m_CornersCache);
-
-            Vector2 minScreen = new Vector2(float.MaxValue, float.MaxValue);
-            Vector2 maxScreen = new Vector2(float.MinValue, float.MinValue);
+            minScreen = new Vector2(float.MaxValue, float.MaxValue);
+            maxScreen = new Vector2(float.MinValue, float.MinValue);
 
             for (int i = 0; i < 4; i++)
             {
@@ -83,7 +117,21 @@ namespace InTheArena.Camera
                 maxScreen.y = Mathf.Max(maxScreen.y, screenPt.y);
             }
 
-            return NormalizeScreenRect(minScreen, maxScreen, m_Camera.pixelRect);
+            return true;
+        }
+
+        private static bool IsValidViewport(Rect viewport)
+        {
+            return viewport.width > 0f &&
+                   viewport.height > 0f &&
+                   !float.IsNaN(viewport.x) &&
+                   !float.IsInfinity(viewport.x) &&
+                   !float.IsNaN(viewport.y) &&
+                   !float.IsInfinity(viewport.y) &&
+                   !float.IsNaN(viewport.width) &&
+                   !float.IsInfinity(viewport.width) &&
+                   !float.IsNaN(viewport.height) &&
+                   !float.IsInfinity(viewport.height);
         }
 
         public static Rect NormalizeScreenRect(Vector2 minScreen, Vector2 maxScreen, Rect pixelRect)

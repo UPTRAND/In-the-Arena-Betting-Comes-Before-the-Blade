@@ -17,7 +17,6 @@ namespace InTheArena.MainGame
 
         [Header("Animation")]
         [SerializeField] private float m_ResultDelay = 1f;
-        [SerializeField] private float m_FadeDuration = 0.5f;
 
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private bool m_IsWin;
@@ -42,9 +41,10 @@ namespace InTheArena.MainGame
                 m_ResultUi.Configure(Context.BetTicket, Context.CombatResult, Context.Settlement);
                 if (!m_ResultUi.BIsOpened) m_ResultUi.Open();
                 m_ResultUi.Enable();
+                m_ResultUi.Refresh();
                 if (m_ResultUi.CanvasGroup != null)
                 {
-                    m_ResultUi.CanvasGroup.alpha = 0f;
+                    m_ResultUi.CanvasGroup.alpha = 1f;
                     m_ResultUi.CanvasGroup.blocksRaycasts = true;
                     m_ResultUi.CanvasGroup.interactable = true;
                 }
@@ -59,11 +59,6 @@ namespace InTheArena.MainGame
                 await Awaitable.WaitForSecondsAsync(m_ResultDelay);
                 token.ThrowIfCancellationRequested();
 
-                m_ResultUi.Refresh();
-                var tween = m_ResultUi.CanvasGroup != null
-                    ? m_ResultUi.CanvasGroup.DOFade(1f, m_FadeDuration).SetEase(Ease.OutQuad)
-                    : null;
-                await AwaitTweenAsync(tween, token);
                 m_ResultUi.PlayResultAnimation();
             }
             else
@@ -141,19 +136,6 @@ namespace InTheArena.MainGame
             }
 
             transform.DOKill();
-        }
-
-        private static async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
-        {
-            if (tween == null || !tween.IsActive()) return;
-
-            using (token.Register(() =>
-            {
-                if (tween != null && tween.IsActive()) tween.Kill();
-            }))
-            {
-                await tween.AsyncWaitForCompletion();
-            }
         }
 
         private void OnDestroy()

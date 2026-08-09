@@ -6,8 +6,11 @@ using NUnit.Framework;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityScene = UnityEngine.SceneManagement.Scene;
 
 namespace InTheArena.Editor.Unit
 {
@@ -1121,6 +1124,176 @@ namespace InTheArena.Editor.Unit
             maxScreen = new Vector2(100f, 100f);
             Rect result2 = InTheArena.Camera.CameraViewportProvider.NormalizeScreenRect(minScreen, maxScreen, zeroRect);
             Assert.That(result2, Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+        }
+
+        [Test]
+        public void CameraViewportProvider_InactiveSpacerReturnsFullFramingWithoutChangingCameraRect()
+        {
+            GameObject cameraObject = new GameObject("CameraViewportProviderTestCamera");
+            GameObject spacerObject = new GameObject("MainCameraArea_Spacer", typeof(RectTransform));
+
+            try
+            {
+                UnityEngine.Camera camera = cameraObject.AddComponent<UnityEngine.Camera>();
+                CameraViewportProvider provider = cameraObject.AddComponent<CameraViewportProvider>();
+                const BindingFlags privateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+                typeof(CameraViewportProvider).GetField("m_Camera", privateInstance).SetValue(provider, camera);
+                typeof(CameraViewportProvider).GetField("m_UIRect", privateInstance).SetValue(
+                    provider,
+                    spacerObject.GetComponent<RectTransform>());
+
+                Rect previousCameraRect = new Rect(0.1f, 0.2f, 0.8f, 0.6f);
+                camera.rect = previousCameraRect;
+                spacerObject.SetActive(false);
+
+                Assert.That(provider.TryGetTargetCameraRect(out _), Is.False);
+                Assert.That(provider.GetEffectiveViewportRect(), Is.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+                Assert.That(camera.rect, Is.EqualTo(previousCameraRect));
+            }
+            finally
+            {
+                Object.DestroyImmediate(spacerObject);
+                Object.DestroyImmediate(cameraObject);
+            }
+        }
+
+        [Test]
+        public void CameraController_InactiveSpacerPreservesLastCameraRect()
+        {
+            GameObject cameraObject = new GameObject("CameraControllerViewportFallbackCamera");
+            GameObject spacerObject = new GameObject("MainCameraArea_Spacer", typeof(RectTransform));
+
+            try
+            {
+                UnityEngine.Camera camera = cameraObject.AddComponent<UnityEngine.Camera>();
+                CameraViewportProvider provider = cameraObject.AddComponent<CameraViewportProvider>();
+                CameraController controller = cameraObject.AddComponent<CameraController>();
+                const BindingFlags privateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+                typeof(CameraViewportProvider).GetField("m_Camera", privateInstance).SetValue(provider, camera);
+                typeof(CameraViewportProvider).GetField("m_UIRect", privateInstance).SetValue(
+                    provider,
+                    spacerObject.GetComponent<RectTransform>());
+                typeof(CameraController).GetField("m_MainCamera", privateInstance).SetValue(controller, camera);
+                typeof(CameraController).GetField("m_ViewportProvider", privateInstance).SetValue(controller, provider);
+
+                Rect previousCameraRect = new Rect(0.13f, 0.27f, 0.71f, 0.49f);
+                camera.rect = previousCameraRect;
+                spacerObject.SetActive(false);
+
+                typeof(CameraController)
+                    .GetMethod("SyncViewportRect", privateInstance)
+                    .Invoke(controller, null);
+
+                Assert.That(camera.rect, Is.EqualTo(previousCameraRect));
+            }
+            finally
+            {
+                Object.DestroyImmediate(spacerObject);
+                Object.DestroyImmediate(cameraObject);
+            }
+        }
+
+        [Test]
+        public void CameraViewportProvider_NormalizeScreenRect_WhenUiMatchesCameraPixelRect_ReturnsFullViewport()
+        {
+            Rect pixelRect = new Rect(320f, 180f, 960f, 540f);
+
+            Rect result = InTheArena.Camera.CameraViewportProvider.NormalizeScreenRect(
+                pixelRect.min,
+                pixelRect.max,
+                pixelRect);
+
+            Assert.That(result.x, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(result.y, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(result.width, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(result.height, Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [Test]
+        public void CameraViewportProvider_TargetRectIsIdempotentAndEffectiveViewportIsFullAfterCameraRectSync()
+        {
+            GameObject cameraObject = new GameObject("CameraViewportProviderIdempotenceCamera");
+            GameObject canvasObject = new GameObject("CameraViewportProviderIdempotenceCanvas", typeof(Canvas));
+            GameObject spacerObject = new GameObject("MainCameraArea_Spacer", typeof(RectTransform));
+
+            try
+            {
+                UnityEngine.Camera camera = cameraObject.AddComponent<UnityEngine.Camera>();
+                camera.rect = new Rect(0f, 0f, 1f, 1f);
+
+                Canvas canvas = canvasObject.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
+                RectTransform spacerRect = spacerObject.GetComponent<RectTransform>();
+                spacerRect.SetParent(canvasRect, false);
+                spacerRect.anchorMin = Vector2.zero;
+                spacerRect.anchorMax = Vector2.zero;
+                spacerRect.pivot = Vector2.zero;
+                spacerRect.anchoredPosition = new Vector2(37.5f, 123.25f);
+                spacerRect.sizeDelta = new Vector2(
+                    Mathf.Max(1f, Screen.width * 0.64f + 0.25f),
+                    Mathf.Max(1f, Screen.height * 0.37f + 0.5f));
+                canvasRect.sizeDelta = new Vector2(Screen.width, Screen.height);
+                Canvas.ForceUpdateCanvases();
+
+                CameraViewportProvider provider = cameraObject.AddComponent<CameraViewportProvider>();
+                const BindingFlags privateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+                typeof(CameraViewportProvider).GetField("m_Camera", privateInstance).SetValue(provider, camera);
+                typeof(CameraViewportProvider).GetField("m_UIRect", privateInstance).SetValue(provider, spacerRect);
+
+                Assert.That(provider.TryGetTargetCameraRect(out Rect firstTarget), Is.True);
+                Assert.That(firstTarget, Is.Not.EqualTo(new Rect(0f, 0f, 1f, 1f)));
+
+                camera.rect = firstTarget;
+                Canvas.ForceUpdateCanvases();
+
+                Assert.That(provider.TryGetTargetCameraRect(out Rect secondTarget), Is.True);
+                Assert.That(secondTarget.x, Is.EqualTo(firstTarget.x).Within(0.001f));
+                Assert.That(secondTarget.y, Is.EqualTo(firstTarget.y).Within(0.001f));
+                Assert.That(secondTarget.width, Is.EqualTo(firstTarget.width).Within(0.001f));
+                Assert.That(secondTarget.height, Is.EqualTo(firstTarget.height).Within(0.001f));
+
+                Rect effectiveViewport = provider.GetEffectiveViewportRect();
+                Assert.That(effectiveViewport.x, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(effectiveViewport.y, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(effectiveViewport.width, Is.EqualTo(1f).Within(0.001f));
+                Assert.That(effectiveViewport.height, Is.EqualTo(1f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(spacerObject);
+                Object.DestroyImmediate(canvasObject);
+                Object.DestroyImmediate(cameraObject);
+            }
+        }
+
+        [Test]
+        public void MainGameCameraViewportProvider_UsesSceneSpacerInstance()
+        {
+            const string mainGameScenePath = "Assets/Scenes/MainGame.unity";
+            UnityScene previousScene = SceneManager.GetActiveScene();
+            UnityScene mainGameScene = EditorSceneManager.OpenScene(mainGameScenePath, OpenSceneMode.Single);
+
+            try
+            {
+                CameraViewportProvider provider = Object.FindAnyObjectByType<CameraViewportProvider>(FindObjectsInactive.Include);
+                Assert.That(provider, Is.Not.Null);
+
+                const BindingFlags privateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+                RectTransform uiRect = typeof(CameraViewportProvider)
+                    .GetField("m_UIRect", privateInstance)
+                    .GetValue(provider) as RectTransform;
+
+                Assert.That(uiRect, Is.Not.Null);
+                Assert.That(uiRect.name, Is.EqualTo("MainCameraArea_Spacer"));
+                Assert.That(PrefabUtility.IsPartOfPrefabAsset(uiRect), Is.False);
+                Assert.That(uiRect.gameObject.scene, Is.EqualTo(mainGameScene));
+            }
+            finally
+            {
+                if (previousScene.IsValid() && previousScene.path != mainGameScenePath)
+                    EditorSceneManager.OpenScene(previousScene.path, OpenSceneMode.Single);
+            }
         }
 #endif
 

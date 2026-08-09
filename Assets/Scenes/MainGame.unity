@@ -654,9 +654,9 @@ Camera:
   m_NormalizedViewPortRect:
     serializedVersion: 2
     x: 0
-    y: 0.5
+    y: 0
     width: 1
-    height: 0.38
+    height: 1
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
@@ -767,7 +767,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eaffd4798b7bc542b557cb06ed0e67e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.Camera.CameraViewportProvider
-  m_UIRect: {fileID: 0}
+  m_UIRect: {fileID: 848273780}
   m_Camera: {fileID: 330585545}
 --- !u!1 &334894529
 GameObject:
@@ -1341,7 +1341,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.ResultPhase
   m_ResultUi: {fileID: 326530273}
   m_ResultDelay: 1
-  m_FadeDuration: 0.5
 --- !u!4 &498285542
 Transform:
   m_ObjectHideFlags: 0
@@ -1785,6 +1784,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 334894533}
     m_Modifications:
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -200
+      objectReference: {fileID: 0}
     - target: {fileID: 964055841593924884, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
@@ -2192,6 +2195,11 @@ MonoBehaviour:
 --- !u!224 &848273779 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8864588496158591914, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+  m_PrefabInstance: {fileID: 848273777}
+  m_PrefabAsset: {fileID: 0}
+--- !u!224 &848273780 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
   m_PrefabInstance: {fileID: 848273777}
   m_PrefabAsset: {fileID: 0}
 --- !u!225 &1107224097 stripped
@@ -3774,6 +3782,7 @@ MonoBehaviour:
   m_BettingUi: {fileID: 1171175822}
   m_BettingContentCanvasGroup: {fileID: 1107224097}
   m_NowColInfoText: {fileID: 1171175821}
+  m_NowColImage: {fileID: 0}
   m_SliderHandlePointerTrigger: {fileID: 1171175823}
 --- !u!4 &1563896881
 Transform:

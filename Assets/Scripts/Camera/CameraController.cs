@@ -98,6 +98,7 @@ namespace InTheArena.Camera
         {
             m_Constraint.ResetState();
             ApplySettings();
+            SyncViewportRect();
             m_DefaultPose = BuildDefaultPose();
             m_TargetPose = m_DefaultPose;
             ApplyPose(m_DefaultPose);
@@ -106,7 +107,10 @@ namespace InTheArena.Camera
 
         private void LateUpdate()
         {
-            if (m_MainCamera == null || m_CameraSettings == null || m_IsTransitioning) return;
+            if (m_MainCamera == null) return;
+
+            SyncViewportRect();
+            if (m_CameraSettings == null || m_IsTransitioning) return;
 
             if (m_CurrentPhase == CameraPhase.Combat &&
                 m_CameraSettings.EnableAutoFraming &&
@@ -170,6 +174,7 @@ namespace InTheArena.Camera
 
         public async Awaitable SetPhaseAsync(CameraPhase newPhase, CancellationToken token = default)
         {
+            SyncViewportRect();
             if (m_CurrentPhase == newPhase && !m_IsTransitioning && !m_IsCinematicFocus) return;
 
             m_IsCinematicFocus = false;
@@ -190,9 +195,33 @@ namespace InTheArena.Camera
 
         public void SetPhase(CameraPhase newPhase)
         {
+            SyncViewportRect();
             m_IsCinematicFocus = false;
             m_CurrentPhase = newPhase;
             m_TargetPose = GetPhasePose(newPhase);
+            m_NextBoundsRefreshTime = 0f;
+        }
+
+        private void SyncViewportRect()
+        {
+            if (m_MainCamera == null ||
+                m_ViewportProvider == null ||
+                !m_ViewportProvider.TryGetTargetCameraRect(out Rect targetRect))
+            {
+                return;
+            }
+
+            Rect currentRect = m_MainCamera.rect;
+            if (Mathf.Abs(currentRect.x - targetRect.x) <= 0.0001f &&
+                Mathf.Abs(currentRect.y - targetRect.y) <= 0.0001f &&
+                Mathf.Abs(currentRect.width - targetRect.width) <= 0.0001f &&
+                Mathf.Abs(currentRect.height - targetRect.height) <= 0.0001f)
+            {
+                return;
+            }
+
+            m_MainCamera.rect = targetRect;
+            m_Constraint.ResetState();
             m_NextBoundsRefreshTime = 0f;
         }
 
