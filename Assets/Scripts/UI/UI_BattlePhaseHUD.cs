@@ -59,6 +59,7 @@ namespace InTheArena.UI
         [SerializeField] private ItemData m_ItemSlot3Data;
         [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
         [SerializeField] private Sprite m_CancelOverlaySprite;
+        [SerializeField] private TMP_FontAsset m_DuplicateItemFeedbackFont;
         [SerializeField] private UI_CombatItemTargetingController m_CombatItemTargetingController;
         [SerializeField] private Image m_ItemSlot1CancelOverlay;
         [SerializeField] private Image m_ItemSlot2CancelOverlay;
@@ -995,7 +996,7 @@ namespace InTheArena.UI
             overlayRect.anchorMax = new Vector2(0.5f, 0.5f);
             overlayRect.pivot = new Vector2(0.5f, 0.5f);
             overlayRect.anchoredPosition = Vector2.zero;
-            overlayRect.sizeDelta = new Vector2(32f, 32f);
+            overlayRect.sizeDelta = new Vector2(115f, 110f);
             overlayObject.transform.SetAsLastSibling();
 
             Image overlay = overlayObject.GetComponent<Image>();
@@ -1030,6 +1031,12 @@ namespace InTheArena.UI
                 m_DuplicateItemFeedbackRect.pivot = new Vector2(0.5f, 0.5f);
                 m_DuplicateItemFeedbackRect.anchoredPosition = new Vector2(0f, 180f);
                 m_DuplicateItemFeedbackRect.sizeDelta = new Vector2(620f, 48f);
+            }
+
+            if (m_DuplicateItemFeedbackText != null &&
+                m_DuplicateItemFeedbackFont != null)
+            {
+                m_DuplicateItemFeedbackText.font = m_DuplicateItemFeedbackFont;
             }
 
             if (m_DuplicateItemFeedbackCanvasGroup == null &&

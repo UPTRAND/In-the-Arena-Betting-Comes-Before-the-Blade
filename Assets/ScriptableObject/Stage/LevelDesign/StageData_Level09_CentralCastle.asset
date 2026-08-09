@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -26,4 +26,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8861d41d75a3696d6af438abe6f1f7a7, type: 2}
   m_TargetCall: 5400
   m_EnableFactionBet: 1
-  m_SpecialBetTypes: []
+  m_SpecialBetTypes: 
