@@ -9,6 +9,10 @@ using InTheArena.Util;
 [DisallowMultipleComponent]
 public class AsyncSceneLoader : MonoBehaviour
 {
+    private const float LOADING_ENTRY_FADE_SECONDS = 0.5f;
+    private const float LOADING_EXIT_FADE_SECONDS = 0.3f;
+    private const float MIN_LOADING_DISPLAY_SECONDS = 1.5f;
+
     private static AsyncSceneLoader _instance;
     public static AsyncSceneLoader Instance => _instance;
 
@@ -117,6 +121,8 @@ public class AsyncSceneLoader : MonoBehaviour
 
         try
         {
+            await ScreenFaderTransition.FadeOutAsync(LOADING_ENTRY_FADE_SECONDS, token);
+
             // 1. 씬 전환 전 필요시 DOTween KillAll 등 정리
             // (주의: DDOL 씬 요소에 영향이 갈 수 있으나 레거시 호환을 위해 유지)
             DOTween.KillAll();
@@ -130,6 +136,8 @@ public class AsyncSceneLoader : MonoBehaviour
                 await Awaitable.NextFrameAsync();
             }
 
+            await ScreenFaderTransition.FadeInAsync(LOADING_ENTRY_FADE_SECONDS, token);
+            float loadingSceneEnteredAt = Time.realtimeSinceStartup;
             session.Report(0.1f);
 
             // 3. 목적지 씬 비동기 로드 (0.9 단계에서 대기)
@@ -150,6 +158,14 @@ public class AsyncSceneLoader : MonoBehaviour
             session.Report(1.0f);
             await Awaitable.NextFrameAsync(token); // UI에 100% 렌더링될 기회 부여
 
+            float remainingDisplayTime = MIN_LOADING_DISPLAY_SECONDS - (Time.realtimeSinceStartup - loadingSceneEnteredAt);
+            if (remainingDisplayTime > 0f)
+            {
+                await Awaitable.WaitForSecondsAsync(remainingDisplayTime, token);
+            }
+
+            await ScreenFaderTransition.FadeOutAsync(LOADING_EXIT_FADE_SECONDS, token);
+
             // 5. 목적지 씬 활성화
             targetSceneOp.allowSceneActivation = true;
 
@@ -158,6 +174,8 @@ public class AsyncSceneLoader : MonoBehaviour
             {
                 await Awaitable.NextFrameAsync();
             }
+
+            await ScreenFaderTransition.FadeInAsync(LOADING_EXIT_FADE_SECONDS, token);
 
             // 6. 전환 완료 시 추가 정리
             DOTween.KillAll();

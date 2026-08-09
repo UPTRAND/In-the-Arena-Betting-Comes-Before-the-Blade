@@ -1,0 +1,26 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f17c1440e24c4cb0cd91d1b05893c, type: 3}
+  m_Name: StageData_Level02_RoyalKnights
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.StageData
+  m_StageName: "\uC655\uAD81 \uAE30\uC0AC\uB2E8"
+  m_Region: 0
+  m_StageNum: 2
+  m_BackgroundSprite: {fileID: 21300000, guid: 139a936936b38304e85d5ee73231fab0, type: 3}
+  m_InitialCall: 500
+  m_RoundDatas:
+  - {fileID: 11400000, guid: b8b57c772a8abfd5bf75a2f8525ccc40, type: 2}
+  - {fileID: 11400000, guid: ee5384ffe137538098615a71740f8c26, type: 2}
+  - {fileID: 11400000, guid: 64510e3b073589088fa83eee2d7eb589, type: 2}
+  m_TargetCall: 1800
+  m_EnableFactionBet: 1
+  m_SpecialBetTypes: []

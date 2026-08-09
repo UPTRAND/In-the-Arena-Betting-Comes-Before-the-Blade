@@ -395,13 +395,42 @@ namespace InTheArena.Save
 
         public static string ComputeChecksum(PlayerSaveEnvelope env)
         {
-            string payloadJson = JsonUtility.ToJson(env.payload);
+            string payloadJson = env.schemaVersion < 3
+                ? JsonUtility.ToJson(LegacyChecksumPayload.From(env.payload))
+                : JsonUtility.ToJson(env.payload);
             string raw = $"{env.schemaVersion}_{env.revision}_{env.savedAtUtcTicks}_{payloadJson}";
 
             using (var sha256 = System.Security.Cryptography.SHA256.Create())
             {
                 byte[] hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(raw));
                 return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
+        [Serializable]
+        private sealed class LegacyChecksumPayload
+        {
+            public int clearedStageNumber;
+            public int gold;
+            public int hearts;
+            public int stars;
+            public long lastHeartRecoveryUtcTicks;
+
+            public static LegacyChecksumPayload From(PlayerSavePayload payload)
+            {
+                if (payload == null)
+                {
+                    return new LegacyChecksumPayload();
+                }
+
+                return new LegacyChecksumPayload
+                {
+                    clearedStageNumber = payload.clearedStageNumber,
+                    gold = payload.gold,
+                    hearts = payload.hearts,
+                    stars = payload.stars,
+                    lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks
+                };
             }
         }
     }

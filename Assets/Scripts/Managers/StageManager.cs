@@ -20,6 +20,10 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class StageManager : Manager_Base
     {
+        private const float LoadingEntryFadeSeconds = 0.5f;
+        private const float LoadingExitFadeSeconds = 0.3f;
+        private const float MinLoadingDisplaySeconds = 1.5f;
+
         private static StageManager _instance;
 
         public static StageManager Instance
@@ -147,9 +151,12 @@ namespace InTheArena.MainGame
             try
             {
                 session?.Report(0f);
+                await ScreenFaderTransition.FadeOutAsync(LoadingEntryFadeSeconds, m_StageCts.Token);
                 Debug.Log($"[StageManager] {stageData.FullStageName} 스테이지 시작 - Loading 씬 로드 중...");
                 await SceneManager.LoadSceneAsync(m_LoadingSceneName, LoadSceneMode.Single).ToAwaitable();
 
+                await ScreenFaderTransition.FadeInAsync(LoadingEntryFadeSeconds, m_StageCts.Token);
+                float loadingSceneEnteredAt = Time.realtimeSinceStartup;
                 session?.Report(0.1f);
 
                 m_Context.Clear();
@@ -179,11 +186,21 @@ namespace InTheArena.MainGame
                 session?.Report(1f);
                 await Awaitable.NextFrameAsync();
 
+                float remainingDisplayTime = MinLoadingDisplaySeconds - (Time.realtimeSinceStartup - loadingSceneEnteredAt);
+                if (remainingDisplayTime > 0f)
+                {
+                    await Awaitable.WaitForSecondsAsync(remainingDisplayTime, m_StageCts.Token);
+                }
+
+                await ScreenFaderTransition.FadeOutAsync(LoadingExitFadeSeconds, m_StageCts.Token);
+
                 mainGameOp.allowSceneActivation = true;
                 while (!mainGameOp.isDone)
                 {
                     await Awaitable.NextFrameAsync();
                 }
+
+                await ScreenFaderTransition.FadeInAsync(LoadingExitFadeSeconds, m_StageCts.Token);
 
                 session?.Complete();
 

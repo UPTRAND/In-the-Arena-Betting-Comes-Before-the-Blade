@@ -1,0 +1,120 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fc483f7ff24e6845be1bb1fbc5cd9a6, type: 3}
+  m_Name: RoundData_Stage14_Round06
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.RoundData
+  m_RoundNumber: 6
+  m_TeamAGrid:
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_FixedCount: 2
+    m_VariableUnitPool: []
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 1
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  m_TeamBGrid:
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 1
+    m_FixedUnit: {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    m_FixedCount: 2
+    m_VariableUnitPool: []
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 1
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  - m_IsFixed: 0
+    m_FixedUnit: {fileID: 0}
+    m_FixedCount: 1
+    m_VariableUnitPool:
+    - {fileID: 11400000, guid: ef42272937cf4f21a409f9e31eb2f4b2, type: 2}
+    - {fileID: 11400000, guid: 4320498f912b402f887667a006515368, type: 2}
+    - {fileID: 11400000, guid: d2e7ebb8498f44c4a63d43086583882d, type: 2}
+    m_ExtraCountRange: 0
+    m_SpawnProbability: 1
+  m_SpecialRule: 0

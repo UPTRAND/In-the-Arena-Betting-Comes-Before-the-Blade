@@ -20,7 +20,7 @@ MonoBehaviour:
   m_BaseStat:
     maxHp: 180
     attackPower: 9
-    defense: 10
+    defense: 7
     attackSpeed: 0.55
     moveSpeed: 0.7
     attackRange: 1

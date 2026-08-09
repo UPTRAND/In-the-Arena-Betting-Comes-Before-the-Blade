@@ -14,35 +14,9 @@ namespace InTheArena.MainGame.Editor
             var stageData = (StageData)target;
             EditorGUILayout.Space(8f);
             EditorGUILayout.HelpBox(
-                $"난이도 권장값: {stageData.PresetRoundCount} Round / {GetPresetTarget(stageData.Difficulty)} Call\n" +
-                "프리셋 적용 후 Round 목록과 목표 Call은 콘텐츠에 맞게 수정할 수 있습니다.",
+                $"\uD604\uC7AC \uC2A4\uD14C\uC774\uC9C0 \uB09C\uC774\uB3C4: {stageData.TotalRounds}\uB77C\uC6B4\uB4DC / \uBAA9\uD45C {stageData.TargetCall} Call\n" +
+                "\uB09C\uC774\uB3C4\uB294 \uC124\uC815 \uD31D\uC5C5\uC774 \uC544\uB2C8\uB77C \uAC01 StageData\uC758 \uB77C\uC6B4\uB4DC \uC218, \uBAA9\uD45C Call, \uC0AC\uC6A9 \uC720\uB2DB \uD480\uB85C \uACB0\uC815\uB429\uB2C8\uB2E4.",
                 MessageType.Info);
-
-            if (GUILayout.Button("난이도 목표 Call 프리셋 적용"))
-            {
-                Undo.RecordObject(stageData, "Apply Stage Difficulty Preset");
-                stageData.ApplyDifficultyPreset();
-                EditorUtility.SetDirty(stageData);
-            }
-
-            if (stageData.TotalRounds != stageData.PresetRoundCount)
-            {
-                EditorGUILayout.HelpBox(
-                    $"현재 Round 수({stageData.TotalRounds})가 난이도 권장값({stageData.PresetRoundCount})과 다릅니다. " +
-                    "커스텀 스테이지라면 그대로 사용할 수 있습니다.",
-                    MessageType.Warning);
-            }
-        }
-
-        private static int GetPresetTarget(StageDifficulty difficulty)
-        {
-            return difficulty switch
-            {
-                StageDifficulty.Easy => 1200,
-                StageDifficulty.Normal => 1800,
-                StageDifficulty.Hard => 2400,
-                _ => 1800
-            };
         }
     }
 }

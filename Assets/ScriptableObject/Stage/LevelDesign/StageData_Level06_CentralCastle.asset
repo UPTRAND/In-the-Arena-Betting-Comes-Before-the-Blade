@@ -1,0 +1,27 @@
+﻿%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f17c1440e24c4cb0cd91d1b05893c, type: 3}
+  m_Name: StageData_Level06_CentralCastle
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.StageData
+  m_StageName: "\uC13C\uD2B8\uB7F4 \uCE90\uC2AC"
+  m_Region: 0
+  m_StageNum: 6
+  m_BackgroundSprite: {fileID: 21300000, guid: 9fb3b56c7ccfd9945accb1652c67df3c, type: 3}
+  m_InitialCall: 500
+  m_RoundDatas:
+  - {fileID: 11400000, guid: f40462ab2c87778ec47bd16706c020b3, type: 2}
+  - {fileID: 11400000, guid: 46c62f8f25174ff011d2eaff74dcb2b9, type: 2}
+  - {fileID: 11400000, guid: ddb79e4835def47e17126d2fb685fcc6, type: 2}
+  - {fileID: 11400000, guid: d7301fb273269d6dd635675db803608d, type: 2}
+  m_TargetCall: 3200
+  m_EnableFactionBet: 1
+  m_SpecialBetTypes: []

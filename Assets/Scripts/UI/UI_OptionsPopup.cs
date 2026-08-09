@@ -1,21 +1,22 @@
 #if UNITY_6000_0_OR_NEWER
 using TMPro;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace InTheArena.UI
 {
-    /// <summary>
-    /// Runtime options popup shared by the lobby and gameplay UI.
-    /// The popup is built at runtime so it follows every scene without a duplicate prefab.
-    /// </summary>
     [DisallowMultipleComponent]
     public sealed class UI_OptionsPopup : MonoBehaviour
     {
         private const string LobbySceneName = "Lobby";
+        private const string GalmuriFontName = "Galmuri9 SDF";
 
         private static UI_OptionsPopup s_Instance;
+        private static TMP_FontAsset s_GalmuriFont;
 
         private CanvasGroup m_CanvasGroup;
         private Slider m_BgmSlider;
@@ -113,7 +114,7 @@ namespace InTheArena.UI
             Image panel = CreateImage("OptionsPanel", transform, new Color(0.075f, 0.12f, 0.20f, 1f));
             RectTransform panelRect = panel.rectTransform;
             panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(740f, 540f);
+            panelRect.sizeDelta = new Vector2(740f, 460f);
             panelRect.anchoredPosition = Vector2.zero;
 
             Outline outline = panel.gameObject.AddComponent<Outline>();
@@ -129,7 +130,7 @@ namespace InTheArena.UI
             titleRect.anchoredPosition = new Vector2(0f, -38f);
             titleRect.sizeDelta = new Vector2(-120f, 70f);
 
-            Button closeButton = CreateButton("CloseButton", panel.transform, "×", new Color(0.22f, 0.37f, 0.55f));
+            Button closeButton = CreateButton("CloseButton", panel.transform, "X", new Color(0.22f, 0.37f, 0.55f));
             RectTransform closeRect = closeButton.GetComponent<RectTransform>();
             closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
             closeRect.pivot = new Vector2(1f, 1f);
@@ -137,12 +138,12 @@ namespace InTheArena.UI
             closeRect.sizeDelta = new Vector2(58f, 58f);
             closeButton.onClick.AddListener(Close);
 
-            m_BgmSlider = CreateVolumeRow(panel.transform, "BGM VOLUME", 220f);
-            m_SfxSlider = CreateVolumeRow(panel.transform, "SFX VOLUME", 130f);
+            m_BgmSlider = CreateVolumeRow(panel.transform, "BGM VOLUME", 155f);
+            m_SfxSlider = CreateVolumeRow(panel.transform, "SFX VOLUME", 35f);
             m_BgmSlider.onValueChanged.AddListener(SetBgmVolume);
             m_SfxSlider.onValueChanged.AddListener(SetSfxVolume);
 
-            Button lobbyButton = CreateButton("ReturnToLobbyButton", panel.transform, "RETURN TO LOBBY",
+            Button lobbyButton = CreateButton("ReturnToLobbyButton", panel.transform, "\uB85C\uBE44\uB85C \uB3CC\uC544\uAC00\uAE30",
                 new Color(0.16f, 0.45f, 0.66f));
             RectTransform lobbyRect = lobbyButton.GetComponent<RectTransform>();
             lobbyRect.anchorMin = lobbyRect.anchorMax = new Vector2(0.5f, 0f);
@@ -215,13 +216,47 @@ namespace InTheArena.UI
             GameObject child = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             child.transform.SetParent(parent, false);
             TMP_Text text = child.GetComponent<TMP_Text>();
-            text.font = TMP_Settings.defaultFontAsset;
+            text.font = GetGalmuriFont();
             text.text = value;
             text.fontSize = size;
             text.alignment = alignment;
             text.color = color;
             text.raycastTarget = false;
             return text;
+        }
+
+        private static TMP_FontAsset GetGalmuriFont()
+        {
+            if (s_GalmuriFont != null)
+            {
+                return s_GalmuriFont;
+            }
+
+            s_GalmuriFont = Resources.Load<TMP_FontAsset>(GalmuriFontName);
+            if (s_GalmuriFont != null)
+            {
+                return s_GalmuriFont;
+            }
+
+#if UNITY_EDITOR
+            s_GalmuriFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/Font/Galmuri9 SDF.asset");
+            if (s_GalmuriFont != null)
+            {
+                return s_GalmuriFont;
+            }
+#endif
+
+            TMP_FontAsset[] loadedFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            for (int i = 0; i < loadedFonts.Length; i++)
+            {
+                if (loadedFonts[i] != null && loadedFonts[i].name == GalmuriFontName)
+                {
+                    s_GalmuriFont = loadedFonts[i];
+                    return s_GalmuriFont;
+                }
+            }
+
+            return TMP_Settings.defaultFontAsset;
         }
 
         private static void Stretch(RectTransform rect, Vector2 min, Vector2 max, Vector2 offsetMin, Vector2 offsetMax)

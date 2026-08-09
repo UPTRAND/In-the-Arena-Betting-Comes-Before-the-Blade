@@ -14,7 +14,7 @@ namespace InTheArena.Save
 
     public static class PlayerSaveValidator
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
 
         public static bool ValidateAndNormalize(PlayerSaveEnvelope envelope, IClock clock)
         {
@@ -36,6 +36,7 @@ namespace InTheArena.Save
             payload.gold = Math.Max(0, payload.gold);
             payload.hearts = Math.Clamp(payload.hearts, 0, 5); // MaxHearts는 보통 SaveManager에 있지만 임시로 5로 고정 또는 Repository에서 검증
             payload.stars = Math.Max(0, payload.stars);
+            payload.selectedStageDifficulty = Math.Clamp(payload.selectedStageDifficulty, 0, 2);
 
             long nowTicks = clock.UtcNow.Ticks;
             if (payload.lastHeartRecoveryUtcTicks > nowTicks)

@@ -71,9 +71,21 @@ MonoBehaviour:
   m_StartButtonLabel: {fileID: 3695926267252793929}
   m_BackgroundImage: {fileID: 902762678139049280}
   m_StageDatas:
-  - {fileID: 11400000, guid: a1010000000000000000000000000001, type: 2}
-  - {fileID: 11400000, guid: a1020000000000000000000000000002, type: 2}
-  - {fileID: 11400000, guid: a1030000000000000000000000000003, type: 2}
+  - {fileID: 11400000, guid: 6160de35ef65210d54b652ccb21d5c22, type: 2}
+  - {fileID: 11400000, guid: 21201f9af802071f088e6455b31be532, type: 2}
+  - {fileID: 11400000, guid: 7de672a24a7d5e42f99c599da1bd1117, type: 2}
+  - {fileID: 11400000, guid: e540f450fffad5eda2f93aeffece0ef2, type: 2}
+  - {fileID: 11400000, guid: a70c68e6f54187d0c42d804f50b76c17, type: 2}
+  - {fileID: 11400000, guid: 3ded6d9c5106fafa5a5f32d3c3be32bd, type: 2}
+  - {fileID: 11400000, guid: 3b40c2885feac70316c1321a04587dd9, type: 2}
+  - {fileID: 11400000, guid: 981b2eea2b0f7ae49067caba013dd012, type: 2}
+  - {fileID: 11400000, guid: bcf12273b6cc0d16bafaafa230c14e7c, type: 2}
+  - {fileID: 11400000, guid: 6a23eabc842a4f9f1b85caf12af0c8cf, type: 2}
+  - {fileID: 11400000, guid: e64c09ea839dd1740d3955d3ae718f91, type: 2}
+  - {fileID: 11400000, guid: 2fb620a0913f6c09a421306e826dd166, type: 2}
+  - {fileID: 11400000, guid: d451137f518a3500ab4064c397b69932, type: 2}
+  - {fileID: 11400000, guid: e53a17035a1136136e9bc9520b4cd434, type: 2}
+  - {fileID: 11400000, guid: 5fe6731fc44dfae566e2720540f0d795, type: 2}
 --- !u!1 &2822507859273455389
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using InTheArena.Save;
 
@@ -105,7 +105,7 @@ public class SaveManager : Manager_Base
             m_IsReadOnly = true;
             m_State = null;
             Availability = SaveAvailability.UnsupportedFutureVersion;
-            Debug.LogError("[SaveManager] 미래 버전 세이브입니다. 읽기 전용(로드 불가) 모드로 전환합니다.");
+            Debug.LogError("[SaveManager] 誘몃옒 踰꾩쟾 ?몄씠釉뚯엯?덈떎. ?쎄린 ?꾩슜(濡쒕뱶 遺덇?) 紐⑤뱶濡??꾪솚?⑸땲??");
             return;
         }
 
@@ -113,7 +113,7 @@ public class SaveManager : Manager_Base
         {
             m_State = null;
             Availability = SaveAvailability.Corrupted;
-            Debug.LogError("[SaveManager] 세이브 데이터가 손상되었습니다.");
+            Debug.LogError("[SaveManager] ?몄씠釉??곗씠?곌? ?먯긽?섏뿀?듬땲??");
             return;
         }
 
@@ -121,7 +121,7 @@ public class SaveManager : Manager_Base
         {
             m_State = null;
             Availability = SaveAvailability.IoFailure;
-            Debug.LogError("[SaveManager] 세이브 데이터 로드 중 IO 오류가 발생했습니다.");
+            Debug.LogError("[SaveManager] ?몄씠釉??곗씠??濡쒕뱶 以?IO ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.");
             return;
         }
 
@@ -221,6 +221,7 @@ public class SaveManager : Manager_Base
         }
         return false;
     }
+
 
     public PlayerProgressState CreatePendingStageClearCandidate(InTheArena.MainGame.StagePlayerState stageState, int stageNumber, int goldReward, int starReward)
     {
