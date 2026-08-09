@@ -1041,10 +1041,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: UI_LobbyNavigationBar
       objectReference: {fileID: 0}
-    - target: {fileID: 120540538475642393, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 716823510635423182, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -1124,14 +1120,6 @@ PrefabInstance:
     - target: {fileID: 716823510635423182, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3821483776568469366, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
-      propertyPath: m_Color.a
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4258322376920047126, guid: e7afff2d38b9e4948968f2fb9f712600, type: 3}
-      propertyPath: m_Color.a
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
