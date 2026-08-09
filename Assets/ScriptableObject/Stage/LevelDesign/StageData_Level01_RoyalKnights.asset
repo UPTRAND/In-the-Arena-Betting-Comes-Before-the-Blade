@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f17c1440e24c4cb0cd91d1b05893c, type: 3}
+  m_Name: StageData_Level01_RoyalKnights
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.StageData
+  m_StageName: "\uC655\uAD81 \uAE30\uC0AC\uB2E8"
+  m_Region: 0
+  m_StageNum: 1
+  m_Difficulty: 0
+  m_BackgroundSprite: {fileID: 21300000, guid: 139a936936b38304e85d5ee73231fab0, type: 3}
+  m_InitialCall: 500
+  m_RoundDatas:
+  - {fileID: 11400000, guid: 18edbdf52fbe52897b17b60d48e04d2d, type: 2}
+  - {fileID: 11400000, guid: 799bddcab85375351d86d3d546eeeb79, type: 2}
+  - {fileID: 11400000, guid: 2ccb3168747f566c6368a8d939ec39e2, type: 2}
+  - {fileID: 11400000, guid: f16d71594eeeabe905bdb55315b8e5ed, type: 2}
+  - {fileID: 11400000, guid: 8bf3d1a78e07943650835cab95cb8e11, type: 2}
+  - {fileID: 11400000, guid: 8530e3b638b0bd967e5eac3e1854a21f, type: 2}
+  - {fileID: 11400000, guid: bf360f242011ded14bffb5056c7032de, type: 2}
+  m_TargetCall: 1500
+  m_DifficultyConfigs:
+  - m_Difficulty: 0
+    m_InitialCall: 500
+    m_TargetCall: 1500
+    m_RoundCount: 3
+  - m_Difficulty: 1
+    m_InitialCall: 500
+    m_TargetCall: 3000
+    m_RoundCount: 5
+  - m_Difficulty: 2
+    m_InitialCall: 500
+    m_TargetCall: 4000
+    m_RoundCount: 7
+  m_EnableFactionBet: 1
+  m_SpecialBetTypes: []

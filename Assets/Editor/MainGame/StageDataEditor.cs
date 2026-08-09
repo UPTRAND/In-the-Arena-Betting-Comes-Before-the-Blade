@@ -14,35 +14,17 @@ namespace InTheArena.MainGame.Editor
             var stageData = (StageData)target;
             EditorGUILayout.Space(8f);
             EditorGUILayout.HelpBox(
-                $"난이도 권장값: {stageData.PresetRoundCount} Round / {GetPresetTarget(stageData.Difficulty)} Call\n" +
-                "프리셋 적용 후 Round 목록과 목표 Call은 콘텐츠에 맞게 수정할 수 있습니다.",
+                $"선택된 프리셋: {stageData.DefaultDifficulty} / {stageData.PresetRoundCount}라운드 / " +
+                $"{StageData.GetPresetTargetCall(stageData.DefaultDifficulty)} Call\n" +
+                "실행 난이도는 설정 팝업에서 선택합니다. 각 스테이지는 공통 7개 라운드를 가지고, 난이도별 사용 라운드 수만 달라집니다.",
                 MessageType.Info);
 
-            if (GUILayout.Button("난이도 목표 Call 프리셋 적용"))
+            if (GUILayout.Button("선택 난이도에 목표 Call/라운드 수 프리셋 적용"))
             {
-                Undo.RecordObject(stageData, "Apply Stage Difficulty Preset");
+                Undo.RecordObject(stageData, "스테이지 난이도 프리셋 적용");
                 stageData.ApplyDifficultyPreset();
                 EditorUtility.SetDirty(stageData);
             }
-
-            if (stageData.TotalRounds != stageData.PresetRoundCount)
-            {
-                EditorGUILayout.HelpBox(
-                    $"현재 Round 수({stageData.TotalRounds})가 난이도 권장값({stageData.PresetRoundCount})과 다릅니다. " +
-                    "커스텀 스테이지라면 그대로 사용할 수 있습니다.",
-                    MessageType.Warning);
-            }
-        }
-
-        private static int GetPresetTarget(StageDifficulty difficulty)
-        {
-            return difficulty switch
-            {
-                StageDifficulty.Easy => 1200,
-                StageDifficulty.Normal => 1800,
-                StageDifficulty.Hard => 2400,
-                _ => 1800
-            };
         }
     }
 }

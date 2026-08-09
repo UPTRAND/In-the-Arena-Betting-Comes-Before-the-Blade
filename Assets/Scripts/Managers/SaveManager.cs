@@ -46,6 +46,8 @@ public class SaveManager : Manager_Base
     public int Hearts => m_State?.Hearts ?? 0;
     public int Stars => m_State?.Stars ?? 0;
     public int ClearedStageNumber => m_State?.ClearedStageNumber ?? 0;
+    public InTheArena.MainGame.StageDifficulty SelectedStageDifficulty =>
+        (InTheArena.MainGame.StageDifficulty)Mathf.Clamp(m_State?.SelectedStageDifficulty ?? 0, 0, 2);
 
     private bool m_IsSaving = false;
 
@@ -96,6 +98,7 @@ public class SaveManager : Manager_Base
         defaultCandidate.SetGold(Mathf.Max(0, m_DefaultGold));
         defaultCandidate.SetHearts(Mathf.Clamp(m_DefaultHearts, 0, MaxHearts));
         defaultCandidate.SetStars(Mathf.Max(0, m_DefaultStars));
+        defaultCandidate.SetSelectedStageDifficulty(0);
         defaultCandidate.SetLastHeartRecoveryUtcTicks(m_Clock.UtcNow.Ticks);
 
         var result = m_Repository.LoadOrCreate(defaultCandidate);
@@ -220,6 +223,33 @@ public class SaveManager : Manager_Base
             return true;
         }
         return false;
+    }
+
+    public bool TrySetSelectedStageDifficulty(InTheArena.MainGame.StageDifficulty difficulty, out string error)
+    {
+        error = null;
+        if (m_IsReadOnly || m_State == null || Availability != SaveAvailability.Ready)
+        {
+            error = "저장 데이터를 사용할 수 없거나 읽기 전용 상태입니다.";
+            return false;
+        }
+
+        int value = Mathf.Clamp((int)difficulty, 0, 2);
+        if (m_State.SelectedStageDifficulty == value)
+        {
+            return true;
+        }
+
+        var copy = m_State.DeepClone();
+        copy.SetSelectedStageDifficulty(value);
+
+        if (!TrySave(copy, out error))
+        {
+            return false;
+        }
+
+        m_State = copy;
+        return true;
     }
 
     public PlayerProgressState CreatePendingStageClearCandidate(InTheArena.MainGame.StagePlayerState stageState, int stageNumber, int goldReward, int starReward)

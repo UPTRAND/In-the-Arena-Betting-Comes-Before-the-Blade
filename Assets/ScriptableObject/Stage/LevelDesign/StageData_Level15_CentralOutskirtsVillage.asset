@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f17c1440e24c4cb0cd91d1b05893c, type: 3}
+  m_Name: StageData_Level15_CentralOutskirtsVillage
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.StageData
+  m_StageName: "\uC13C\uD2B8\uB7F4 \uC678\uACFD \uB9C8\uC744"
+  m_Region: 0
+  m_StageNum: 15
+  m_Difficulty: 0
+  m_BackgroundSprite: {fileID: 21300000, guid: 067db931f670e1a449e321af44f373ab, type: 3}
+  m_InitialCall: 500
+  m_RoundDatas:
+  - {fileID: 11400000, guid: 9065dfc3bb3b7170d8c2eca265b798b8, type: 2}
+  - {fileID: 11400000, guid: 3e7555733c86f80c220504618b68ff1a, type: 2}
+  - {fileID: 11400000, guid: d2fc2bd7eb9657840e2be4db923a1f0b, type: 2}
+  - {fileID: 11400000, guid: 6def093cfccca5113c9634f073d01e04, type: 2}
+  - {fileID: 11400000, guid: 6d95bf38b0af0332c579e7fab416ae0d, type: 2}
+  - {fileID: 11400000, guid: 4c584f8c75fda28c48472a11c32cec82, type: 2}
+  - {fileID: 11400000, guid: 06e06844dbf6977a53f8a6781e488ce4, type: 2}
+  m_TargetCall: 1500
+  m_DifficultyConfigs:
+  - m_Difficulty: 0
+    m_InitialCall: 500
+    m_TargetCall: 1500
+    m_RoundCount: 3
+  - m_Difficulty: 1
+    m_InitialCall: 500
+    m_TargetCall: 3000
+    m_RoundCount: 5
+  - m_Difficulty: 2
+    m_InitialCall: 500
+    m_TargetCall: 4000
+    m_RoundCount: 7
+  m_EnableFactionBet: 1
+  m_SpecialBetTypes: []

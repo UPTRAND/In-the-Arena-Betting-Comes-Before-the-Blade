@@ -9,6 +9,7 @@ namespace InTheArena.Save
         public int gold;
         public int hearts;
         public int stars;
+        public int selectedStageDifficulty;
         public long lastHeartRecoveryUtcTicks;
     }
 }

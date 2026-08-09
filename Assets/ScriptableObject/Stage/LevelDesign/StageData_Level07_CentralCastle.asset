@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a40f17c1440e24c4cb0cd91d1b05893c, type: 3}
+  m_Name: StageData_Level07_CentralCastle
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.MainGame.StageData
+  m_StageName: "\uC13C\uD2B8\uB7F4 \uCE90\uC2AC"
+  m_Region: 0
+  m_StageNum: 7
+  m_Difficulty: 0
+  m_BackgroundSprite: {fileID: 21300000, guid: 9fb3b56c7ccfd9945accb1652c67df3c, type: 3}
+  m_InitialCall: 500
+  m_RoundDatas:
+  - {fileID: 11400000, guid: 408a7409a929984226a0d100d28aeb87, type: 2}
+  - {fileID: 11400000, guid: a4816b3870b51ab611b3ae4b9a1f68c6, type: 2}
+  - {fileID: 11400000, guid: 6c422ffed726992ab56e946ad60c00f4, type: 2}
+  - {fileID: 11400000, guid: e6c9cb68376cc7208fea7a0e5f0fe36c, type: 2}
+  - {fileID: 11400000, guid: af588f41fcf45b808ad3caa148e7b81a, type: 2}
+  - {fileID: 11400000, guid: d61f9982e87e819afd97589b0c6b0531, type: 2}
+  - {fileID: 11400000, guid: 600077b27f668ecbc5b4a392a66a6e99, type: 2}
+  m_TargetCall: 1500
+  m_DifficultyConfigs:
+  - m_Difficulty: 0
+    m_InitialCall: 500
+    m_TargetCall: 1500
+    m_RoundCount: 3
+  - m_Difficulty: 1
+    m_InitialCall: 500
+    m_TargetCall: 3000
+    m_RoundCount: 5
+  - m_Difficulty: 2
+    m_InitialCall: 500
+    m_TargetCall: 4000
+    m_RoundCount: 7
+  m_EnableFactionBet: 1
+  m_SpecialBetTypes: []
