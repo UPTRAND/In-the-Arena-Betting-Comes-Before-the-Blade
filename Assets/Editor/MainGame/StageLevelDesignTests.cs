@@ -7,7 +7,7 @@ namespace InTheArena.MainGame.Editor
     public sealed class StageLevelDesignTests
     {
         [Test]
-        public void GeneratedStagesUseSharedRoundDataWithDifficultyRoundCounts()
+        public void GeneratedStagesUseStageSpecificRoundCountsAndTargetCalls()
         {
             string[] stageGuids = AssetDatabase.FindAssets("t:StageData", new[] { "Assets/ScriptableObject/Stage/LevelDesign" });
             Assert.That(stageGuids.Length, Is.EqualTo(15));
@@ -17,35 +17,37 @@ namespace InTheArena.MainGame.Editor
 
             StageData first = LoadStage(1, "RoyalKnights");
             Assert.That(first.StageNum, Is.EqualTo(1));
-            Assert.That(first.StageName, Is.EqualTo("왕궁 기사단"));
-            Assert.That(first.GetRoundDatas(StageDifficulty.Easy).Count, Is.EqualTo(3));
-            Assert.That(first.GetRoundDatas(StageDifficulty.Normal).Count, Is.EqualTo(5));
-            Assert.That(first.GetRoundDatas(StageDifficulty.Hard).Count, Is.EqualTo(7));
-            Assert.That(first.GetTargetCall(StageDifficulty.Easy), Is.EqualTo(1500));
-            Assert.That(first.GetTargetCall(StageDifficulty.Normal), Is.EqualTo(3000));
-            Assert.That(first.GetTargetCall(StageDifficulty.Hard), Is.EqualTo(4000));
+            Assert.That(first.StageName, Is.EqualTo("\uC655\uAD81 \uAE30\uC0AC\uB2E8"));
+            Assert.That(first.RoundDatas.Count, Is.EqualTo(3));
+            Assert.That(first.TargetCall, Is.EqualTo(1500));
+
+            StageData middle = LoadStage(10, "CentralCastle");
+            Assert.That(middle.RoundDatas.Count, Is.EqualTo(6));
+            Assert.That(middle.TargetCall, Is.EqualTo(6200));
+
+            StageData final = LoadStage(15, "CentralOutskirtsVillage");
+            Assert.That(final.RoundDatas.Count, Is.EqualTo(7));
+            Assert.That(final.TargetCall, Is.EqualTo(9000));
         }
 
         [Test]
-        public void OpeningRoundsKeepRequestedTutorialDeployments()
+        public void OpeningRoundsKeepTutorialSizedDeployments()
         {
             RoundData stageOneRoundOne = AssetDatabase.LoadAssetAtPath<RoundData>(
                 "Assets/ScriptableObject/Round/LevelDesign/Stage01/RoundData_Stage01_Round01.asset");
             Assert.That(stageOneRoundOne, Is.Not.Null);
-            Assert.That(stageOneRoundOne.TeamAGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Knight"));
-            Assert.That(stageOneRoundOne.TeamAGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Archer"));
-            Assert.That(stageOneRoundOne.TeamAGrid[2].FixedUnit.name, Is.EqualTo("UnitData_Wizard"));
-            Assert.That(stageOneRoundOne.TeamBGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Knight"));
-            Assert.That(stageOneRoundOne.TeamBGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Archer"));
-            Assert.That(stageOneRoundOne.TeamBGrid[2].FixedUnit.name, Is.EqualTo("UnitData_Prist"));
+            Assert.That(stageOneRoundOne.TeamAGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Archer"));
+            Assert.That(stageOneRoundOne.TeamAGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Knight"));
+            Assert.That(stageOneRoundOne.TeamBGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Archer"));
+            Assert.That(stageOneRoundOne.TeamBGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Knight"));
 
             RoundData stageElevenRoundOne = AssetDatabase.LoadAssetAtPath<RoundData>(
                 "Assets/ScriptableObject/Round/LevelDesign/Stage11/RoundData_Stage11_Round01.asset");
             Assert.That(stageElevenRoundOne, Is.Not.Null);
-            Assert.That(stageElevenRoundOne.TeamAGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Lumberjack"));
-            Assert.That(stageElevenRoundOne.TeamAGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Hunter"));
-            Assert.That(stageElevenRoundOne.TeamBGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Blacksmith"));
-            Assert.That(stageElevenRoundOne.TeamBGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Lumberjack"));
+            Assert.That(stageElevenRoundOne.TeamAGrid[0].FixedUnit.name, Is.EqualTo("UnitData_Wizard"));
+            Assert.That(stageElevenRoundOne.TeamAGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Prist"));
+            Assert.That(stageElevenRoundOne.TeamBGrid[0].FixedUnit.name, Is.EqualTo("UnitData_King"));
+            Assert.That(stageElevenRoundOne.TeamBGrid[1].FixedUnit.name, Is.EqualTo("UnitData_Peasant"));
         }
 
         [Test]
@@ -83,7 +85,10 @@ namespace InTheArena.MainGame.Editor
             for (int i = 0; i < grid.Length; i++)
             {
                 GridCellData cell = grid[i];
-                if (cell == null || cell.SpawnProbability <= 0f) continue;
+                if (cell == null || cell.SpawnProbability <= 0f)
+                {
+                    continue;
+                }
 
                 if (cell.IsFixed)
                 {

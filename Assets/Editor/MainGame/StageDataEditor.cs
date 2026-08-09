@@ -14,17 +14,9 @@ namespace InTheArena.MainGame.Editor
             var stageData = (StageData)target;
             EditorGUILayout.Space(8f);
             EditorGUILayout.HelpBox(
-                $"선택된 프리셋: {stageData.DefaultDifficulty} / {stageData.PresetRoundCount}라운드 / " +
-                $"{StageData.GetPresetTargetCall(stageData.DefaultDifficulty)} Call\n" +
-                "실행 난이도는 설정 팝업에서 선택합니다. 각 스테이지는 공통 7개 라운드를 가지고, 난이도별 사용 라운드 수만 달라집니다.",
+                $"\uD604\uC7AC \uC2A4\uD14C\uC774\uC9C0 \uB09C\uC774\uB3C4: {stageData.TotalRounds}\uB77C\uC6B4\uB4DC / \uBAA9\uD45C {stageData.TargetCall} Call\n" +
+                "\uB09C\uC774\uB3C4\uB294 \uC124\uC815 \uD31D\uC5C5\uC774 \uC544\uB2C8\uB77C \uAC01 StageData\uC758 \uB77C\uC6B4\uB4DC \uC218, \uBAA9\uD45C Call, \uC0AC\uC6A9 \uC720\uB2DB \uD480\uB85C \uACB0\uC815\uB429\uB2C8\uB2E4.",
                 MessageType.Info);
-
-            if (GUILayout.Button("선택 난이도에 목표 Call/라운드 수 프리셋 적용"))
-            {
-                Undo.RecordObject(stageData, "스테이지 난이도 프리셋 적용");
-                stageData.ApplyDifficultyPreset();
-                EditorUtility.SetDirty(stageData);
-            }
         }
     }
 }

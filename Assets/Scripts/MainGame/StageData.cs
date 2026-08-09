@@ -1,5 +1,4 @@
 #if UNITY_6000_0_OR_NEWER
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -18,51 +17,22 @@ namespace InTheArena.MainGame
         Abyss = 7
     }
 
-    [Serializable]
-    public sealed class StageDifficultyConfig
-    {
-        [SerializeField] private StageDifficulty m_Difficulty = StageDifficulty.Easy;
-        [FormerlySerializedAs("m_InitialCoin")]
-        [SerializeField, Min(0)] private int m_InitialCall = 500;
-        [SerializeField, Min(0)] private int m_TargetCall = 1500;
-        [SerializeField, Min(1)] private int m_RoundCount = 3;
-
-        public StageDifficulty Difficulty => m_Difficulty;
-        public int InitialCall => m_InitialCall;
-        public int TargetCall => m_TargetCall;
-        public int RoundCount => Mathf.Max(1, m_RoundCount);
-
-#if UNITY_EDITOR
-        public void ConfigureForEditor(StageDifficulty difficulty, int initialCall, int targetCall, int roundCount)
-        {
-            m_Difficulty = difficulty;
-            m_InitialCall = Mathf.Max(0, initialCall);
-            m_TargetCall = Mathf.Max(0, targetCall);
-            m_RoundCount = Mathf.Max(1, roundCount);
-        }
-#endif
-    }
-
     [CreateAssetMenu(fileName = "StageData_", menuName = "In The Arena/MainGame/Stage Data", order = 0)]
     public class StageData : ScriptableObject
     {
-        [Header("스테이지 기본 정보")]
+        [Header("\uC2A4\uD14C\uC774\uC9C0 \uAE30\uBCF8 \uC815\uBCF4")]
         [SerializeField] private string m_StageName;
         [SerializeField] private StageRegion m_Region;
         [SerializeField] private int m_StageNum;
-        [SerializeField] private StageDifficulty m_Difficulty = StageDifficulty.Easy;
         [SerializeField] private Sprite m_BackgroundSprite;
 
-        [Header("기본 실행 설정")]
+        [Header("\uC2A4\uD14C\uC774\uC9C0 \uB09C\uC774\uB3C4 \uC124\uC815")]
         [FormerlySerializedAs("m_InitialCoin")]
         [SerializeField, Min(0)] private int m_InitialCall = 500;
         [SerializeField] private List<RoundData> m_RoundDatas = new List<RoundData>();
         [SerializeField, Min(0)] private int m_TargetCall = 1500;
 
-        [Header("난이도별 실행 설정")]
-        [SerializeField] private List<StageDifficultyConfig> m_DifficultyConfigs = new List<StageDifficultyConfig>();
-
-        [Header("베팅 설정")]
+        [Header("\uBCA0\uD305 \uC124\uC815")]
         [SerializeField] private bool m_EnableFactionBet = true;
         [SerializeField, HideInInspector] private List<SpecialBetType> m_SpecialBetTypes = new List<SpecialBetType>();
 
@@ -70,65 +40,14 @@ namespace InTheArena.MainGame
         public StageRegion Region => m_Region;
         public int StageNum => m_StageNum;
         public int StageId => (int)m_Region * 100 + m_StageNum;
-        public StageDifficulty Difficulty => ActiveDifficulty;
-        public StageDifficulty DefaultDifficulty => m_Difficulty;
         public Sprite BackgroundSprite => m_BackgroundSprite;
-        public int InitialCall => GetInitialCall(ActiveDifficulty);
-        public int TargetCall => GetTargetCall(ActiveDifficulty);
-        public int TotalRounds => GetRoundCount(ActiveDifficulty);
-        public List<RoundData> RoundDatas => GetRoundDatas(ActiveDifficulty);
+        public int InitialCall => Mathf.Max(0, m_InitialCall);
+        public int TargetCall => Mathf.Max(0, m_TargetCall);
+        public int TotalRounds => m_RoundDatas?.Count ?? 0;
+        public List<RoundData> RoundDatas => m_RoundDatas ?? new List<RoundData>();
         public bool EnableFactionBet => m_EnableFactionBet;
         public IReadOnlyList<SpecialBetType> SpecialBetTypes => m_SpecialBetTypes;
         public string FullStageName => $"{m_StageName}-{m_StageNum}";
-
-        private StageDifficulty ActiveDifficulty
-        {
-            get
-            {
-                if (Application.isPlaying && global::SaveManager.Instance != null)
-                {
-                    return global::SaveManager.Instance.SelectedStageDifficulty;
-                }
-
-                return m_Difficulty;
-            }
-        }
-
-        public int GetInitialCall(StageDifficulty difficulty)
-        {
-            StageDifficultyConfig config = FindDifficultyConfig(difficulty);
-            return config != null ? config.InitialCall : Mathf.Max(0, m_InitialCall);
-        }
-
-        public int GetTargetCall(StageDifficulty difficulty)
-        {
-            StageDifficultyConfig config = FindDifficultyConfig(difficulty);
-            return config != null ? config.TargetCall : Mathf.Max(0, m_TargetCall);
-        }
-
-        public int GetRoundCount(StageDifficulty difficulty)
-        {
-            StageDifficultyConfig config = FindDifficultyConfig(difficulty);
-            return config != null ? config.RoundCount : GetPresetRoundCount(difficulty);
-        }
-
-        public List<RoundData> GetRoundDatas(StageDifficulty difficulty)
-        {
-            int roundCount = GetRoundCount(difficulty);
-            var rounds = new List<RoundData>(roundCount);
-            if (m_RoundDatas == null)
-            {
-                return rounds;
-            }
-
-            int count = Mathf.Min(roundCount, m_RoundDatas.Count);
-            for (int i = 0; i < count; i++)
-            {
-                rounds.Add(m_RoundDatas[i]);
-            }
-
-            return rounds;
-        }
 
         public bool IsValid()
         {
@@ -136,20 +55,46 @@ namespace InTheArena.MainGame
 
             if (string.IsNullOrEmpty(m_StageName))
             {
-                Debug.LogError($"[StageData] {name}: 스테이지 이름이 비어 있습니다.");
+                Debug.LogError($"[StageData] {name}: \uC2A4\uD14C\uC774\uC9C0 \uC774\uB984\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
                 isValid = false;
             }
 
             if (m_StageNum <= 0)
             {
-                Debug.LogError($"[StageData] {name}: 스테이지 번호는 0보다 커야 합니다.");
+                Debug.LogError($"[StageData] {name}: \uC2A4\uD14C\uC774\uC9C0 \uBC88\uD638\uB294 0\uBCF4\uB2E4 \uCEE4\uC57C \uD569\uB2C8\uB2E4.");
                 isValid = false;
             }
 
             if (!m_EnableFactionBet)
             {
-                Debug.LogError($"[StageData] {name}: 승리 팀 베팅이 비활성화되어 있습니다.");
+                Debug.LogError($"[StageData] {name}: \uC9C4\uC601 \uBCA0\uD305\uC774 \uBE44\uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
                 isValid = false;
+            }
+
+            if (m_TargetCall <= m_InitialCall)
+            {
+                Debug.LogError($"[StageData] {name}: \uBAA9\uD45C Call({m_TargetCall})\uC740 \uC2DC\uC791 Call({m_InitialCall})\uBCF4\uB2E4 \uCEE4\uC57C \uD569\uB2C8\uB2E4.");
+                isValid = false;
+            }
+
+            if (m_RoundDatas == null || m_RoundDatas.Count == 0)
+            {
+                Debug.LogError($"[StageData] {name}: \uB77C\uC6B4\uB4DC \uB370\uC774\uD130 \uBAA9\uB85D\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
+                return false;
+            }
+
+            for (int i = 0; i < m_RoundDatas.Count; i++)
+            {
+                if (m_RoundDatas[i] == null)
+                {
+                    Debug.LogError($"[StageData] {name}: {i}\uBC88\uC9F8 \uB77C\uC6B4\uB4DC \uB370\uC774\uD130\uAC00 null\uC785\uB2C8\uB2E4.");
+                    isValid = false;
+                }
+                else if (!m_RoundDatas[i].IsValid())
+                {
+                    Debug.LogError($"[StageData] {name}: {i}\uBC88\uC9F8 \uB77C\uC6B4\uB4DC \uB370\uC774\uD130\uAC00 \uC720\uD6A8\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.");
+                    isValid = false;
+                }
             }
 
             if (m_SpecialBetTypes != null)
@@ -157,106 +102,17 @@ namespace InTheArena.MainGame
                 var uniqueTypes = new HashSet<SpecialBetType>(m_SpecialBetTypes);
                 if (uniqueTypes.Count != m_SpecialBetTypes.Count)
                 {
-                    Debug.LogError($"[StageData] {name}: 특수 베팅 종류가 중복되었습니다.");
+                    Debug.LogError($"[StageData] {name}: \uD2B9\uC218 \uBCA0\uD305 \uC885\uB958\uAC00 \uC911\uBCF5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
                     isValid = false;
                 }
             }
 
-            isValid &= ValidateDifficulty(ActiveDifficulty);
             return isValid;
         }
 
         public bool HasSpecialBet(SpecialBetType type)
         {
             return m_SpecialBetTypes != null && m_SpecialBetTypes.Contains(type);
-        }
-
-        public void ApplyDifficultyPreset()
-        {
-            int targetCall = GetPresetTargetCall(m_Difficulty);
-            int roundCount = GetPresetRoundCount(m_Difficulty);
-            StageDifficultyConfig config = FindDifficultyConfig(m_Difficulty);
-            if (config != null)
-            {
-#if UNITY_EDITOR
-                config.ConfigureForEditor(m_Difficulty, GetInitialCall(m_Difficulty), targetCall, roundCount);
-#endif
-            }
-            else
-            {
-                m_TargetCall = targetCall;
-            }
-        }
-
-        public int PresetRoundCount => GetPresetRoundCount(m_Difficulty);
-
-        public static int GetPresetRoundCount(StageDifficulty difficulty) => difficulty switch
-        {
-            StageDifficulty.Easy => 3,
-            StageDifficulty.Normal => 5,
-            StageDifficulty.Hard => 7,
-            _ => 5
-        };
-
-        public static int GetPresetTargetCall(StageDifficulty difficulty) => difficulty switch
-        {
-            StageDifficulty.Easy => 1500,
-            StageDifficulty.Normal => 3000,
-            StageDifficulty.Hard => 4000,
-            _ => 1500
-        };
-
-        private StageDifficultyConfig FindDifficultyConfig(StageDifficulty difficulty)
-        {
-            if (m_DifficultyConfigs == null)
-            {
-                return null;
-            }
-
-            return m_DifficultyConfigs.Find(config => config != null && config.Difficulty == difficulty);
-        }
-
-        private bool ValidateDifficulty(StageDifficulty difficulty)
-        {
-            bool isValid = true;
-            int initialCall = GetInitialCall(difficulty);
-            int targetCall = GetTargetCall(difficulty);
-            int roundCount = GetRoundCount(difficulty);
-            List<RoundData> roundDatas = GetRoundDatas(difficulty);
-
-            if (initialCall < 0)
-            {
-                Debug.LogError($"[StageData] {name}: {difficulty} 시작 Call은 음수일 수 없습니다.");
-                isValid = false;
-            }
-
-            if (targetCall <= initialCall)
-            {
-                Debug.LogError($"[StageData] {name}: {difficulty} 목표 Call({targetCall})은 시작 Call({initialCall})보다 커야 합니다.");
-                isValid = false;
-            }
-
-            if (roundDatas == null || roundDatas.Count < roundCount)
-            {
-                Debug.LogError($"[StageData] {name}: {difficulty} 난이도에 필요한 라운드 수({roundCount})보다 라운드 데이터가 부족합니다.");
-                return false;
-            }
-
-            for (int i = 0; i < roundDatas.Count; i++)
-            {
-                if (roundDatas[i] == null)
-                {
-                    Debug.LogError($"[StageData] {name}: {difficulty} {i}번째 라운드 데이터가 null입니다.");
-                    isValid = false;
-                }
-                else if (!roundDatas[i].IsValid())
-                {
-                    Debug.LogError($"[StageData] {name}: {difficulty} {i}번째 라운드 데이터가 유효하지 않습니다.");
-                    isValid = false;
-                }
-            }
-
-            return isValid;
         }
 
 #if UNITY_EDITOR

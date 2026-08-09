@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -15,7 +15,6 @@ MonoBehaviour:
   m_StageName: "\uC655\uAD81 \uAE30\uC0AC\uB2E8"
   m_Region: 0
   m_StageNum: 3
-  m_Difficulty: 0
   m_BackgroundSprite: {fileID: 21300000, guid: 139a936936b38304e85d5ee73231fab0, type: 3}
   m_InitialCall: 500
   m_RoundDatas:
@@ -23,22 +22,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9a2bd3d156fbdb5179c116dbc25591e6, type: 2}
   - {fileID: 11400000, guid: 6962060a6158043ffa0647e7e87d17f9, type: 2}
   - {fileID: 11400000, guid: bc7f7cb66050c5510854625b8c5c62e4, type: 2}
-  - {fileID: 11400000, guid: c1e9707d4b4e726f1032702d2dcdd138, type: 2}
-  - {fileID: 11400000, guid: 5f7613714953c7d98a24cba594c3aa23, type: 2}
-  - {fileID: 11400000, guid: 06af4265eb0ee5ef905dec296f576a00, type: 2}
-  m_TargetCall: 1500
-  m_DifficultyConfigs:
-  - m_Difficulty: 0
-    m_InitialCall: 500
-    m_TargetCall: 1500
-    m_RoundCount: 3
-  - m_Difficulty: 1
-    m_InitialCall: 500
-    m_TargetCall: 3000
-    m_RoundCount: 5
-  - m_Difficulty: 2
-    m_InitialCall: 500
-    m_TargetCall: 4000
-    m_RoundCount: 7
+  m_TargetCall: 2400
   m_EnableFactionBet: 1
   m_SpecialBetTypes: []

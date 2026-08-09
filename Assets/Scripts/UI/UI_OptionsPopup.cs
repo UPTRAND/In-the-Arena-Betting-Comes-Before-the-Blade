@@ -6,14 +6,9 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using InTheArena.MainGame;
 
 namespace InTheArena.UI
 {
-    /// <summary>
-    /// Runtime options popup shared by the lobby and gameplay UI.
-    /// The popup is built at runtime so it follows every scene without a duplicate prefab.
-    /// </summary>
     [DisallowMultipleComponent]
     public sealed class UI_OptionsPopup : MonoBehaviour
     {
@@ -26,9 +21,6 @@ namespace InTheArena.UI
         private CanvasGroup m_CanvasGroup;
         private Slider m_BgmSlider;
         private Slider m_SfxSlider;
-        private Button m_EasyButton;
-        private Button m_NormalButton;
-        private Button m_HardButton;
         private bool m_IsBuilt;
 
         public static void Show()
@@ -85,7 +77,6 @@ namespace InTheArena.UI
             }
 
             SyncVolumeValues();
-            SyncDifficultyButtons();
             gameObject.SetActive(true);
             m_CanvasGroup.alpha = 1f;
             m_CanvasGroup.interactable = true;
@@ -123,7 +114,7 @@ namespace InTheArena.UI
             Image panel = CreateImage("OptionsPanel", transform, new Color(0.075f, 0.12f, 0.20f, 1f));
             RectTransform panelRect = panel.rectTransform;
             panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(740f, 540f);
+            panelRect.sizeDelta = new Vector2(740f, 460f);
             panelRect.anchoredPosition = Vector2.zero;
 
             Outline outline = panel.gameObject.AddComponent<Outline>();
@@ -139,7 +130,7 @@ namespace InTheArena.UI
             titleRect.anchoredPosition = new Vector2(0f, -38f);
             titleRect.sizeDelta = new Vector2(-120f, 70f);
 
-            Button closeButton = CreateButton("CloseButton", panel.transform, "×", new Color(0.22f, 0.37f, 0.55f));
+            Button closeButton = CreateButton("CloseButton", panel.transform, "X", new Color(0.22f, 0.37f, 0.55f));
             RectTransform closeRect = closeButton.GetComponent<RectTransform>();
             closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
             closeRect.pivot = new Vector2(1f, 1f);
@@ -147,21 +138,10 @@ namespace InTheArena.UI
             closeRect.sizeDelta = new Vector2(58f, 58f);
             closeButton.onClick.AddListener(Close);
 
-            m_BgmSlider = CreateVolumeRow(panel.transform, "BGM VOLUME", 225f);
-            m_SfxSlider = CreateVolumeRow(panel.transform, "SFX VOLUME", 135f);
+            m_BgmSlider = CreateVolumeRow(panel.transform, "BGM VOLUME", 155f);
+            m_SfxSlider = CreateVolumeRow(panel.transform, "SFX VOLUME", 35f);
             m_BgmSlider.onValueChanged.AddListener(SetBgmVolume);
             m_SfxSlider.onValueChanged.AddListener(SetSfxVolume);
-
-            TMP_Text difficultyLabel = CreateText("DifficultyLabel", panel.transform, "\uB09C\uC774\uB3C4", 30, TextAlignmentOptions.Left, Color.white);
-            RectTransform difficultyLabelRect = difficultyLabel.rectTransform;
-            difficultyLabelRect.anchorMin = difficultyLabelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            difficultyLabelRect.pivot = new Vector2(0f, 0.5f);
-            difficultyLabelRect.anchoredPosition = new Vector2(-275f, 20f);
-            difficultyLabelRect.sizeDelta = new Vector2(550f, 42f);
-
-            m_EasyButton = CreateDifficultyButton(panel.transform, "\uC26C\uC6C0", StageDifficulty.Easy, -185f);
-            m_NormalButton = CreateDifficultyButton(panel.transform, "\uC911\uAC04", StageDifficulty.Normal, 0f);
-            m_HardButton = CreateDifficultyButton(panel.transform, "\uC5B4\uB824\uC6C0", StageDifficulty.Hard, 185f);
 
             Button lobbyButton = CreateButton("ReturnToLobbyButton", panel.transform, "\uB85C\uBE44\uB85C \uB3CC\uC544\uAC00\uAE30",
                 new Color(0.16f, 0.45f, 0.66f));
@@ -206,18 +186,6 @@ namespace InTheArena.UI
             slider.handleRect = handle.rectTransform;
             slider.direction = Slider.Direction.LeftToRight;
             return slider;
-        }
-
-        private Button CreateDifficultyButton(Transform parent, string label, StageDifficulty difficulty, float x)
-        {
-            Button button = CreateButton(difficulty + "DifficultyButton", parent, label, new Color(0.16f, 0.45f, 0.66f));
-            RectTransform rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(x, -45f);
-            rect.sizeDelta = new Vector2(160f, 58f);
-            button.onClick.AddListener(() => SetStageDifficulty(difficulty));
-            return button;
         }
 
         private static Button CreateButton(string name, Transform parent, string label, Color color)
@@ -325,49 +293,6 @@ namespace InTheArena.UI
             {
                 SoundManager.Instance.SfxVolume = value;
             }
-        }
-
-        private void SetStageDifficulty(StageDifficulty difficulty)
-        {
-            if (SaveManager.Instance != null &&
-                !SaveManager.Instance.TrySetSelectedStageDifficulty(difficulty, out string error))
-            {
-                Debug.LogWarning($"[UI_OptionsPopup] 스테이지 난이도 저장에 실패했습니다: {error}");
-            }
-
-            SyncDifficultyButtons();
-        }
-
-        private void SyncDifficultyButtons()
-        {
-            StageDifficulty selected = SaveManager.Instance != null
-                ? SaveManager.Instance.SelectedStageDifficulty
-                : StageDifficulty.Easy;
-
-            SetDifficultyButtonState(m_EasyButton, selected == StageDifficulty.Easy);
-            SetDifficultyButtonState(m_NormalButton, selected == StageDifficulty.Normal);
-            SetDifficultyButtonState(m_HardButton, selected == StageDifficulty.Hard);
-        }
-
-        private static void SetDifficultyButtonState(Button button, bool selected)
-        {
-            if (button == null)
-            {
-                return;
-            }
-
-            Color baseColor = selected ? new Color(0.93f, 0.68f, 0.20f) : new Color(0.16f, 0.45f, 0.66f);
-            Image image = button.GetComponent<Image>();
-            if (image != null)
-            {
-                image.color = baseColor;
-            }
-
-            ColorBlock colors = button.colors;
-            colors.normalColor = baseColor;
-            colors.highlightedColor = Color.Lerp(baseColor, Color.white, 0.2f);
-            colors.pressedColor = Color.Lerp(baseColor, Color.black, 0.25f);
-            button.colors = colors;
         }
 
         private void ReturnToLobby()

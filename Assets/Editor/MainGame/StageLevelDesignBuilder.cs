@@ -14,13 +14,6 @@ namespace InTheArena.MainGame.Editor
         private const string RoundRoot = "Assets/ScriptableObject/Round/LevelDesign";
         private const string LobbyStagePanelPrefab = "Assets/Prefabs/UI/Panel/UI_LobbyStagePanel.prefab";
 
-        private static readonly StageDifficulty[] Difficulties =
-        {
-            StageDifficulty.Easy,
-            StageDifficulty.Normal,
-            StageDifficulty.Hard
-        };
-
         [MenuItem(MenuPath)]
         public static void Rebuild()
         {
@@ -28,7 +21,7 @@ namespace InTheArena.MainGame.Editor
             EnsureDirectory(RoundRoot);
             DeleteLegacyDifficultyRoundFolders();
 
-            var units = LoadUnits();
+            UnitLookup units = LoadUnits();
             var stages = new List<StageData>(15);
 
             for (int stageNumber = 1; stageNumber <= 15; stageNumber++)
@@ -44,7 +37,7 @@ namespace InTheArena.MainGame.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[StageLevelDesignBuilder] 15개 StageData와 공통 7라운드 구조를 다시 생성했습니다.");
+            Debug.Log("[StageLevelDesignBuilder] Rebuilt 15 stage level design assets.");
         }
 
         private static UnitLookup LoadUnits()
@@ -69,7 +62,7 @@ namespace InTheArena.MainGame.Editor
             string[] guids = AssetDatabase.FindAssets($"{assetName} t:UnitData");
             if (guids.Length == 0)
             {
-                Debug.LogError($"[StageLevelDesignBuilder] UnitData asset을 찾을 수 없습니다: {assetName}");
+                Debug.LogError($"[StageLevelDesignBuilder] UnitData asset not found: {assetName}");
                 return null;
             }
 
@@ -78,35 +71,21 @@ namespace InTheArena.MainGame.Editor
 
         private static void ConfigureStage(StageData stage, int stageNumber, StageRegionSpec region, UnitLookup units)
         {
-            List<RoundData> rounds = BuildRounds(stageNumber, region, units);
+            List<RoundData> rounds = BuildRounds(stageNumber, units);
 
-            SerializedObject so = new SerializedObject(stage);
+            var so = new SerializedObject(stage);
             so.FindProperty("m_StageName").stringValue = region.DisplayName;
             so.FindProperty("m_Region").enumValueIndex = (int)StageRegion.CentralCastle;
             so.FindProperty("m_StageNum").intValue = stageNumber;
-            so.FindProperty("m_Difficulty").enumValueIndex = 0;
             so.FindProperty("m_BackgroundSprite").objectReferenceValue = region.Background;
             so.FindProperty("m_InitialCall").intValue = 500;
-            so.FindProperty("m_TargetCall").intValue = StageData.GetPresetTargetCall(StageDifficulty.Easy);
-            SetRoundList(so.FindProperty("m_RoundDatas"), rounds);
-
-            SerializedProperty configs = so.FindProperty("m_DifficultyConfigs");
-            configs.arraySize = Difficulties.Length;
-            for (int i = 0; i < Difficulties.Length; i++)
-            {
-                StageDifficulty difficulty = Difficulties[i];
-                SerializedProperty config = configs.GetArrayElementAtIndex(i);
-                config.FindPropertyRelative("m_Difficulty").enumValueIndex = (int)difficulty;
-                config.FindPropertyRelative("m_InitialCall").intValue = 500;
-                config.FindPropertyRelative("m_TargetCall").intValue = StageData.GetPresetTargetCall(difficulty);
-                config.FindPropertyRelative("m_RoundCount").intValue = StageData.GetPresetRoundCount(difficulty);
-            }
-
+            so.FindProperty("m_TargetCall").intValue = GetStageTargetCall(stageNumber);
+            SetRoundList(so.FindProperty("m_RoundDatas"), rounds, GetStageRoundCount(stageNumber));
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(stage);
         }
 
-        private static List<RoundData> BuildRounds(int stageNumber, StageRegionSpec region, UnitLookup units)
+        private static List<RoundData> BuildRounds(int stageNumber, UnitLookup units)
         {
             var rounds = new List<RoundData>(7);
             string roundDir = $"{RoundRoot}/Stage{stageNumber:00}";
@@ -116,28 +95,23 @@ namespace InTheArena.MainGame.Editor
             {
                 string roundPath = $"{roundDir}/RoundData_Stage{stageNumber:00}_Round{roundNumber:00}.asset";
                 RoundData round = LoadOrCreateAsset<RoundData>(roundPath);
-                ConfigureRound(round, roundNumber, stageNumber, region, units);
+                ConfigureRound(round, roundNumber, stageNumber, units);
                 rounds.Add(round);
             }
 
             return rounds;
         }
 
-        private static void ConfigureRound(
-            RoundData round,
-            int roundNumber,
-            int stageNumber,
-            StageRegionSpec region,
-            UnitLookup units)
+        private static void ConfigureRound(RoundData round, int roundNumber, int stageNumber, UnitLookup units)
         {
-            SerializedObject so = new SerializedObject(round);
+            var so = new SerializedObject(round);
             so.FindProperty("m_RoundNumber").intValue = roundNumber;
             so.FindProperty("m_SpecialRule").enumValueIndex = 0;
 
             UnitData[] pool = GetAllowedPool(stageNumber, units);
             if (roundNumber == 1)
             {
-                ConfigureFixedOpeningRound(so.FindProperty("m_TeamAGrid"), so.FindProperty("m_TeamBGrid"), stageNumber, units);
+                ConfigureFixedOpeningRound(so.FindProperty("m_TeamAGrid"), so.FindProperty("m_TeamBGrid"), stageNumber, pool);
             }
             else
             {
@@ -149,76 +123,75 @@ namespace InTheArena.MainGame.Editor
             EditorUtility.SetDirty(round);
         }
 
-        private static void ConfigureFixedOpeningRound(SerializedProperty teamA, SerializedProperty teamB, int stageNumber, UnitLookup units)
+        private static void ConfigureFixedOpeningRound(SerializedProperty teamA, SerializedProperty teamB, int stageNumber, UnitData[] pool)
         {
             ClearGrid(teamA);
             ClearGrid(teamB);
 
-            if (stageNumber == 1)
+            int count = stageNumber == 1 || stageNumber == 11 ? 2 : 3;
+            for (int i = 0; i < count; i++)
             {
-                SetFixedCell(teamA, 0, units.Knight, 1);
-                SetFixedCell(teamA, 1, units.Archer, 1);
-                SetFixedCell(teamA, 2, units.Wizard, 1);
-                SetFixedCell(teamB, 0, units.Knight, 1);
-                SetFixedCell(teamB, 1, units.Archer, 1);
-                SetFixedCell(teamB, 2, units.Prist, 1);
-                return;
+                SetFixedCell(teamA, i, PickPoolUnit(pool, stageNumber + i), 1);
+                SetFixedCell(teamB, i, PickPoolUnit(pool, stageNumber + i + count), 1);
             }
-
-            if (stageNumber == 11)
-            {
-                SetFixedCell(teamA, 0, units.Lumberjack, 1);
-                SetFixedCell(teamA, 1, units.Hunter, 1);
-                SetFixedCell(teamB, 0, units.Blacksmith, 1);
-                SetFixedCell(teamB, 1, units.Lumberjack, 1);
-                return;
-            }
-
-            UnitData[] pool = GetAllowedPool(stageNumber, units);
-            SetFixedCell(teamA, 0, pool[stageNumber % pool.Length], 1);
-            SetFixedCell(teamA, 1, pool[(stageNumber + 1) % pool.Length], 1);
-            SetFixedCell(teamA, 2, pool[(stageNumber + 2) % pool.Length], 1);
-            SetFixedCell(teamB, 0, pool[(stageNumber + 3) % pool.Length], 1);
-            SetFixedCell(teamB, 1, pool[(stageNumber + 4) % pool.Length], 1);
-            SetFixedCell(teamB, 2, pool[(stageNumber + 5) % pool.Length], 1);
         }
 
         private static UnitData[] GetAllowedPool(int stageNumber, UnitLookup units)
         {
-            if (stageNumber <= 5)
+            return stageNumber switch
             {
-                return new[] { units.Knight, units.Archer, units.Wizard, units.Prist };
-            }
-
-            if (stageNumber <= 10)
-            {
-                return new[] { units.Knight, units.Archer, units.Wizard, units.Prist, units.King, units.Peasant, units.Thief };
-            }
-
-            return new[]
-            {
-                units.Knight, units.Archer, units.Wizard, units.Prist,
-                units.King, units.Peasant, units.Thief,
-                units.Lumberjack, units.Hunter, units.Blacksmith
+                1 => new[] { units.Knight, units.Archer },
+                2 => new[] { units.Knight, units.Archer, units.Wizard },
+                3 => new[] { units.Knight, units.Wizard, units.Prist },
+                4 => new[] { units.Wizard, units.Archer, units.Prist },
+                5 => RoyalKnights(units),
+                6 => Combine(new[] { units.King }, RoyalKnights(units)),
+                7 => Combine(new[] { units.King, units.Peasant }, RoyalKnights(units)),
+                8 => Combine(RoyalKnights(units), new[] { units.Peasant, units.Thief }),
+                9 => CentralCastle(units),
+                10 => Combine(RoyalKnights(units), CentralCastle(units)),
+                11 => Combine(new[] { units.Lumberjack }, RoyalKnights(units), CentralCastle(units)),
+                12 => Combine(new[] { units.Hunter, units.Lumberjack }, CentralCastle(units)),
+                13 => Combine(new[] { units.Blacksmith, units.Hunter }, RoyalKnights(units)),
+                14 => CentralOutskirts(units),
+                15 => Combine(RoyalKnights(units), CentralCastle(units), CentralOutskirts(units)),
+                _ => RoyalKnights(units)
             };
         }
 
-        private static void ConfigureRandomGrid(SerializedProperty grid, UnitData[] pool, int activeCells, int extraCount, int offset)
+        private static UnitData[] RoyalKnights(UnitLookup units)
         {
-            ClearGrid(grid);
-            for (int i = 0; i < activeCells; i++)
-            {
-                int index = (i + offset) % 6;
-                SetRandomCell(grid, index, pool, extraCount);
-            }
+            return new[] { units.Knight, units.Archer, units.Wizard, units.Prist };
         }
 
-        private static void ConfigureProgressionGrid(
-            SerializedProperty grid,
-            UnitData[] pool,
-            int roundNumber,
-            int stageNumber,
-            int offset)
+        private static UnitData[] CentralCastle(UnitLookup units)
+        {
+            return new[] { units.King, units.Peasant, units.Thief };
+        }
+
+        private static UnitData[] CentralOutskirts(UnitLookup units)
+        {
+            return new[] { units.Lumberjack, units.Hunter, units.Blacksmith };
+        }
+
+        private static UnitData[] Combine(params UnitData[][] groups)
+        {
+            var result = new List<UnitData>();
+            foreach (UnitData[] group in groups)
+            {
+                foreach (UnitData unit in group)
+                {
+                    if (unit != null && !result.Contains(unit))
+                    {
+                        result.Add(unit);
+                    }
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        private static void ConfigureProgressionGrid(SerializedProperty grid, UnitData[] pool, int roundNumber, int stageNumber, int offset)
         {
             ClearGrid(grid);
 
@@ -236,16 +209,14 @@ namespace InTheArena.MainGame.Editor
                 case 5:
                     for (int i = 0; i < 6; i++)
                     {
-                        int index = (i + offset) % 6;
-                        SetRandomCell(grid, index, pool, i == 0 ? 1 : 0);
+                        SetRandomCell(grid, (i + offset) % 6, pool, i == 0 ? 1 : 0);
                     }
                     break;
                 case 6:
                     SetFixedCell(grid, offset % 6, PickPoolUnit(pool, stageNumber + roundNumber + offset), 2);
                     for (int i = 1; i < 6; i++)
                     {
-                        int index = (i + offset) % 6;
-                        SetRandomCell(grid, index, pool, i == 1 ? 1 : 0);
+                        SetRandomCell(grid, (i + offset) % 6, pool, i == 1 ? 1 : 0);
                     }
                     break;
                 case 7:
@@ -253,8 +224,7 @@ namespace InTheArena.MainGame.Editor
                     SetFixedCell(grid, (offset + 1) % 6, PickPoolUnit(pool, stageNumber + roundNumber + offset + 1), 2);
                     for (int i = 2; i < 6; i++)
                     {
-                        int index = (i + offset) % 6;
-                        SetRandomCell(grid, index, pool, i <= 3 ? 1 : 0);
+                        SetRandomCell(grid, (i + offset) % 6, pool, i <= 3 ? 1 : 0);
                     }
                     break;
                 default:
@@ -267,14 +237,17 @@ namespace InTheArena.MainGame.Editor
         {
             for (int i = 0; i < activeCells; i++)
             {
-                int index = (i + offset) % 6;
-                SetRandomCell(grid, index, pool, extraCount);
+                SetRandomCell(grid, (i + offset) % 6, pool, extraCount);
             }
         }
 
         private static UnitData PickPoolUnit(UnitData[] pool, int seed)
         {
-            if (pool == null || pool.Length == 0) return null;
+            if (pool == null || pool.Length == 0)
+            {
+                return null;
+            }
+
             return pool[Mathf.Abs(seed) % pool.Length];
         }
 
@@ -287,8 +260,7 @@ namespace InTheArena.MainGame.Editor
                 cell.FindPropertyRelative("m_IsFixed").boolValue = false;
                 cell.FindPropertyRelative("m_FixedUnit").objectReferenceValue = null;
                 cell.FindPropertyRelative("m_FixedCount").intValue = 1;
-                SerializedProperty pool = cell.FindPropertyRelative("m_VariableUnitPool");
-                pool.arraySize = 0;
+                cell.FindPropertyRelative("m_VariableUnitPool").arraySize = 0;
                 cell.FindPropertyRelative("m_ExtraCountRange").intValue = 0;
                 cell.FindPropertyRelative("m_SpawnProbability").floatValue = 0f;
             }
@@ -311,6 +283,7 @@ namespace InTheArena.MainGame.Editor
             cell.FindPropertyRelative("m_IsFixed").boolValue = false;
             cell.FindPropertyRelative("m_FixedUnit").objectReferenceValue = null;
             cell.FindPropertyRelative("m_FixedCount").intValue = 1;
+
             SerializedProperty pool = cell.FindPropertyRelative("m_VariableUnitPool");
             pool.arraySize = units.Length;
             for (int i = 0; i < units.Length; i++)
@@ -322,10 +295,11 @@ namespace InTheArena.MainGame.Editor
             cell.FindPropertyRelative("m_SpawnProbability").floatValue = 1f;
         }
 
-        private static void SetRoundList(SerializedProperty property, List<RoundData> rounds)
+        private static void SetRoundList(SerializedProperty property, List<RoundData> rounds, int count)
         {
-            property.arraySize = rounds.Count;
-            for (int i = 0; i < rounds.Count; i++)
+            int clampedCount = Mathf.Clamp(count, 1, rounds.Count);
+            property.arraySize = clampedCount;
+            for (int i = 0; i < clampedCount; i++)
             {
                 property.GetArrayElementAtIndex(i).objectReferenceValue = rounds[i];
             }
@@ -348,11 +322,11 @@ namespace InTheArena.MainGame.Editor
                 var panel = root.GetComponentInChildren<InTheArena.UI.UI_LobbyStagePanel>(true);
                 if (panel == null)
                 {
-                    Debug.LogError("[StageLevelDesignBuilder] 프리팹에서 UI_LobbyStagePanel 컴포넌트를 찾을 수 없습니다.");
+                    Debug.LogError("[StageLevelDesignBuilder] UI_LobbyStagePanel component not found in prefab.");
                     return;
                 }
 
-                SerializedObject so = new SerializedObject(panel);
+                var so = new SerializedObject(panel);
                 SetStageList(so.FindProperty("m_StageDatas"), stages);
                 so.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, LobbyStagePanelPrefab);
@@ -402,12 +376,52 @@ namespace InTheArena.MainGame.Editor
                 LoadSprite("Assets/Art/Stages/Stage03_CentralOutskirtsVillage/stage-03-central-outskirts-village-background-1080x1920.png"));
         }
 
+        private static int GetStageRoundCount(int stageNumber)
+        {
+            return stageNumber switch
+            {
+                1 or 2 => 3,
+                3 or 4 => 4,
+                5 => 5,
+                6 => 4,
+                7 or 8 => 5,
+                9 or 10 => 6,
+                11 => 4,
+                12 => 5,
+                13 => 6,
+                _ => 7
+            };
+        }
+
+        private static int GetStageTargetCall(int stageNumber)
+        {
+            return stageNumber switch
+            {
+                1 => 1500,
+                2 => 1800,
+                3 => 2400,
+                4 => 3000,
+                5 => 3600,
+                6 => 3200,
+                7 => 3900,
+                8 => 4600,
+                9 => 5400,
+                10 => 6200,
+                11 => 5000,
+                12 => 5800,
+                13 => 6600,
+                14 => 7600,
+                15 => 9000,
+                _ => 1500
+            };
+        }
+
         private static Sprite LoadSprite(string path)
         {
             Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             if (sprite == null)
             {
-                Debug.LogError($"[StageLevelDesignBuilder] 배경 스프라이트를 찾을 수 없습니다: {path}");
+                Debug.LogError($"[StageLevelDesignBuilder] Background sprite not found: {path}");
             }
 
             return sprite;

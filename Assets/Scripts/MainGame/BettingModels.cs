@@ -4,13 +4,6 @@ using System.Collections.Generic;
 
 namespace InTheArena.MainGame
 {
-    public enum StageDifficulty
-    {
-        Easy = 0,
-        Normal = 1,
-        Hard = 2
-    }
-
     public enum SpecialBetType
     {
         RemainingTime = 0,
