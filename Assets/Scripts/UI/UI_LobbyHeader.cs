@@ -13,6 +13,25 @@ namespace InTheArena.UI
         [SerializeField] private Button m_SettingsButton;
         private float m_NextRefresh;
 
+        protected override void Awake()
+        {
+            base.Awake();
+            if (m_SettingsButton != null)
+            {
+                m_SettingsButton.onClick.AddListener(UI_OptionsPopup.Show);
+            }
+        }
+
+        protected override void OnDestroy()
+        {
+            if (m_SettingsButton != null)
+            {
+                m_SettingsButton.onClick.RemoveListener(UI_OptionsPopup.Show);
+            }
+
+            base.OnDestroy();
+        }
+
         public override void OnOpened() { base.OnOpened(); Refresh(); }
         private void Update() { if (BIsOpened && Time.unscaledTime >= m_NextRefresh) Refresh(); }
         public void Refresh()

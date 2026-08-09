@@ -14,6 +14,7 @@ namespace InTheArena.UI
         [SerializeField] private Button m_AdditionalBetButton;
         [SerializeField] private Button m_InsuranceButton;
         [SerializeField] private Button m_RerollButton;
+        [SerializeField] private Button m_SettingsButton;
 
         [Header("Betting Item Data")]
         [SerializeField] private ItemData m_AdditionalBetData;
@@ -34,6 +35,12 @@ namespace InTheArena.UI
             base.Awake();
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             RefreshItemCounts();
+            m_SettingsButton ??= FindDescendant(transform, "Settings_Button")?.GetComponent<Button>();
+
+            if (m_SettingsButton != null)
+            {
+                m_SettingsButton.onClick.AddListener(UI_OptionsPopup.Show);
+            }
 
             if (m_AdditionalBetButton != null)
             {
@@ -138,6 +145,11 @@ namespace InTheArena.UI
 
         protected override void OnDestroy()
         {
+            if (m_SettingsButton != null)
+            {
+                m_SettingsButton.onClick.RemoveListener(UI_OptionsPopup.Show);
+            }
+
             base.OnDestroy();
             m_ItemUseLifetimeCancellation?.Cancel();
             m_ItemUseLifetimeCancellation?.Dispose();
@@ -162,6 +174,20 @@ namespace InTheArena.UI
             {
                 countText.text = string.Empty;
             }
+        }
+
+        private static Transform FindDescendant(Transform root, string objectName)
+        {
+            if (root == null) return null;
+            if (root.name == objectName) return root;
+
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform result = FindDescendant(root.GetChild(i), objectName);
+                if (result != null) return result;
+            }
+
+            return null;
         }
     }
 }
