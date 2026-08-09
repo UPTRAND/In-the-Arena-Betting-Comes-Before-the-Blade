@@ -16,5 +16,5 @@ MonoBehaviour:
   m_Category: 0
   m_ItemName: Reroll Ticket
   m_PriceGold: 300
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 126461900, guid: 84a3d8b677053454eb1a28f0aefb2cc0, type: 3}
   m_Description: 

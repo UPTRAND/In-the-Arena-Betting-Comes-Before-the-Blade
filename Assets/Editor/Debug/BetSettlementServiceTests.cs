@@ -104,6 +104,57 @@ public sealed class BetSettlementServiceTests
         Assert.That(settlement.FailedCategories, Does.Contain("OddEven"));
     }
 
+    [Test]
+    public void AdditionalBet_IncreasesWinningPayoutByExistingBonusCall()
+    {
+        var session = new StageSession();
+        session.Initialize(m_StageData);
+
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Red);
+        ticket.SetItemUsages(true, false);
+
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        context.SetRoundData(m_StageData, 0);
+        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
+
+        var result = new CombatResultSnapshot(
+            Team.Red, 4f, 0, 0,
+            new[] { SurvivingRowPrediction.RedRow1 }, null);
+        BetSettlement settlement = BetSettlementService.Settle(ticket, result);
+
+        Assert.That(settlement.IsWin, Is.True);
+        Assert.That(settlement.Multiplier, Is.EqualTo(2));
+        Assert.That(settlement.PayoutCall, Is.EqualTo(1200));
+    }
+
+    [Test]
+    public void Insurance_ReturnsBaseWagerWhenTheBetLoses()
+    {
+        var session = new StageSession();
+        session.Initialize(m_StageData);
+
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(200);
+        ticket.SetFaction(FactionPrediction.Red);
+        ticket.SetItemUsages(false, true);
+
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        context.SetRoundData(m_StageData, 0);
+        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
+
+        var result = new CombatResultSnapshot(
+            Team.Blue, 4f, 0, 0,
+            new[] { SurvivingRowPrediction.BlueRow1 }, null);
+        BetSettlement settlement = BetSettlementService.Settle(ticket, result);
+
+        Assert.That(settlement.IsWin, Is.False);
+        Assert.That(settlement.PayoutCall, Is.EqualTo(200));
+    }
+
     [TestCase(0f, RemainingTimePrediction.Seconds0To5)]
     [TestCase(4.999f, RemainingTimePrediction.Seconds0To5)]
     [TestCase(5f, RemainingTimePrediction.Seconds5To10)]

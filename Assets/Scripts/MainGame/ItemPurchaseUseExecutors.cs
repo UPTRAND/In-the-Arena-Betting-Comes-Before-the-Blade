@@ -7,6 +7,7 @@ namespace InTheArena.MainGame
     {
         private readonly BettingPhase m_BettingPhase;
         private List<SpecialBetType> m_PreviousSpecialBetOrder;
+        private BettingDraftSpecialPredictionState m_PreviousDraftSpecialPredictions;
         private bool m_HasSnapshot;
 
         public BettingItemUseExecutor(BettingPhase bettingPhase)
@@ -27,6 +28,7 @@ namespace InTheArena.MainGame
             m_PreviousSpecialBetOrder = specialBetOrder != null
                 ? new List<SpecialBetType>(specialBetOrder)
                 : new List<SpecialBetType>();
+            m_PreviousDraftSpecialPredictions = m_BettingPhase.GetDraftSpecialPredictionsForItemUse();
             m_HasSnapshot = true;
             return m_BettingPhase.TryApplyPurchasedItemEffect(itemData, out message);
         }
@@ -38,7 +40,10 @@ namespace InTheArena.MainGame
                 return;
             }
 
-            m_BettingPhase.RestorePurchasedItemState(m_PreviousSpecialBetOrder);
+            m_BettingPhase.RestorePurchasedItemState(
+                m_PreviousSpecialBetOrder,
+                m_PreviousDraftSpecialPredictions);
+            m_PreviousDraftSpecialPredictions = null;
             m_HasSnapshot = false;
         }
     }

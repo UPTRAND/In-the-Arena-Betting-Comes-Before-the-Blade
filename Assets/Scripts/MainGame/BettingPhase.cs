@@ -13,10 +13,37 @@ using InTheArena.UI;
 
 namespace InTheArena.MainGame
 {
+    internal sealed class BettingDraftSpecialPredictionState
+    {
+        public RemainingTimePrediction? RemainingTime { get; }
+        public OddEvenPrediction? OddEven { get; }
+        public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; }
+        public SurvivingRowPrediction? SurvivingRow { get; }
+
+        public BettingDraftSpecialPredictionState(RoundBetTicket ticket)
+        {
+            RemainingTime = ticket?.RemainingTime;
+            OddEven = ticket?.OddEven;
+            FirstEliminatedColumn = ticket?.FirstEliminatedColumn;
+            SurvivingRow = ticket?.SurvivingRow;
+        }
+
+        public void Restore(RoundBetTicket ticket)
+        {
+            if (ticket == null) return;
+
+            ticket.SetRemainingTime(RemainingTime);
+            ticket.SetOddEven(OddEven);
+            ticket.SetFirstEliminatedColumn(FirstEliminatedColumn);
+            ticket.SetSurvivingRow(SurvivingRow);
+        }
+    }
+
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
         private const int WagerStepCall = 100;
+        private const int AdditionalBetBonusCall = 500;
         private const float DropdownOptionHeight = 65f;
         [Header("Round / Team Info")]
         [SerializeField] private CanvasGroup m_BettingCanvasGroup;
@@ -97,6 +124,8 @@ namespace InTheArena.MainGame
         private static readonly Color AgreeWarningColor = new Color(0.783f, 0.084f, 0.070f, 1f);
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
+
+        public event Action<ItemData> OnItemUsed;
 
         // 아이템 상태 트래킹
 
@@ -579,7 +608,13 @@ namespace InTheArena.MainGame
             if (m_MultiplierText != null) m_MultiplierText.text = multiplierLabel;
             if (m_EstimatedPayoutText != null)
             {
-                m_EstimatedPayoutText.text = $"{wager * m_DraftTicket.Multiplier} Call";
+                int effectiveWager = wager;
+                if (Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket))
+                {
+                    effectiveWager += AdditionalBetBonusCall;
+                }
+
+                m_EstimatedPayoutText.text = $"{effectiveWager * m_DraftTicket.Multiplier} Call";
             }
 
             bool valid = m_DraftTicket.Validate(Context.CurrentStageData, Context, Context.CurrentCall, out _);
@@ -654,15 +689,23 @@ namespace InTheArena.MainGame
                 return false;
             }
 
+            if (IsPhaseCompleted || (m_DraftTicket != null && m_DraftTicket.IsPlaced))
+            {
+                message = "이미 배팅이 확정되었습니다.";
+                return false;
+            }
+
             if (itemData.ItemType == ItemType.AdditionalBetTicket)
             {
-                message = "추가 배팅권을 사용했습니다. (+500 Call)";
+                message = $"추가 배팅권을 사용했습니다. (+{AdditionalBetBonusCall} Call)";
+                OnItemUsed?.Invoke(itemData);
                 return true;
             }
 
             if (itemData.ItemType == ItemType.Insurance)
             {
                 message = "보험을 사용했습니다. 패배 시 배팅 Call을 돌려받습니다.";
+                OnItemUsed?.Invoke(itemData);
                 return true;
             }
 
@@ -684,15 +727,27 @@ namespace InTheArena.MainGame
             RefreshBetSummary();
 
             message = $"특수 배팅이 {string.Join(", ", Context.ActiveSpecialBets)}로 변경되었습니다.";
+            OnItemUsed?.Invoke(itemData);
             return true;
         }
 
-        internal void RestorePurchasedItemState(IReadOnlyList<SpecialBetType> previousSpecialBetOrder)
+        internal void RestorePurchasedItemState(
+            IReadOnlyList<SpecialBetType> previousSpecialBetOrder,
+            BettingDraftSpecialPredictionState previousDraftSpecialPredictions = null)
         {
             Context?.RestoreSpecialBetOrder(previousSpecialBetOrder);
+            previousDraftSpecialPredictions?.Restore(m_DraftTicket);
             RefreshSpecialBetAvailability();
             UpdateSurvivingSlotAvailability();
-            RefreshBetSummary();
+            if (m_DraftTicket != null)
+            {
+                RefreshBetSummary();
+            }
+        }
+
+        internal BettingDraftSpecialPredictionState GetDraftSpecialPredictionsForItemUse()
+        {
+            return m_DraftTicket == null ? null : new BettingDraftSpecialPredictionState(m_DraftTicket);
         }
 
         internal IReadOnlyList<SpecialBetType> GetSpecialBetOrderForItemUse()
@@ -713,8 +768,7 @@ namespace InTheArena.MainGame
         {
             if (m_BettingUi != null)
             {
-                if (!m_BettingUi.BIsOpened) m_BettingUi.Open();
-                m_BettingUi.Enable();
+                m_BettingUi.BindAndShow(this, Context, StageManager.Instance?.PlayerState);
             }
         }
 
