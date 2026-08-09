@@ -16,7 +16,7 @@ MonoBehaviour:
   m_Description: "3\uCD08 \uB3D9\uC548 \uC790\uC2E0\uC758 \uACF5\uACA9 \uC18D\uB3C4\uAC00
     100% \uC99D\uAC00\uD55C\uB2E4."
   m_SkillType: 0
-  m_Icon: {fileID: 21300000, guid: cb7d6e64809373d429e01649343ee24d, type: 3}
+  m_Icon: {fileID: 21300000, guid: 9108b31bbab42884498940c41d123acc, type: 3}
   m_Range: 0
   m_Cooldown: 8
   m_CastTime: 3
