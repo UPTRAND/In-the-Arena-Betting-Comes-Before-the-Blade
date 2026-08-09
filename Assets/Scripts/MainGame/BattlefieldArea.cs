@@ -99,6 +99,40 @@ namespace InTheArena.Battlefield
             return result;
         }
 
+        /// <summary>
+        /// 화면 좌표를 전장 BoxCollider의 표면 좌표로 변환합니다.
+        /// 전장 유효성은 다른 Ground 레이어나 UI Raycast가 아니라 이 Collider가 결정합니다.
+        /// </summary>
+        public bool TryGetGroundPosition(
+            UnityEngine.Camera camera,
+            Vector2 screenPosition,
+            out Vector3 worldPosition)
+        {
+            worldPosition = Vector3.zero;
+
+            if (camera == null ||
+                m_AreaCollider == null ||
+                !m_AreaCollider.enabled)
+            {
+                return false;
+            }
+
+            Ray ray = camera.ScreenPointToRay(screenPosition);
+            if (!m_AreaCollider.Raycast(
+                    ray,
+                    out RaycastHit hit,
+                    Mathf.Infinity))
+            {
+                return false;
+            }
+
+            worldPosition = hit.point;
+            Vector3 groundCenter = m_AreaCollider.transform.TransformPoint(
+                m_AreaCollider.center);
+            worldPosition.y = groundCenter.y;
+            return true;
+        }
+
         public bool ContainsPosition(Vector3 worldPosition, float worldRadius = 0f)
         {
             if (m_AreaCollider == null)

@@ -1,16 +1,16 @@
 #if UNITY_6000_0_OR_NEWER
 using System.Collections.Generic;
 using System.Threading;
+using DG.Tweening;
 using InTheArena.MainGame;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace InTheArena.UI
 {
     [DisallowMultipleComponent]
-    public sealed class UI_BattlePhaseHUD : UI_Base, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public sealed class UI_BattlePhaseHUD : UI_Base
     {
         [Header("Battle Information")]
         [SerializeField] private TMP_Text m_RedTeamCountText;
@@ -58,23 +58,37 @@ namespace InTheArena.UI
         [SerializeField] private Image m_ItemSlot3Icon;
         [SerializeField] private ItemData m_ItemSlot3Data;
         [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
+        [SerializeField] private Sprite m_CancelOverlaySprite;
+        [SerializeField] private UI_CombatItemTargetingController m_CombatItemTargetingController;
+        [SerializeField] private Image m_ItemSlot1CancelOverlay;
+        [SerializeField] private Image m_ItemSlot2CancelOverlay;
+        [SerializeField] private Image m_ItemSlot3CancelOverlay;
+        [SerializeField] private TMP_Text m_DuplicateItemFeedbackText;
+        [SerializeField] private CanvasGroup m_DuplicateItemFeedbackCanvasGroup;
+        [SerializeField] private RectTransform m_DuplicateItemFeedbackRect;
 
         private CombatPhase m_CombatPhase;
         private RoundContext m_RoundContext;
         private StagePlayerState m_PlayerState;
 
-        private ItemData m_DraggedItem;
         private ItemData m_ActiveTargetingItemData;
+        private RectTransform m_ActiveTargetingSlot;
+        private Image m_ActiveTargetingCancelOverlay;
         private bool m_IsSubscribed;
         private CancellationTokenSource m_ItemUseLifetimeCancellation;
         private CancellationTokenSource m_TargetingLifetimeCancellation;
         private long m_ActiveTargetingRequestVersion = -1;
+        private Tween m_DuplicateItemFeedbackTween;
+        private Vector2 m_DuplicateItemFeedbackBasePosition;
 
         protected override void Awake()
         {
             base.Awake();
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             m_TargetingLifetimeCancellation = new CancellationTokenSource();
+            EnsureCombatItemTargetingController();
+            EnsureCancelOverlays();
+            EnsureDuplicateItemFeedback();
             ApplyItemIcons();
             SetBattleView(true);
             ResetDisplay();
@@ -138,8 +152,6 @@ namespace InTheArena.UI
             m_TargetingLifetimeCancellation?.Cancel();
             CancelTargetingRequest();
             UnsubscribeEvents();
-            m_DraggedItem = null;
-            m_ActiveTargetingItemData = null;
             ResetDisplay();
             base.OnClosed();
         }
@@ -152,6 +164,7 @@ namespace InTheArena.UI
             }
         }
 
+        #if false
         public void OnBeginDrag(PointerEventData eventData)
         {
             m_DraggedItem = ResolveDraggedItem(eventData);
@@ -194,6 +207,9 @@ namespace InTheArena.UI
             Debug.Log("[UI_BattlePhaseHUD] 인벤토리 기반 아이템 직접 사용은 제거되었습니다.");
         }
 
+        #endif
+
+        #if false
         private async void RequestTargetedItemUse(ItemData itemData)
         {
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
@@ -225,6 +241,55 @@ namespace InTheArena.UI
             }
         }
 
+        #endif
+
+        private async void RequestTargetedItemUse(ItemData itemData)
+        {
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
+                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
+
+            if (coordinator == null || popup == null || m_CombatPhase == null ||
+                !CanUseNewTargetingFlow(itemData) || coordinator.State != ItemPurchaseUseState.Idle)
+            {
+                return;
+            }
+
+            m_TargetingLifetimeCancellation?.Cancel();
+            m_TargetingLifetimeCancellation?.Dispose();
+            m_TargetingLifetimeCancellation = new CancellationTokenSource();
+
+            long requestVersion = await coordinator.RequestTargetedUseAsync(
+                itemData,
+                popup,
+                m_TargetingLifetimeCancellation.Token);
+
+            if (this == null || requestVersion == -1 ||
+                m_TargetingLifetimeCancellation.IsCancellationRequested ||
+                coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
+                coordinator.ActiveRequestVersion != requestVersion)
+            {
+                return;
+            }
+
+            ResolveItemSlot(itemData, out RectTransform selectedSlot, out Image cancelOverlay);
+            if (selectedSlot == null || m_CombatItemTargetingController == null ||
+                !m_CombatItemTargetingController.BeginTargeting(
+                    itemData.ItemType,
+                    m_CombatPhase,
+                    selectedSlot,
+                    cancelOverlay))
+            {
+                coordinator.CancelActiveRequest();
+                return;
+            }
+
+            m_ActiveTargetingRequestVersion = requestVersion;
+            m_ActiveTargetingItemData = itemData;
+            m_ActiveTargetingSlot = selectedSlot;
+            m_ActiveTargetingCancelOverlay = cancelOverlay;
+        }
+
         private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
         {
             if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, worldPos);
@@ -232,6 +297,7 @@ namespace InTheArena.UI
             return null;
         }
 
+        #if false
         private void DetachTargetingInput()
         {
             if (InputManager.Instance != null)
@@ -295,6 +361,71 @@ namespace InTheArena.UI
             {
                 RefreshItemButtons();
             }
+        }
+
+        #endif
+
+        private void ClearTargetingBinding()
+        {
+            m_ActiveTargetingRequestVersion = -1;
+            m_ActiveTargetingItemData = null;
+            m_ActiveTargetingSlot = null;
+            m_ActiveTargetingCancelOverlay = null;
+        }
+
+        private void CancelTargetingRequest()
+        {
+            long requestVersion = m_ActiveTargetingRequestVersion;
+            m_CombatItemTargetingController?.AbortTargeting();
+            ClearTargetingBinding();
+
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget &&
+                coordinator.ActiveRequestVersion == requestVersion)
+            {
+                coordinator.CancelActiveRequest();
+            }
+
+            m_TargetingLifetimeCancellation?.Cancel();
+        }
+
+        private void OnTargetConfirmed(Vector3 worldPosition)
+        {
+            if (m_CombatPhase == null || m_ActiveTargetingItemData == null)
+            {
+                CancelTargetingRequest();
+                return;
+            }
+
+            long targetVersion = m_ActiveTargetingRequestVersion;
+            ItemData itemData = m_ActiveTargetingItemData;
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            if (coordinator == null || coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
+                coordinator.ActiveRequestVersion != targetVersion)
+            {
+                CancelTargetingRequest();
+                return;
+            }
+
+            IItemPurchaseUseExecutor executor = CreateExecutor(itemData, worldPosition);
+            ClearTargetingBinding();
+
+            bool success = coordinator.TryCompleteTargetUse(
+                targetVersion,
+                executor,
+                out ItemPurchaseUseResult result,
+                out string message);
+
+            Debug.Log($"[UI_BattlePhaseHUD] {message}");
+            if (success)
+            {
+                RefreshItemButtons();
+            }
+        }
+
+        private void OnTargetCanceled()
+        {
+            CancelTargetingRequest();
         }
 
         private void SubscribeEvents()
@@ -391,6 +522,19 @@ namespace InTheArena.UI
 
         private void RequestItemUse(ItemData itemData)
         {
+            if (itemData == null || !CanAcceptCombatInput() || !IsCombatItem(itemData))
+            {
+                return;
+            }
+
+            if (CanUseNewTargetingFlow(itemData) &&
+                m_RoundContext?.RoundItemUsage != null &&
+                m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType))
+            {
+                ShowDuplicateItemFeedback();
+                return;
+            }
+
             if (CanUseNewImmediateFlow(itemData))
             {
                 RequestImmediateItemUse(itemData);
@@ -401,6 +545,14 @@ namespace InTheArena.UI
             {
                 RequestTargetedItemUse(itemData);
             }
+        }
+
+        private static bool IsCombatItem(ItemData itemData)
+        {
+            return itemData != null &&
+                   (itemData.ItemType == ItemType.Meteor ||
+                    itemData.ItemType == ItemType.Mercenary ||
+                    itemData.ItemType == ItemType.TimeExtension);
         }
 
         private void OnItemSlot1Clicked() => RequestItemUse(m_ItemSlot1Data);
@@ -462,6 +614,12 @@ namespace InTheArena.UI
                 return;
             }
 
+            if (m_ActiveTargetingRequestVersion != -1 &&
+                !m_CombatPhase.CanCommitGroundTargetItem())
+            {
+                CancelTargetingRequest();
+            }
+
             int redAlive = m_CombatPhase.RedAliveCount;
             int blueAlive = m_CombatPhase.BlueAliveCount;
 
@@ -493,12 +651,13 @@ namespace InTheArena.UI
 
             if (m_SpeedMultiplierText != null)
             {
-                m_SpeedMultiplierText.text = $"\u00D7{m_CombatPhase.CurrentSpeed:0.#}";
+                m_SpeedMultiplierText.text = $"\u00D7{m_CombatPhase.DisplaySpeed:0.#}";
             }
 
             if (m_SpeedButton != null)
             {
-                m_SpeedButton.interactable = CanAcceptCombatInput();
+                m_SpeedButton.interactable = CanAcceptCombatInput() &&
+                    !m_CombatPhase.IsItemCastingSlowMotion;
             }
             RefreshUnitSlots();
         }
@@ -606,12 +765,25 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (CanUseNewImmediateFlow(itemData) || CanUseNewTargetingFlow(itemData))
+            if (CanUseNewTargetingFlow(itemData))
             {
-                button.interactable = CanAcceptCombatInput() &&
-                    !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
-                    itemData.PriceGold >= 0 &&
+                bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
+                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
+                bool canAfford = itemData.PriceGold >= 0 &&
+                    m_PlayerState != null &&
                     m_PlayerState.Gold >= itemData.PriceGold;
+                button.interactable = CanAcceptCombatInput() && (alreadyUsed || canAfford);
+                return;
+            }
+
+            if (CanUseNewImmediateFlow(itemData))
+            {
+                bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
+                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
+                bool canAfford = itemData.PriceGold >= 0 &&
+                    m_PlayerState != null &&
+                    m_PlayerState.Gold >= itemData.PriceGold;
+                button.interactable = CanAcceptCombatInput() && !alreadyUsed && canAfford;
                 return;
             }
 
@@ -650,6 +822,7 @@ namespace InTheArena.UI
                 m_PlayerState != null;
         }
 
+        #if false
         private ItemData ResolveDraggedItem(PointerEventData eventData)
         {
             if (!CanAcceptCombatInput() || eventData == null)
@@ -675,6 +848,8 @@ namespace InTheArena.UI
             return button != null && button.interactable &&
                    (pressedTransform == button.transform || pressedTransform.IsChildOf(button.transform));
         }
+
+        #endif
 
         private bool CanAcceptCombatInput()
         {
@@ -753,6 +928,201 @@ namespace InTheArena.UI
             };
         }
 
+        private void EnsureCombatItemTargetingController()
+        {
+            if (m_CombatItemTargetingController == null)
+            {
+                GameObject inputObject = new GameObject(
+                    "CombatItemTargetingInput",
+                    typeof(RectTransform),
+                    typeof(Canvas),
+                    typeof(GraphicRaycaster),
+                    typeof(Image));
+                inputObject.transform.SetParent(transform, false);
+
+                RectTransform inputRect = (RectTransform)inputObject.transform;
+                inputRect.anchorMin = Vector2.zero;
+                inputRect.anchorMax = Vector2.one;
+                inputRect.offsetMin = Vector2.zero;
+                inputRect.offsetMax = Vector2.zero;
+
+                Canvas inputCanvas = inputObject.GetComponent<Canvas>();
+                inputCanvas.overrideSorting = true;
+                inputCanvas.sortingOrder = 1000;
+
+                Image inputImage = inputObject.GetComponent<Image>();
+                inputImage.color = Color.clear;
+                inputImage.raycastTarget = true;
+                m_CombatItemTargetingController =
+                    inputObject.AddComponent<UI_CombatItemTargetingController>();
+            }
+
+            if (m_CombatItemTargetingController != null)
+            {
+                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
+                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
+                m_CombatItemTargetingController.TargetConfirmed += OnTargetConfirmed;
+                m_CombatItemTargetingController.TargetCanceled += OnTargetCanceled;
+                m_CombatItemTargetingController.gameObject.SetActive(false);
+            }
+        }
+
+        private void EnsureCancelOverlays()
+        {
+            m_ItemSlot1CancelOverlay ??= CreateCancelOverlay(m_ItemSlot1Button);
+            m_ItemSlot2CancelOverlay ??= CreateCancelOverlay(m_ItemSlot2Button);
+            m_ItemSlot3CancelOverlay ??= CreateCancelOverlay(m_ItemSlot3Button);
+        }
+
+        private Image CreateCancelOverlay(Button button)
+        {
+            if (button == null)
+            {
+                return null;
+            }
+
+            Transform existing = button.transform.Find("TargetingCancelOverlay");
+            GameObject overlayObject = existing != null
+                ? existing.gameObject
+                : new GameObject("TargetingCancelOverlay", typeof(RectTransform), typeof(Image));
+            if (existing == null)
+            {
+                overlayObject.transform.SetParent(button.transform, false);
+            }
+
+            RectTransform overlayRect = (RectTransform)overlayObject.transform;
+            overlayRect.anchorMin = new Vector2(0.5f, 0.5f);
+            overlayRect.anchorMax = new Vector2(0.5f, 0.5f);
+            overlayRect.pivot = new Vector2(0.5f, 0.5f);
+            overlayRect.anchoredPosition = Vector2.zero;
+            overlayRect.sizeDelta = new Vector2(32f, 32f);
+            overlayObject.transform.SetAsLastSibling();
+
+            Image overlay = overlayObject.GetComponent<Image>();
+            overlay.sprite = m_CancelOverlaySprite;
+            overlay.preserveAspect = true;
+            overlay.raycastTarget = false;
+            overlay.enabled = false;
+            return overlay;
+        }
+
+        private void EnsureDuplicateItemFeedback()
+        {
+            if (m_DuplicateItemFeedbackText == null)
+            {
+                GameObject feedbackObject = new GameObject(
+                    "DuplicateItemFeedback",
+                    typeof(RectTransform),
+                    typeof(CanvasGroup),
+                    typeof(TextMeshProUGUI));
+                feedbackObject.transform.SetParent(transform, false);
+
+                m_DuplicateItemFeedbackText = feedbackObject.GetComponent<TextMeshProUGUI>();
+                m_DuplicateItemFeedbackCanvasGroup = feedbackObject.GetComponent<CanvasGroup>();
+                m_DuplicateItemFeedbackRect = (RectTransform)feedbackObject.transform;
+                m_DuplicateItemFeedbackText.alignment = TextAlignmentOptions.Center;
+                m_DuplicateItemFeedbackText.fontSize = 24f;
+                m_DuplicateItemFeedbackText.color = Color.white;
+                m_DuplicateItemFeedbackText.enableWordWrapping = false;
+                m_DuplicateItemFeedbackText.raycastTarget = false;
+                m_DuplicateItemFeedbackRect.anchorMin = new Vector2(0.5f, 0.5f);
+                m_DuplicateItemFeedbackRect.anchorMax = new Vector2(0.5f, 0.5f);
+                m_DuplicateItemFeedbackRect.pivot = new Vector2(0.5f, 0.5f);
+                m_DuplicateItemFeedbackRect.anchoredPosition = new Vector2(0f, 180f);
+                m_DuplicateItemFeedbackRect.sizeDelta = new Vector2(620f, 48f);
+            }
+
+            if (m_DuplicateItemFeedbackCanvasGroup == null &&
+                m_DuplicateItemFeedbackText != null)
+            {
+                m_DuplicateItemFeedbackCanvasGroup =
+                    m_DuplicateItemFeedbackText.GetComponent<CanvasGroup>() ??
+                    m_DuplicateItemFeedbackText.gameObject.AddComponent<CanvasGroup>();
+            }
+
+            if (m_DuplicateItemFeedbackRect == null && m_DuplicateItemFeedbackText != null)
+            {
+                m_DuplicateItemFeedbackRect = m_DuplicateItemFeedbackText.rectTransform;
+            }
+
+            if (m_DuplicateItemFeedbackRect != null)
+            {
+                m_DuplicateItemFeedbackBasePosition =
+                    m_DuplicateItemFeedbackRect.anchoredPosition;
+            }
+
+            if (m_DuplicateItemFeedbackCanvasGroup != null)
+            {
+                m_DuplicateItemFeedbackCanvasGroup.alpha = 0f;
+                m_DuplicateItemFeedbackCanvasGroup.blocksRaycasts = false;
+                m_DuplicateItemFeedbackCanvasGroup.interactable = false;
+            }
+        }
+
+        private void ShowDuplicateItemFeedback()
+        {
+            EnsureDuplicateItemFeedback();
+            if (m_DuplicateItemFeedbackText == null ||
+                m_DuplicateItemFeedbackCanvasGroup == null ||
+                m_DuplicateItemFeedbackRect == null)
+            {
+                return;
+            }
+
+            m_DuplicateItemFeedbackText.text = "이미 이번 라운드에는 해당 아이템을 사용했습니다.";
+            m_DuplicateItemFeedbackTween?.Kill();
+            m_DuplicateItemFeedbackCanvasGroup.DOKill();
+            m_DuplicateItemFeedbackRect.DOKill();
+            m_DuplicateItemFeedbackRect.anchoredPosition = m_DuplicateItemFeedbackBasePosition;
+            m_DuplicateItemFeedbackCanvasGroup.alpha = 0f;
+
+            m_DuplicateItemFeedbackTween = DOTween.Sequence()
+                .Append(m_DuplicateItemFeedbackCanvasGroup.DOFade(1f, 0.5f))
+                .Join(m_DuplicateItemFeedbackRect.DOAnchorPos(
+                    m_DuplicateItemFeedbackBasePosition + Vector2.up * 24f,
+                    1f))
+                .Append(m_DuplicateItemFeedbackCanvasGroup.DOFade(0f, 0.5f))
+                .SetUpdate(true)
+                .OnComplete(() =>
+                {
+                    if (m_DuplicateItemFeedbackRect != null)
+                    {
+                        m_DuplicateItemFeedbackRect.anchoredPosition =
+                            m_DuplicateItemFeedbackBasePosition;
+                    }
+                });
+        }
+
+        private void ResolveItemSlot(
+            ItemData itemData,
+            out RectTransform selectedSlot,
+            out Image cancelOverlay)
+        {
+            selectedSlot = null;
+            cancelOverlay = null;
+
+            if (itemData == null)
+            {
+                return;
+            }
+
+            if (itemData == m_ItemSlot1Data)
+            {
+                selectedSlot = m_ItemSlot1Button?.transform as RectTransform;
+                cancelOverlay = m_ItemSlot1CancelOverlay;
+            }
+            else if (itemData == m_ItemSlot2Data)
+            {
+                selectedSlot = m_ItemSlot2Button?.transform as RectTransform;
+                cancelOverlay = m_ItemSlot2CancelOverlay;
+            }
+            else if (itemData == m_ItemSlot3Data)
+            {
+                selectedSlot = m_ItemSlot3Button?.transform as RectTransform;
+                cancelOverlay = m_ItemSlot3CancelOverlay;
+            }
+        }
+
         private void ResetDisplay()
         {
             if (m_RedTeamCountText != null) m_RedTeamCountText.text = "0";
@@ -782,15 +1152,20 @@ namespace InTheArena.UI
             m_CombatPhase = null;
             m_RoundContext = null;
             m_PlayerState = null;
-            m_DraggedItem = null;
-            m_ActiveTargetingItemData = null;
+            ClearTargetingBinding();
         }
 
         protected override void OnDestroy()
         {
             m_ItemUseLifetimeCancellation?.Cancel();
             m_TargetingLifetimeCancellation?.Cancel();
-            DetachTargetingInput();
+            if (m_CombatItemTargetingController != null)
+            {
+                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
+                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
+            }
+            m_CombatItemTargetingController?.AbortTargeting();
+            m_DuplicateItemFeedbackTween?.Kill();
 
             UnsubscribeEvents();
             ClearBindings();

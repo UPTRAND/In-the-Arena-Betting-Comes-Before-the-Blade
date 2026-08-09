@@ -4189,6 +4189,14 @@ MonoBehaviour:
   m_ItemSlot3Icon: {fileID: 5243823217470266231}
   m_ItemSlot3Data: {fileID: 11400000, guid: baebaa58e524efb49b105c1d75a9eacc, type: 2}
   m_ItemPurchasePopup: {fileID: 0}
+  m_CancelOverlaySprite: {fileID: 2014313799, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
+  m_CombatItemTargetingController: {fileID: 0}
+  m_ItemSlot1CancelOverlay: {fileID: 0}
+  m_ItemSlot2CancelOverlay: {fileID: 0}
+  m_ItemSlot3CancelOverlay: {fileID: 0}
+  m_DuplicateItemFeedbackText: {fileID: 0}
+  m_DuplicateItemFeedbackCanvasGroup: {fileID: 0}
+  m_DuplicateItemFeedbackRect: {fileID: 0}
 --- !u!1 &3683806307225949333
 GameObject:
   m_ObjectHideFlags: 0

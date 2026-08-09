@@ -747,6 +747,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: 32x32-Tilesheet_29
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 108
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7f3e0471c2e6ec840a2386a68dce352e
+      internalID: 2014313799
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -783,6 +805,7 @@ TextureImporter:
       32x32-Tilesheet_26: 1833183777
       32x32-Tilesheet_27: 782494019
       32x32-Tilesheet_28: -147293978
+      32x32-Tilesheet_29: 2014313799
       32x32-Tilesheet_3: -333696598
       32x32-Tilesheet_4: 2123483889
       32x32-Tilesheet_5: 526565082

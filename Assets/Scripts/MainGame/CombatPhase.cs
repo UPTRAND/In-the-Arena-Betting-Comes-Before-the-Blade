@@ -25,6 +25,10 @@ namespace InTheArena.MainGame
         private const float GridCellSize = 2f;
         private const float BattlefieldMinX = -(BattlefieldColumnCount * GridCellSize) * 0.5f;
         private const float BattlefieldMinZ = -(BattlefieldRowCount * GridCellSize) * 0.5f;
+        private const float ItemCastingTimeScale = 0.25f;
+        private const float MeteorEffectRadius = 2f;
+        private const float MercenaryFormationHorizontalOffset = 0.5f;
+        private const float MercenaryFormationDepthOffset = 0.5f;
 
         [Header("Combat Settings")]
         [SerializeField] [Min(1f)] private float m_CombatTimeout = 30f;
@@ -59,6 +63,7 @@ namespace InTheArena.MainGame
         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
         private FirstEliminatedColumnPrediction? m_FirstEliminatedColumn;
         private bool m_IsFinalEliminationPlaying;
+        private bool m_IsItemCastingSlowMotion;
 
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
@@ -105,6 +110,7 @@ namespace InTheArena.MainGame
             m_FinalDeathPresentationUnits.Clear();
             m_FirstEliminatedColumn = null;
             m_IsFinalEliminationPlaying = false;
+            m_IsItemCastingSlowMotion = false;
 
             // 컨텍스트에서 유닛 데이터로 런타임 유닛 생성
             CreateRuntimeUnitsFromData();
@@ -397,6 +403,7 @@ namespace InTheArena.MainGame
 
             FreezeCombatOutcome(winner);
             m_IsCombatEnded = true;
+            m_IsItemCastingSlowMotion = false;
             Time.timeScale = 1f;
             InTheArena.Camera.CameraController.Instance?.SetPhase(
                 InTheArena.Camera.CameraPhase.Result);
@@ -415,6 +422,7 @@ namespace InTheArena.MainGame
 
             try
             {
+                m_IsItemCastingSlowMotion = false;
                 Time.timeScale = m_FinalEliminationTimeScale;
 
                 if (winner == Team.None)
@@ -554,7 +562,13 @@ namespace InTheArena.MainGame
         /// </summary>
         public void ToggleCombatSpeed()
         {
-            if (m_IsFinalEliminationPlaying || m_IsCombatEnded) return;
+            if (m_IsFinalEliminationPlaying ||
+                m_IsCombatEnded ||
+                m_IsItemCastingSlowMotion)
+            {
+                return;
+            }
+
             m_CurrentSpeed = Mathf.Approximately(m_CurrentSpeed, 1f) ? 2f
                 : Mathf.Approximately(m_CurrentSpeed, 2f) ? 3f
                 : Mathf.Approximately(m_CurrentSpeed, 3f) ? 0.5f
@@ -568,6 +582,10 @@ namespace InTheArena.MainGame
         /// 현재 전투 속도 반환
         /// </summary>
         public float CurrentSpeed => m_CurrentSpeed;
+        public float DisplaySpeed => m_IsItemCastingSlowMotion
+            ? ItemCastingTimeScale
+            : m_CurrentSpeed;
+        public bool IsItemCastingSlowMotion => m_IsItemCastingSlowMotion;
         public bool IsFinalEliminationPlaying => m_IsFinalEliminationPlaying;
         public float RemainingCombatTime => m_RemainingCombatTime;
         public float CombatTimeout => m_CombatTimeout;
@@ -578,6 +596,72 @@ namespace InTheArena.MainGame
         public int RedParticipantCount => m_RedParticipantCount;
         public int BlueParticipantCount => m_BlueParticipantCount;
         public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
+
+        public bool BeginItemCastingSlowMotion()
+        {
+            if (m_IsItemCastingSlowMotion)
+            {
+                return true;
+            }
+
+            if (IsCombatEnded || m_IsFinalEliminationPlaying)
+            {
+                return false;
+            }
+
+            m_IsItemCastingSlowMotion = true;
+            Time.timeScale = ItemCastingTimeScale;
+            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(false);
+            return true;
+        }
+
+        public void EndItemCastingSlowMotion()
+        {
+            if (!m_IsItemCastingSlowMotion)
+            {
+                return;
+            }
+
+            m_IsItemCastingSlowMotion = false;
+
+            if (IsCombatEnded ||
+                m_IsFinalEliminationPlaying ||
+                IsPhaseCompleted)
+            {
+                Time.timeScale = 1f;
+                return;
+            }
+
+            Time.timeScale = m_CurrentSpeed;
+            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(
+                m_CurrentSpeed > m_NormalSpeed);
+        }
+
+        public bool CanCommitGroundTargetItem()
+        {
+            return Context != null &&
+                   !IsCombatEnded &&
+                   !m_IsFinalEliminationPlaying &&
+                   m_RemainingCombatTime > 0f &&
+                   HasLivingUnit(Context.TeamAUnits) &&
+                   HasLivingUnit(Context.TeamBUnits);
+        }
+
+        public float MeteorTargetRadius => MeteorEffectRadius;
+
+        public float MercenaryFormationPadding =>
+            MercenaryFormationHorizontalOffset + GetMercenaryVisualRadius();
+
+        public Vector2 MercenaryFormationPreviewSize
+        {
+            get
+            {
+                float radius = GetMercenaryVisualRadius();
+                return new Vector2(
+                    MercenaryFormationHorizontalOffset * 2f + radius * 2f,
+                    MercenaryFormationDepthOffset + radius * 2f);
+            }
+        }
 
         public int GetAliveCount(Team team, int cellIndex)
         {
@@ -604,6 +688,7 @@ namespace InTheArena.MainGame
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
+            EndItemCastingSlowMotion();
             Time.timeScale = 1f;
             m_IsFinalEliminationPlaying = false;
             CompleteFinalDeathPresentations();
@@ -708,7 +793,7 @@ namespace InTheArena.MainGame
         {
             message = string.Empty;
 
-            if (Context == null || IsCombatEnded)
+            if (!CanCommitGroundTargetItem())
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
@@ -721,6 +806,17 @@ namespace InTheArena.MainGame
                 message = "용병 데이터가 없습니다.";
                 return false;
             }
+
+            BattlefieldArea area = BattlefieldArea.Active;
+            if (area == null)
+            {
+                message = "전장 영역이 설정되지 않았습니다.";
+                return false;
+            }
+
+            dropPosition = area.ClampPosition(
+                dropPosition,
+                MercenaryFormationPadding);
 
             // 기존 팀 결정 로직을 그대로 유지한다.
             Team team = Team.Red;
@@ -740,10 +836,16 @@ namespace InTheArena.MainGame
             Vector3 knightPosition = dropPosition;
 
             Vector3 archerPosition =
-                dropPosition + new Vector3(0.5f, 0f, -0.5f);
+                dropPosition + new Vector3(
+                    MercenaryFormationHorizontalOffset,
+                    0f,
+                    -MercenaryFormationDepthOffset);
 
             Vector3 wizardPosition =
-                dropPosition + new Vector3(-0.5f, 0f, -0.5f);
+                dropPosition + new Vector3(
+                    -MercenaryFormationHorizontalOffset,
+                    0f,
+                    -MercenaryFormationDepthOffset);
 
             // 어떤 유닛도 생성하기 전에 세 위치를 모두 검증한다.
             if (!ValidateMercenarySpawnPosition(
@@ -921,7 +1023,7 @@ namespace InTheArena.MainGame
         {
             message = string.Empty;
 
-            if (Context == null || IsCombatEnded)
+            if (!CanCommitGroundTargetItem())
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
@@ -938,7 +1040,7 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            float radius = 2f;
+            float radius = MeteorEffectRadius;
             float stunDuration = 3f;
             float radiusSqr = radius * radius;
 
@@ -947,6 +1049,23 @@ namespace InTheArena.MainGame
 
             message = "메테오를 사용했습니다.";
             return true;
+        }
+
+        private float GetMercenaryVisualRadius()
+        {
+            return Mathf.Max(
+                0.5f,
+                Mathf.Max(
+                    m_MercenaryKnightData != null
+                        ? m_MercenaryKnightData.VisualRadius
+                        : 0f,
+                    Mathf.Max(
+                        m_MercenaryArcherData != null
+                            ? m_MercenaryArcherData.VisualRadius
+                            : 0f,
+                        m_MercenaryWizardData != null
+                            ? m_MercenaryWizardData.VisualRadius
+                            : 0f)));
         }
 
         private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
@@ -998,6 +1117,7 @@ namespace InTheArena.MainGame
 
         private void OnDestroy()
         {
+            m_IsItemCastingSlowMotion = false;
             Time.timeScale = 1f;
             m_IsFinalEliminationPlaying = false;
             CompleteFinalDeathPresentations();

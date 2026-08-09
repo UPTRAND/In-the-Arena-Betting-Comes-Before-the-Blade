@@ -1,0 +1,1828 @@
+diff --git a/Assets/Editor/Debug/CombatItemTargetingTests.cs b/Assets/Editor/Debug/CombatItemTargetingTests.cs
+new file mode 100644
+index 00000000..b7204bf6
+--- /dev/null
++++ b/Assets/Editor/Debug/CombatItemTargetingTests.cs
+@@ -0,0 +1,178 @@
++#if UNITY_EDITOR && UNITY_6000_0_OR_NEWER
++using InTheArena.Battlefield;
++using InTheArena.MainGame;
++using InTheArena.UI;
++using NUnit.Framework;
++using UnityEngine;
++using UnityEngine.EventSystems;
++using UnityEngine.UI;
++
++public sealed class CombatItemTargetingTests
++{
++    [Test]
++    public void BattlefieldArea_RaycastAcceptsOnlyColliderAndNormalizesY()
++    {
++        GameObject areaObject = new GameObject("TestBattlefield");
++        GameObject cameraObject = new GameObject("TestCamera");
++
++        try
++        {
++            BoxCollider collider = areaObject.AddComponent<BoxCollider>();
++            collider.center = new Vector3(0f, 0f, 0f);
++            collider.size = new Vector3(10f, 0.2f, 4f);
++            areaObject.transform.position = new Vector3(0f, 2f, 0f);
++            BattlefieldArea area = areaObject.AddComponent<BattlefieldArea>();
++
++            Camera camera = cameraObject.AddComponent<Camera>();
++            camera.orthographic = true;
++            camera.orthographicSize = 10f;
++            camera.aspect = 1f;
++            camera.pixelRect = new Rect(0f, 0f, 100f, 100f);
++            camera.transform.position = new Vector3(0f, 10f, 0f);
++            camera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
++
++            Assert.That(
++                area.TryGetGroundPosition(
++                    camera,
++                    new Vector2(50f, 50f),
++                    out Vector3 inside),
++                Is.True);
++            Assert.That(inside.y, Is.EqualTo(2f).Within(0.001f));
++            Assert.That(inside.x, Is.EqualTo(0f).Within(0.001f));
++            Assert.That(inside.z, Is.EqualTo(0f).Within(0.001f));
++
++            Assert.That(
++                area.TryGetGroundPosition(
++                    camera,
++                    new Vector2(99f, 50f),
++                    out _),
++                Is.False);
++        }
++        finally
++        {
++            Object.DestroyImmediate(cameraObject);
++            Object.DestroyImmediate(areaObject);
++        }
++    }
++
++    [Test]
++    public void BattlefieldArea_FormationPaddingKeepsAllThreeMercenariesInside()
++    {
++        GameObject areaObject = new GameObject("TestBattlefield");
++
++        try
++        {
++            BoxCollider collider = areaObject.AddComponent<BoxCollider>();
++            collider.size = new Vector3(14f, 0.2f, 6f);
++            BattlefieldArea area = areaObject.AddComponent<BattlefieldArea>();
++
++            Vector3 center = area.ClampPosition(
++                new Vector3(100f, 0f, 100f),
++                1f);
++            Vector3 knight = center;
++            Vector3 archer = center + new Vector3(0.5f, 0f, -0.5f);
++            Vector3 wizard = center + new Vector3(-0.5f, 0f, -0.5f);
++
++            Assert.That(area.ContainsPosition(knight, 0.5f), Is.True);
++            Assert.That(area.ContainsPosition(archer, 0.5f), Is.True);
++            Assert.That(area.ContainsPosition(wizard, 0.5f), Is.True);
++        }
++        finally
++        {
++            Object.DestroyImmediate(areaObject);
++        }
++    }
++
++    [Test]
++    public void CombatPhase_ItemCastingSlowMotionBlocksToggleAndRestoresSelectedSpeed()
++    {
++        GameObject phaseObject = new GameObject("TestCombatPhase");
++        float previousTimeScale = Time.timeScale;
++
++        try
++        {
++            CombatPhase phase = phaseObject.AddComponent<CombatPhase>();
++            typeof(CombatPhase)
++                .GetField("m_CurrentSpeed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
++                ?.SetValue(phase, 2f);
++            Time.timeScale = 2f;
++
++            Assert.That(phase.BeginItemCastingSlowMotion(), Is.True);
++            Assert.That(Time.timeScale, Is.EqualTo(0.25f).Within(0.0001f));
++            Assert.That(phase.DisplaySpeed, Is.EqualTo(0.25f).Within(0.0001f));
++
++            phase.ToggleCombatSpeed();
++            Assert.That(Time.timeScale, Is.EqualTo(0.25f).Within(0.0001f));
++            Assert.That(phase.CurrentSpeed, Is.EqualTo(2f).Within(0.0001f));
++
++            phase.EndItemCastingSlowMotion();
++            Assert.That(Time.timeScale, Is.EqualTo(2f).Within(0.0001f));
++            Assert.That(phase.DisplaySpeed, Is.EqualTo(2f).Within(0.0001f));
++        }
++        finally
++        {
++            Time.timeScale = previousTimeScale;
++            Object.DestroyImmediate(phaseObject);
++        }
++    }
++
++    [Test]
++    public void CombatItemTargetingController_OtherPointerUpDoesNotCancelActivePointer()
++    {
++        GameObject phaseObject = new GameObject("TestCombatPhase");
++        GameObject slotObject = new GameObject("SelectedSlot", typeof(RectTransform));
++        GameObject controllerObject = new GameObject(
++            "TargetingController",
++            typeof(RectTransform),
++            typeof(Image));
++        GameObject eventSystemObject = new GameObject("TestEventSystem");
++        float previousTimeScale = Time.timeScale;
++
++        try
++        {
++            CombatPhase phase = phaseObject.AddComponent<CombatPhase>();
++            UI_CombatItemTargetingController controller =
++                controllerObject.AddComponent<UI_CombatItemTargetingController>();
++            EventSystem eventSystem = eventSystemObject.AddComponent<EventSystem>();
++            int canceledCount = 0;
++            controller.TargetCanceled += () => canceledCount++;
++
++            Assert.That(
++                controller.BeginTargeting(
++                    ItemType.Meteor,
++                    phase,
++                    (RectTransform)slotObject.transform,
++                    null),
++                Is.True);
++
++            PointerEventData down = new PointerEventData(eventSystem)
++            {
++                pointerId = 11,
++                position = new Vector2(100f, 100f)
++            };
++            PointerEventData otherPointerUp = new PointerEventData(eventSystem)
++            {
++                pointerId = 12,
++                position = new Vector2(100f, 100f)
++            };
++
++            controller.OnPointerDown(down);
++            controller.OnPointerUp(otherPointerUp);
++
++            Assert.That(controller.State, Is.Not.EqualTo(CombatItemTargetingState.Idle));
++            Assert.That(canceledCount, Is.EqualTo(0));
++
++            controller.OnPointerUp(down);
++            Assert.That(canceledCount, Is.EqualTo(1));
++        }
++        finally
++        {
++            Time.timeScale = previousTimeScale;
++            Object.DestroyImmediate(eventSystemObject);
++            Object.DestroyImmediate(controllerObject);
++            Object.DestroyImmediate(slotObject);
++            Object.DestroyImmediate(phaseObject);
++        }
++    }
++}
++#endif
+diff --git a/Assets/Editor/Debug/CombatItemTargetingTests.cs.meta b/Assets/Editor/Debug/CombatItemTargetingTests.cs.meta
+new file mode 100644
+index 00000000..47562dba
+--- /dev/null
++++ b/Assets/Editor/Debug/CombatItemTargetingTests.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: bff911ca69dab454f935d859a412a636
+\ No newline at end of file
+diff --git a/Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab b/Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab
+index 5ecbec99..88763f49 100644
+--- a/Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab
++++ b/Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab
+@@ -4189,6 +4189,14 @@ MonoBehaviour:
+   m_ItemSlot3Icon: {fileID: 5243823217470266231}
+   m_ItemSlot3Data: {fileID: 11400000, guid: baebaa58e524efb49b105c1d75a9eacc, type: 2}
+   m_ItemPurchasePopup: {fileID: 0}
++  m_CancelOverlaySprite: {fileID: 2014313799, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
++  m_CombatItemTargetingController: {fileID: 0}
++  m_ItemSlot1CancelOverlay: {fileID: 0}
++  m_ItemSlot2CancelOverlay: {fileID: 0}
++  m_ItemSlot3CancelOverlay: {fileID: 0}
++  m_DuplicateItemFeedbackText: {fileID: 0}
++  m_DuplicateItemFeedbackCanvasGroup: {fileID: 0}
++  m_DuplicateItemFeedbackRect: {fileID: 0}
+ --- !u!1 &3683806307225949333
+ GameObject:
+   m_ObjectHideFlags: 0
+diff --git a/Assets/Prefabs/UI/World/UI_UnitHPBar.prefab b/Assets/Prefabs/UI/World/UI_UnitHPBar.prefab
+index 51d9e2b8..b3098fdb 100644
+--- a/Assets/Prefabs/UI/World/UI_UnitHPBar.prefab
++++ b/Assets/Prefabs/UI/World/UI_UnitHPBar.prefab
+@@ -60,7 +60,7 @@ MonoBehaviour:
+   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+   m_Material: {fileID: 0}
+   m_Color: {r: 0.16981131, g: 0.16981131, b: 0.16981131, a: 1}
+-  m_RaycastTarget: 1
++  m_RaycastTarget: 0
+   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+   m_Maskable: 1
+   m_OnCullStateChanged:
+@@ -135,7 +135,7 @@ MonoBehaviour:
+   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+   m_Material: {fileID: 0}
+   m_Color: {r: 1, g: 0, b: 0, a: 1}
+-  m_RaycastTarget: 1
++  m_RaycastTarget: 0
+   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+   m_Maskable: 1
+   m_OnCullStateChanged:
+diff --git a/Assets/Scripts/MainGame/BattlefieldArea.cs b/Assets/Scripts/MainGame/BattlefieldArea.cs
+index 59466b7a..51eca4ee 100644
+--- a/Assets/Scripts/MainGame/BattlefieldArea.cs
++++ b/Assets/Scripts/MainGame/BattlefieldArea.cs
+@@ -99,6 +99,40 @@ namespace InTheArena.Battlefield
+             return result;
+         }
+ 
++        /// <summary>
++        /// 화면 좌표를 전장 BoxCollider의 표면 좌표로 변환합니다.
++        /// 전장 유효성은 다른 Ground 레이어나 UI Raycast가 아니라 이 Collider가 결정합니다.
++        /// </summary>
++        public bool TryGetGroundPosition(
++            UnityEngine.Camera camera,
++            Vector2 screenPosition,
++            out Vector3 worldPosition)
++        {
++            worldPosition = Vector3.zero;
++
++            if (camera == null ||
++                m_AreaCollider == null ||
++                !m_AreaCollider.enabled)
++            {
++                return false;
++            }
++
++            Ray ray = camera.ScreenPointToRay(screenPosition);
++            if (!m_AreaCollider.Raycast(
++                    ray,
++                    out RaycastHit hit,
++                    Mathf.Infinity))
++            {
++                return false;
++            }
++
++            worldPosition = hit.point;
++            Vector3 groundCenter = m_AreaCollider.transform.TransformPoint(
++                m_AreaCollider.center);
++            worldPosition.y = groundCenter.y;
++            return true;
++        }
++
+         public bool ContainsPosition(Vector3 worldPosition, float worldRadius = 0f)
+         {
+             if (m_AreaCollider == null)
+@@ -153,4 +187,4 @@ namespace InTheArena.Battlefield
+         }
+ #endif
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Assets/Scripts/MainGame/CombatPhase.cs b/Assets/Scripts/MainGame/CombatPhase.cs
+index 00f29284..dd4db048 100644
+--- a/Assets/Scripts/MainGame/CombatPhase.cs
++++ b/Assets/Scripts/MainGame/CombatPhase.cs
+@@ -25,6 +25,10 @@ namespace InTheArena.MainGame
+         private const float GridCellSize = 2f;
+         private const float BattlefieldMinX = -(BattlefieldColumnCount * GridCellSize) * 0.5f;
+         private const float BattlefieldMinZ = -(BattlefieldRowCount * GridCellSize) * 0.5f;
++        private const float ItemCastingTimeScale = 0.25f;
++        private const float MeteorEffectRadius = 2f;
++        private const float MercenaryFormationHorizontalOffset = 0.5f;
++        private const float MercenaryFormationDepthOffset = 0.5f;
+ 
+         [Header("Combat Settings")]
+         [SerializeField] [Min(1f)] private float m_CombatTimeout = 30f;
+@@ -59,6 +63,7 @@ namespace InTheArena.MainGame
+         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
+         private FirstEliminatedColumnPrediction? m_FirstEliminatedColumn;
+         private bool m_IsFinalEliminationPlaying;
++        private bool m_IsItemCastingSlowMotion;
+ 
+         public override async Awaitable PreparePhaseAsync(CancellationToken token)
+         {
+@@ -105,6 +110,7 @@ namespace InTheArena.MainGame
+             m_FinalDeathPresentationUnits.Clear();
+             m_FirstEliminatedColumn = null;
+             m_IsFinalEliminationPlaying = false;
++            m_IsItemCastingSlowMotion = false;
+ 
+             // 컨텍스트에서 유닛 데이터로 런타임 유닛 생성
+             CreateRuntimeUnitsFromData();
+@@ -397,6 +403,7 @@ namespace InTheArena.MainGame
+ 
+             FreezeCombatOutcome(winner);
+             m_IsCombatEnded = true;
++            m_IsItemCastingSlowMotion = false;
+             Time.timeScale = 1f;
+             InTheArena.Camera.CameraController.Instance?.SetPhase(
+                 InTheArena.Camera.CameraPhase.Result);
+@@ -415,6 +422,7 @@ namespace InTheArena.MainGame
+ 
+             try
+             {
++                m_IsItemCastingSlowMotion = false;
+                 Time.timeScale = m_FinalEliminationTimeScale;
+ 
+                 if (winner == Team.None)
+@@ -554,7 +562,13 @@ namespace InTheArena.MainGame
+         /// </summary>
+         public void ToggleCombatSpeed()
+         {
+-            if (m_IsFinalEliminationPlaying || m_IsCombatEnded) return;
++            if (m_IsFinalEliminationPlaying ||
++                m_IsCombatEnded ||
++                m_IsItemCastingSlowMotion)
++            {
++                return;
++            }
++
+             m_CurrentSpeed = Mathf.Approximately(m_CurrentSpeed, 1f) ? 2f
+                 : Mathf.Approximately(m_CurrentSpeed, 2f) ? 3f
+                 : Mathf.Approximately(m_CurrentSpeed, 3f) ? 0.5f
+@@ -568,6 +582,10 @@ namespace InTheArena.MainGame
+         /// 현재 전투 속도 반환
+         /// </summary>
+         public float CurrentSpeed => m_CurrentSpeed;
++        public float DisplaySpeed => m_IsItemCastingSlowMotion
++            ? ItemCastingTimeScale
++            : m_CurrentSpeed;
++        public bool IsItemCastingSlowMotion => m_IsItemCastingSlowMotion;
+         public bool IsFinalEliminationPlaying => m_IsFinalEliminationPlaying;
+         public float RemainingCombatTime => m_RemainingCombatTime;
+         public float CombatTimeout => m_CombatTimeout;
+@@ -579,6 +597,72 @@ namespace InTheArena.MainGame
+         public int BlueParticipantCount => m_BlueParticipantCount;
+         public bool IsCombatEnded => m_IsCombatEnded || IsPhaseCompleted;
+ 
++        public bool BeginItemCastingSlowMotion()
++        {
++            if (m_IsItemCastingSlowMotion)
++            {
++                return true;
++            }
++
++            if (IsCombatEnded || m_IsFinalEliminationPlaying)
++            {
++                return false;
++            }
++
++            m_IsItemCastingSlowMotion = true;
++            Time.timeScale = ItemCastingTimeScale;
++            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(false);
++            return true;
++        }
++
++        public void EndItemCastingSlowMotion()
++        {
++            if (!m_IsItemCastingSlowMotion)
++            {
++                return;
++            }
++
++            m_IsItemCastingSlowMotion = false;
++
++            if (IsCombatEnded ||
++                m_IsFinalEliminationPlaying ||
++                IsPhaseCompleted)
++            {
++                Time.timeScale = 1f;
++                return;
++            }
++
++            Time.timeScale = m_CurrentSpeed;
++            InTheArena.Camera.CameraController.Instance?.SetSpeedBoost(
++                m_CurrentSpeed > m_NormalSpeed);
++        }
++
++        public bool CanCommitGroundTargetItem()
++        {
++            return Context != null &&
++                   !IsCombatEnded &&
++                   !m_IsFinalEliminationPlaying &&
++                   m_RemainingCombatTime > 0f &&
++                   HasLivingUnit(Context.TeamAUnits) &&
++                   HasLivingUnit(Context.TeamBUnits);
++        }
++
++        public float MeteorTargetRadius => MeteorEffectRadius;
++
++        public float MercenaryFormationPadding =>
++            MercenaryFormationHorizontalOffset + GetMercenaryVisualRadius();
++
++        public Vector2 MercenaryFormationPreviewSize
++        {
++            get
++            {
++                float radius = GetMercenaryVisualRadius();
++                return new Vector2(
++                    MercenaryFormationHorizontalOffset * 2f + radius * 2f,
++                    MercenaryFormationDepthOffset + radius * 2f);
++            }
++        }
++
+         public int GetAliveCount(Team team, int cellIndex)
+         {
+             int count = 0;
+@@ -604,6 +688,7 @@ namespace InTheArena.MainGame
+ 
+         public override async Awaitable ExitPhaseAsync(CancellationToken token)
+         {
++            EndItemCastingSlowMotion();
+             Time.timeScale = 1f;
+             m_IsFinalEliminationPlaying = false;
+             CompleteFinalDeathPresentations();
+@@ -708,7 +793,7 @@ namespace InTheArena.MainGame
+         {
+             message = string.Empty;
+ 
+-            if (Context == null || IsCombatEnded)
++            if (!CanCommitGroundTargetItem())
+             {
+                 message = "유효하지 않은 전투 상태입니다.";
+                 return false;
+@@ -722,6 +807,17 @@ namespace InTheArena.MainGame
+                 return false;
+             }
+ 
++            BattlefieldArea area = BattlefieldArea.Active;
++            if (area == null)
++            {
++                message = "전장 영역이 설정되지 않았습니다.";
++                return false;
++            }
++
++            dropPosition = area.ClampPosition(
++                dropPosition,
++                MercenaryFormationPadding);
++
+             // 기존 팀 결정 로직을 그대로 유지한다.
+             Team team = Team.Red;
+ 
+@@ -740,10 +836,16 @@ namespace InTheArena.MainGame
+             Vector3 knightPosition = dropPosition;
+ 
+             Vector3 archerPosition =
+-                dropPosition + new Vector3(0.5f, 0f, -0.5f);
++                dropPosition + new Vector3(
++                    MercenaryFormationHorizontalOffset,
++                    0f,
++                    -MercenaryFormationDepthOffset);
+ 
+             Vector3 wizardPosition =
+-                dropPosition + new Vector3(-0.5f, 0f, -0.5f);
++                dropPosition + new Vector3(
++                    -MercenaryFormationHorizontalOffset,
++                    0f,
++                    -MercenaryFormationDepthOffset);
+ 
+             // 어떤 유닛도 생성하기 전에 세 위치를 모두 검증한다.
+             if (!ValidateMercenarySpawnPosition(
+@@ -921,7 +1023,7 @@ namespace InTheArena.MainGame
+         {
+             message = string.Empty;
+ 
+-            if (Context == null || IsCombatEnded)
++            if (!CanCommitGroundTargetItem())
+             {
+                 message = "유효하지 않은 전투 상태입니다.";
+                 return false;
+@@ -938,7 +1040,7 @@ namespace InTheArena.MainGame
+                 return false;
+             }
+ 
+-            float radius = 2f;
++            float radius = MeteorEffectRadius;
+             float stunDuration = 3f;
+             float radiusSqr = radius * radius;
+ 
+@@ -949,6 +1051,23 @@ namespace InTheArena.MainGame
+             return true;
+         }
+ 
++        private float GetMercenaryVisualRadius()
++        {
++            return Mathf.Max(
++                0.5f,
++                Mathf.Max(
++                    m_MercenaryKnightData != null
++                        ? m_MercenaryKnightData.VisualRadius
++                        : 0f,
++                    Mathf.Max(
++                        m_MercenaryArcherData != null
++                            ? m_MercenaryArcherData.VisualRadius
++                            : 0f,
++                        m_MercenaryWizardData != null
++                            ? m_MercenaryWizardData.VisualRadius
++                            : 0f)));
++        }
++
+         private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
+         {
+             if (units == null)
+@@ -998,6 +1117,7 @@ namespace InTheArena.MainGame
+ 
+         private void OnDestroy()
+         {
++            m_IsItemCastingSlowMotion = false;
+             Time.timeScale = 1f;
+             m_IsFinalEliminationPlaying = false;
+             CompleteFinalDeathPresentations();
+diff --git a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+index aa00d5b0..d56ab804 100644
+--- a/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
++++ b/Assets/Scripts/UI/UI_BattlePhaseHUD.cs
+@@ -1,16 +1,16 @@
+ #if UNITY_6000_0_OR_NEWER
+ using System.Collections.Generic;
+ using System.Threading;
++using DG.Tweening;
+ using InTheArena.MainGame;
+ using TMPro;
+ using UnityEngine;
+-using UnityEngine.EventSystems;
+ using UnityEngine.UI;
+ 
+ namespace InTheArena.UI
+ {
+     [DisallowMultipleComponent]
+-    public sealed class UI_BattlePhaseHUD : UI_Base, IBeginDragHandler, IDragHandler, IEndDragHandler
++    public sealed class UI_BattlePhaseHUD : UI_Base
+     {
+         [Header("Battle Information")]
+         [SerializeField] private TMP_Text m_RedTeamCountText;
+@@ -58,23 +58,37 @@ namespace InTheArena.UI
+         [SerializeField] private Image m_ItemSlot3Icon;
+         [SerializeField] private ItemData m_ItemSlot3Data;
+         [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
++        [SerializeField] private Sprite m_CancelOverlaySprite;
++        [SerializeField] private UI_CombatItemTargetingController m_CombatItemTargetingController;
++        [SerializeField] private Image m_ItemSlot1CancelOverlay;
++        [SerializeField] private Image m_ItemSlot2CancelOverlay;
++        [SerializeField] private Image m_ItemSlot3CancelOverlay;
++        [SerializeField] private TMP_Text m_DuplicateItemFeedbackText;
++        [SerializeField] private CanvasGroup m_DuplicateItemFeedbackCanvasGroup;
++        [SerializeField] private RectTransform m_DuplicateItemFeedbackRect;
+ 
+         private CombatPhase m_CombatPhase;
+         private RoundContext m_RoundContext;
+         private StagePlayerState m_PlayerState;
+ 
+-        private ItemData m_DraggedItem;
+         private ItemData m_ActiveTargetingItemData;
++        private RectTransform m_ActiveTargetingSlot;
++        private Image m_ActiveTargetingCancelOverlay;
+         private bool m_IsSubscribed;
+         private CancellationTokenSource m_ItemUseLifetimeCancellation;
+         private CancellationTokenSource m_TargetingLifetimeCancellation;
+         private long m_ActiveTargetingRequestVersion = -1;
++        private Tween m_DuplicateItemFeedbackTween;
++        private Vector2 m_DuplicateItemFeedbackBasePosition;
+ 
+         protected override void Awake()
+         {
+             base.Awake();
+             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
+             m_TargetingLifetimeCancellation = new CancellationTokenSource();
++            EnsureCombatItemTargetingController();
++            EnsureCancelOverlays();
++            EnsureDuplicateItemFeedback();
+             ApplyItemIcons();
+             SetBattleView(true);
+             ResetDisplay();
+@@ -138,8 +152,6 @@ namespace InTheArena.UI
+             m_TargetingLifetimeCancellation?.Cancel();
+             CancelTargetingRequest();
+             UnsubscribeEvents();
+-            m_DraggedItem = null;
+-            m_ActiveTargetingItemData = null;
+             ResetDisplay();
+             base.OnClosed();
+         }
+@@ -152,6 +164,7 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        #if false
+         public void OnBeginDrag(PointerEventData eventData)
+         {
+             m_DraggedItem = ResolveDraggedItem(eventData);
+@@ -194,6 +207,9 @@ namespace InTheArena.UI
+             Debug.Log("[UI_BattlePhaseHUD] 인벤토리 기반 아이템 직접 사용은 제거되었습니다.");
+         }
+ 
++        #endif
++
++        #if false
+         private async void RequestTargetedItemUse(ItemData itemData)
+         {
+             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+@@ -225,6 +241,55 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        #endif
++
++        private async void RequestTargetedItemUse(ItemData itemData)
++        {
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
++                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
++
++            if (coordinator == null || popup == null || m_CombatPhase == null ||
++                !CanUseNewTargetingFlow(itemData) || coordinator.State != ItemPurchaseUseState.Idle)
++            {
++                return;
++            }
++
++            m_TargetingLifetimeCancellation?.Cancel();
++            m_TargetingLifetimeCancellation?.Dispose();
++            m_TargetingLifetimeCancellation = new CancellationTokenSource();
++
++            long requestVersion = await coordinator.RequestTargetedUseAsync(
++                itemData,
++                popup,
++                m_TargetingLifetimeCancellation.Token);
++
++            if (this == null || requestVersion == -1 ||
++                m_TargetingLifetimeCancellation.IsCancellationRequested ||
++                coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
++                coordinator.ActiveRequestVersion != requestVersion)
++            {
++                return;
++            }
++
++            ResolveItemSlot(itemData, out RectTransform selectedSlot, out Image cancelOverlay);
++            if (selectedSlot == null || m_CombatItemTargetingController == null ||
++                !m_CombatItemTargetingController.BeginTargeting(
++                    itemData.ItemType,
++                    m_CombatPhase,
++                    selectedSlot,
++                    cancelOverlay))
++            {
++                coordinator.CancelActiveRequest();
++                return;
++            }
++
++            m_ActiveTargetingRequestVersion = requestVersion;
++            m_ActiveTargetingItemData = itemData;
++            m_ActiveTargetingSlot = selectedSlot;
++            m_ActiveTargetingCancelOverlay = cancelOverlay;
++        }
++
+         private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
+         {
+             if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, worldPos);
+@@ -232,6 +297,7 @@ namespace InTheArena.UI
+             return null;
+         }
+ 
++        #if false
+         private void DetachTargetingInput()
+         {
+             if (InputManager.Instance != null)
+@@ -297,6 +363,71 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        #endif
++
++        private void ClearTargetingBinding()
++        {
++            m_ActiveTargetingRequestVersion = -1;
++            m_ActiveTargetingItemData = null;
++            m_ActiveTargetingSlot = null;
++            m_ActiveTargetingCancelOverlay = null;
++        }
++
++        private void CancelTargetingRequest()
++        {
++            long requestVersion = m_ActiveTargetingRequestVersion;
++            m_CombatItemTargetingController?.AbortTargeting();
++            ClearTargetingBinding();
++
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget &&
++                coordinator.ActiveRequestVersion == requestVersion)
++            {
++                coordinator.CancelActiveRequest();
++            }
++
++            m_TargetingLifetimeCancellation?.Cancel();
++        }
++
++        private void OnTargetConfirmed(Vector3 worldPosition)
++        {
++            if (m_CombatPhase == null || m_ActiveTargetingItemData == null)
++            {
++                CancelTargetingRequest();
++                return;
++            }
++
++            long targetVersion = m_ActiveTargetingRequestVersion;
++            ItemData itemData = m_ActiveTargetingItemData;
++            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
++            if (coordinator == null || coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
++                coordinator.ActiveRequestVersion != targetVersion)
++            {
++                CancelTargetingRequest();
++                return;
++            }
++
++            IItemPurchaseUseExecutor executor = CreateExecutor(itemData, worldPosition);
++            ClearTargetingBinding();
++
++            bool success = coordinator.TryCompleteTargetUse(
++                targetVersion,
++                executor,
++                out ItemPurchaseUseResult result,
++                out string message);
++
++            Debug.Log($"[UI_BattlePhaseHUD] {message}");
++            if (success)
++            {
++                RefreshItemButtons();
++            }
++        }
++
++        private void OnTargetCanceled()
++        {
++            CancelTargetingRequest();
++        }
++
+         private void SubscribeEvents()
+         {
+             if (m_IsSubscribed || m_CombatPhase == null)
+@@ -391,6 +522,18 @@ namespace InTheArena.UI
+ 
+         private void RequestItemUse(ItemData itemData)
+         {
++            if (itemData == null || !CanAcceptCombatInput() || !IsCombatItem(itemData))
++            {
++                return;
++            }
++
++            if (m_RoundContext?.RoundItemUsage != null &&
++                m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType))
++            {
++                ShowDuplicateItemFeedback();
++                return;
++            }
++
+             if (CanUseNewImmediateFlow(itemData))
+             {
+                 RequestImmediateItemUse(itemData);
+@@ -403,6 +546,14 @@ namespace InTheArena.UI
+             }
+         }
+ 
++        private static bool IsCombatItem(ItemData itemData)
++        {
++            return itemData != null &&
++                   (itemData.ItemType == ItemType.Meteor ||
++                    itemData.ItemType == ItemType.Mercenary ||
++                    itemData.ItemType == ItemType.TimeExtension);
++        }
++
+         private void OnItemSlot1Clicked() => RequestItemUse(m_ItemSlot1Data);
+         private void OnItemSlot2Clicked() => RequestItemUse(m_ItemSlot2Data);
+         private void OnItemSlot3Clicked() => RequestItemUse(m_ItemSlot3Data);
+@@ -493,12 +644,13 @@ namespace InTheArena.UI
+ 
+             if (m_SpeedMultiplierText != null)
+             {
+-                m_SpeedMultiplierText.text = $"\u00D7{m_CombatPhase.CurrentSpeed:0.#}";
++                m_SpeedMultiplierText.text = $"\u00D7{m_CombatPhase.DisplaySpeed:0.#}";
+             }
+ 
+             if (m_SpeedButton != null)
+             {
+-                m_SpeedButton.interactable = CanAcceptCombatInput();
++                m_SpeedButton.interactable = CanAcceptCombatInput() &&
++                    !m_CombatPhase.IsItemCastingSlowMotion;
+             }
+             RefreshUnitSlots();
+         }
+@@ -608,10 +760,12 @@ namespace InTheArena.UI
+ 
+             if (CanUseNewImmediateFlow(itemData) || CanUseNewTargetingFlow(itemData))
+             {
+-                button.interactable = CanAcceptCombatInput() &&
+-                    !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
+-                    itemData.PriceGold >= 0 &&
++                bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
++                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
++                bool canAfford = itemData.PriceGold >= 0 &&
++                    m_PlayerState != null &&
+                     m_PlayerState.Gold >= itemData.PriceGold;
++                button.interactable = CanAcceptCombatInput() && (alreadyUsed || canAfford);
+                 return;
+             }
+ 
+@@ -650,6 +804,7 @@ namespace InTheArena.UI
+                 m_PlayerState != null;
+         }
+ 
++        #if false
+         private ItemData ResolveDraggedItem(PointerEventData eventData)
+         {
+             if (!CanAcceptCombatInput() || eventData == null)
+@@ -676,6 +831,8 @@ namespace InTheArena.UI
+                    (pressedTransform == button.transform || pressedTransform.IsChildOf(button.transform));
+         }
+ 
++        #endif
++
+         private bool CanAcceptCombatInput()
+         {
+             return m_CombatPhase != null &&
+@@ -753,6 +910,201 @@ namespace InTheArena.UI
+             };
+         }
+ 
++        private void EnsureCombatItemTargetingController()
++        {
++            if (m_CombatItemTargetingController == null)
++            {
++                GameObject inputObject = new GameObject(
++                    "CombatItemTargetingInput",
++                    typeof(RectTransform),
++                    typeof(Canvas),
++                    typeof(GraphicRaycaster),
++                    typeof(Image));
++                inputObject.transform.SetParent(transform, false);
++
++                RectTransform inputRect = (RectTransform)inputObject.transform;
++                inputRect.anchorMin = Vector2.zero;
++                inputRect.anchorMax = Vector2.one;
++                inputRect.offsetMin = Vector2.zero;
++                inputRect.offsetMax = Vector2.zero;
++
++                Canvas inputCanvas = inputObject.GetComponent<Canvas>();
++                inputCanvas.overrideSorting = true;
++                inputCanvas.sortingOrder = 1000;
++
++                Image inputImage = inputObject.GetComponent<Image>();
++                inputImage.color = Color.clear;
++                inputImage.raycastTarget = true;
++                m_CombatItemTargetingController =
++                    inputObject.AddComponent<UI_CombatItemTargetingController>();
++            }
++
++            if (m_CombatItemTargetingController != null)
++            {
++                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
++                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
++                m_CombatItemTargetingController.TargetConfirmed += OnTargetConfirmed;
++                m_CombatItemTargetingController.TargetCanceled += OnTargetCanceled;
++                m_CombatItemTargetingController.gameObject.SetActive(false);
++            }
++        }
++
++        private void EnsureCancelOverlays()
++        {
++            m_ItemSlot1CancelOverlay ??= CreateCancelOverlay(m_ItemSlot1Button);
++            m_ItemSlot2CancelOverlay ??= CreateCancelOverlay(m_ItemSlot2Button);
++            m_ItemSlot3CancelOverlay ??= CreateCancelOverlay(m_ItemSlot3Button);
++        }
++
++        private Image CreateCancelOverlay(Button button)
++        {
++            if (button == null)
++            {
++                return null;
++            }
++
++            Transform existing = button.transform.Find("TargetingCancelOverlay");
++            GameObject overlayObject = existing != null
++                ? existing.gameObject
++                : new GameObject("TargetingCancelOverlay", typeof(RectTransform), typeof(Image));
++            if (existing == null)
++            {
++                overlayObject.transform.SetParent(button.transform, false);
++            }
++
++            RectTransform overlayRect = (RectTransform)overlayObject.transform;
++            overlayRect.anchorMin = new Vector2(0.5f, 0.5f);
++            overlayRect.anchorMax = new Vector2(0.5f, 0.5f);
++            overlayRect.pivot = new Vector2(0.5f, 0.5f);
++            overlayRect.anchoredPosition = Vector2.zero;
++            overlayRect.sizeDelta = new Vector2(32f, 32f);
++            overlayObject.transform.SetAsLastSibling();
++
++            Image overlay = overlayObject.GetComponent<Image>();
++            overlay.sprite = m_CancelOverlaySprite;
++            overlay.preserveAspect = true;
++            overlay.raycastTarget = false;
++            overlay.enabled = false;
++            return overlay;
++        }
++
++        private void EnsureDuplicateItemFeedback()
++        {
++            if (m_DuplicateItemFeedbackText == null)
++            {
++                GameObject feedbackObject = new GameObject(
++                    "DuplicateItemFeedback",
++                    typeof(RectTransform),
++                    typeof(CanvasGroup),
++                    typeof(TextMeshProUGUI));
++                feedbackObject.transform.SetParent(transform, false);
++
++                m_DuplicateItemFeedbackText = feedbackObject.GetComponent<TextMeshProUGUI>();
++                m_DuplicateItemFeedbackCanvasGroup = feedbackObject.GetComponent<CanvasGroup>();
++                m_DuplicateItemFeedbackRect = (RectTransform)feedbackObject.transform;
++                m_DuplicateItemFeedbackText.alignment = TextAlignmentOptions.Center;
++                m_DuplicateItemFeedbackText.fontSize = 24f;
++                m_DuplicateItemFeedbackText.color = Color.white;
++                m_DuplicateItemFeedbackText.enableWordWrapping = false;
++                m_DuplicateItemFeedbackText.raycastTarget = false;
++                m_DuplicateItemFeedbackRect.anchorMin = new Vector2(0.5f, 0.5f);
++                m_DuplicateItemFeedbackRect.anchorMax = new Vector2(0.5f, 0.5f);
++                m_DuplicateItemFeedbackRect.pivot = new Vector2(0.5f, 0.5f);
++                m_DuplicateItemFeedbackRect.anchoredPosition = new Vector2(0f, 180f);
++                m_DuplicateItemFeedbackRect.sizeDelta = new Vector2(620f, 48f);
++            }
++
++            if (m_DuplicateItemFeedbackCanvasGroup == null &&
++                m_DuplicateItemFeedbackText != null)
++            {
++                m_DuplicateItemFeedbackCanvasGroup =
++                    m_DuplicateItemFeedbackText.GetComponent<CanvasGroup>() ??
++                    m_DuplicateItemFeedbackText.gameObject.AddComponent<CanvasGroup>();
++            }
++
++            if (m_DuplicateItemFeedbackRect == null && m_DuplicateItemFeedbackText != null)
++            {
++                m_DuplicateItemFeedbackRect = m_DuplicateItemFeedbackText.rectTransform;
++            }
++
++            if (m_DuplicateItemFeedbackRect != null)
++            {
++                m_DuplicateItemFeedbackBasePosition =
++                    m_DuplicateItemFeedbackRect.anchoredPosition;
++            }
++
++            if (m_DuplicateItemFeedbackCanvasGroup != null)
++            {
++                m_DuplicateItemFeedbackCanvasGroup.alpha = 0f;
++                m_DuplicateItemFeedbackCanvasGroup.blocksRaycasts = false;
++                m_DuplicateItemFeedbackCanvasGroup.interactable = false;
++            }
++        }
++
++        private void ShowDuplicateItemFeedback()
++        {
++            EnsureDuplicateItemFeedback();
++            if (m_DuplicateItemFeedbackText == null ||
++                m_DuplicateItemFeedbackCanvasGroup == null ||
++                m_DuplicateItemFeedbackRect == null)
++            {
++                return;
++            }
++
++            m_DuplicateItemFeedbackText.text = "이미 이번 라운드에는 해당 아이템을 사용했습니다.";
++            m_DuplicateItemFeedbackTween?.Kill();
++            m_DuplicateItemFeedbackCanvasGroup.DOKill();
++            m_DuplicateItemFeedbackRect.DOKill();
++            m_DuplicateItemFeedbackRect.anchoredPosition = m_DuplicateItemFeedbackBasePosition;
++            m_DuplicateItemFeedbackCanvasGroup.alpha = 0f;
++
++            m_DuplicateItemFeedbackTween = DOTween.Sequence()
++                .Append(m_DuplicateItemFeedbackCanvasGroup.DOFade(1f, 0.5f))
++                .Join(m_DuplicateItemFeedbackRect.DOAnchorPos(
++                    m_DuplicateItemFeedbackBasePosition + Vector2.up * 24f,
++                    1f))
++                .Append(m_DuplicateItemFeedbackCanvasGroup.DOFade(0f, 0.5f))
++                .SetUpdate(true)
++                .OnComplete(() =>
++                {
++                    if (m_DuplicateItemFeedbackRect != null)
++                    {
++                        m_DuplicateItemFeedbackRect.anchoredPosition =
++                            m_DuplicateItemFeedbackBasePosition;
++                    }
++                });
++        }
++
++        private void ResolveItemSlot(
++            ItemData itemData,
++            out RectTransform selectedSlot,
++            out Image cancelOverlay)
++        {
++            selectedSlot = null;
++            cancelOverlay = null;
++
++            if (itemData == null)
++            {
++                return;
++            }
++
++            if (itemData == m_ItemSlot1Data)
++            {
++                selectedSlot = m_ItemSlot1Button?.transform as RectTransform;
++                cancelOverlay = m_ItemSlot1CancelOverlay;
++            }
++            else if (itemData == m_ItemSlot2Data)
++            {
++                selectedSlot = m_ItemSlot2Button?.transform as RectTransform;
++                cancelOverlay = m_ItemSlot2CancelOverlay;
++            }
++            else if (itemData == m_ItemSlot3Data)
++            {
++                selectedSlot = m_ItemSlot3Button?.transform as RectTransform;
++                cancelOverlay = m_ItemSlot3CancelOverlay;
++            }
++        }
++
+         private void ResetDisplay()
+         {
+             if (m_RedTeamCountText != null) m_RedTeamCountText.text = "0";
+@@ -782,15 +1134,20 @@ namespace InTheArena.UI
+             m_CombatPhase = null;
+             m_RoundContext = null;
+             m_PlayerState = null;
+-            m_DraggedItem = null;
+-            m_ActiveTargetingItemData = null;
++            ClearTargetingBinding();
+         }
+ 
+         protected override void OnDestroy()
+         {
+             m_ItemUseLifetimeCancellation?.Cancel();
+             m_TargetingLifetimeCancellation?.Cancel();
+-            DetachTargetingInput();
++            if (m_CombatItemTargetingController != null)
++            {
++                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
++                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
++            }
++            m_CombatItemTargetingController?.AbortTargeting();
++            m_DuplicateItemFeedbackTween?.Kill();
+ 
+             UnsubscribeEvents();
+             ClearBindings();
+diff --git a/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs b/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs
+new file mode 100644
+index 00000000..7d060f82
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs
+@@ -0,0 +1,194 @@
++#if UNITY_6000_0_OR_NEWER
++using UnityEngine;
++using UnityEngine.UI;
++
++namespace InTheArena.UI
++{
++    public enum CombatItemRangeShape
++    {
++        Circle,
++        Rectangle
++    }
++
++    /// <summary>
++    /// 코드로 그리는 전투 아이템 범위 표시입니다. 입력을 가로채지 않도록
++    /// MaskableGraphic을 사용하되 raycastTarget은 항상 비활성화합니다.
++    /// </summary>
++    [DisallowMultipleComponent]
++    public sealed class UI_CombatItemRangeIndicator : MaskableGraphic
++    {
++        private const int CircleSegments = 64;
++
++        [SerializeField] private CombatItemRangeShape m_Shape = CombatItemRangeShape.Circle;
++        [SerializeField] private Color m_FillColor = new Color(0.2f, 0.9f, 0.35f, 0.18f);
++        [SerializeField] private Color m_OutlineColor = new Color(0.35f, 1f, 0.55f, 0.85f);
++        [SerializeField] [Min(0.5f)] private float m_OutlineThickness = 3f;
++
++        protected override void Awake()
++        {
++            base.Awake();
++            raycastTarget = false;
++        }
++
++        public void Configure(
++            CombatItemRangeShape shape,
++            Color fillColor,
++            Color outlineColor,
++            float outlineThickness = 3f)
++        {
++            m_Shape = shape;
++            m_FillColor = fillColor;
++            m_OutlineColor = outlineColor;
++            m_OutlineThickness = Mathf.Max(0.5f, outlineThickness);
++            raycastTarget = false;
++            SetVerticesDirty();
++        }
++
++        protected override void OnPopulateMesh(VertexHelper vertexHelper)
++        {
++            vertexHelper.Clear();
++
++            Rect rect = rectTransform.rect;
++            if (rect.width <= 0f || rect.height <= 0f)
++            {
++                return;
++            }
++
++            if (m_Shape == CombatItemRangeShape.Circle)
++            {
++                PopulateCircle(vertexHelper, rect);
++            }
++            else
++            {
++                PopulateRectangle(vertexHelper, rect);
++            }
++        }
++
++        private void PopulateCircle(VertexHelper vertexHelper, Rect rect)
++        {
++            Vector2 center = rect.center;
++            float radius = Mathf.Min(rect.width, rect.height) * 0.5f;
++            float innerRadius = Mathf.Max(0f, radius - m_OutlineThickness);
++
++            AddVertex(vertexHelper, center, m_FillColor);
++            for (int i = 0; i <= CircleSegments; i++)
++            {
++                AddVertex(
++                    vertexHelper,
++                    center + PointOnCircle(radius, i),
++                    m_FillColor);
++            }
++
++            for (int i = 0; i < CircleSegments; i++)
++            {
++                int current = 1 + i;
++                int next = current + 1;
++                vertexHelper.AddTriangle(0, current, next);
++            }
++
++            int ringStart = vertexHelper.currentVertCount;
++            for (int i = 0; i <= CircleSegments; i++)
++            {
++                Vector2 direction = PointOnCircle(1f, i);
++                AddVertex(vertexHelper, center + direction * innerRadius, m_OutlineColor);
++                AddVertex(vertexHelper, center + direction * radius, m_OutlineColor);
++            }
++
++            for (int i = 0; i < CircleSegments; i++)
++            {
++                int current = ringStart + i * 2;
++                int next = current + 2;
++                AddQuad(vertexHelper, current, next, next + 1, current + 1);
++            }
++        }
++
++        private void PopulateRectangle(VertexHelper vertexHelper, Rect rect)
++        {
++            AddQuad(
++                vertexHelper,
++                rect.min,
++                new Vector2(rect.xMax, rect.yMin),
++                rect.max,
++                new Vector2(rect.xMin, rect.yMax),
++                m_FillColor);
++
++            float thickness = Mathf.Min(
++                m_OutlineThickness,
++                Mathf.Min(rect.width, rect.height) * 0.5f);
++            Rect inner = new Rect(
++                rect.xMin + thickness,
++                rect.yMin + thickness,
++                Mathf.Max(0f, rect.width - thickness * 2f),
++                Mathf.Max(0f, rect.height - thickness * 2f));
++
++            AddQuad(vertexHelper,
++                new Vector2(rect.xMin, rect.yMin),
++                new Vector2(rect.xMax, rect.yMin),
++                new Vector2(inner.xMax, inner.yMin),
++                new Vector2(inner.xMin, inner.yMin),
++                m_OutlineColor);
++            AddQuad(vertexHelper,
++                new Vector2(inner.xMin, inner.yMax),
++                new Vector2(inner.xMax, inner.yMax),
++                new Vector2(rect.xMax, rect.yMax),
++                new Vector2(rect.xMin, rect.yMax),
++                m_OutlineColor);
++            AddQuad(vertexHelper,
++                new Vector2(rect.xMin, rect.yMin),
++                new Vector2(inner.xMin, inner.yMin),
++                new Vector2(inner.xMin, inner.yMax),
++                new Vector2(rect.xMin, rect.yMax),
++                m_OutlineColor);
++            AddQuad(vertexHelper,
++                new Vector2(inner.xMax, inner.yMin),
++                new Vector2(rect.xMax, rect.yMin),
++                new Vector2(rect.xMax, rect.yMax),
++                new Vector2(inner.xMax, inner.yMax),
++                m_OutlineColor);
++        }
++
++        private static Vector2 PointOnCircle(float radius, int index)
++        {
++            float angle = index * Mathf.PI * 2f / CircleSegments;
++            return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
++        }
++
++        private static void AddVertex(VertexHelper vertexHelper, Vector2 position, Color color)
++        {
++            UIVertex vertex = UIVertex.simpleVert;
++            vertex.position = position;
++            vertex.color = color;
++            vertexHelper.AddVert(vertex);
++        }
++
++        private static void AddQuad(
++            VertexHelper vertexHelper,
++            int bottomLeft,
++            int bottomRight,
++            int topRight,
++            int topLeft)
++        {
++            int start = vertexHelper.currentVertCount;
++            vertexHelper.AddTriangle(start, start + 1, start + 2);
++            vertexHelper.AddTriangle(start + 2, start + 3, start);
++        }
++
++        private static void AddQuad(
++            VertexHelper vertexHelper,
++            Vector2 bottomLeft,
++            Vector2 bottomRight,
++            Vector2 topRight,
++            Vector2 topLeft,
++            Color color)
++        {
++            int start = vertexHelper.currentVertCount;
++            AddVertex(vertexHelper, bottomLeft, color);
++            AddVertex(vertexHelper, bottomRight, color);
++            AddVertex(vertexHelper, topRight, color);
++            AddVertex(vertexHelper, topLeft, color);
++            vertexHelper.AddTriangle(start, start + 1, start + 2);
++            vertexHelper.AddTriangle(start + 2, start + 3, start);
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs.meta b/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs.meta
+new file mode 100644
+index 00000000..521b8685
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_CombatItemRangeIndicator.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: 7f37c51e96aa098498ebbc898cc98b00
+\ No newline at end of file
+diff --git a/Assets/Scripts/UI/UI_CombatItemTargetingController.cs b/Assets/Scripts/UI/UI_CombatItemTargetingController.cs
+new file mode 100644
+index 00000000..b6a2d8f3
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_CombatItemTargetingController.cs
+@@ -0,0 +1,461 @@
++#if UNITY_6000_0_OR_NEWER
++using System;
++using System.Collections.Generic;
++using InTheArena.Battlefield;
++using InTheArena.MainGame;
++using UnityEngine;
++using UnityEngine.EventSystems;
++using UnityEngine.UI;
++
++namespace InTheArena.UI
++{
++    public enum CombatItemTargetingState
++    {
++        Idle,
++        Armed,
++        DraggingValid,
++        DraggingInvalid
++    }
++
++    /// <summary>
++    /// 구매 확인이 끝난 전투 아이템의 화면 전체 입력과 타기팅 표시를 담당합니다.
++    /// 이 컴포넌트가 붙은 투명 Image가 활성화된 동안에만 입력을 받습니다.
++    /// </summary>
++    [DisallowMultipleComponent]
++    public sealed class UI_CombatItemTargetingController : MonoBehaviour,
++        IInitializePotentialDragHandler,
++        IPointerDownHandler,
++        IDragHandler,
++        IPointerUpHandler
++    {
++        private const int NoPointerId = int.MinValue;
++        private static readonly Color RangeFillColor = new Color(0.2f, 0.9f, 0.35f, 0.18f);
++        private static readonly Color RangeOutlineColor = new Color(0.35f, 1f, 0.55f, 0.85f);
++
++        private Image m_InputImage;
++        private UI_CombatItemRangeIndicator m_RangeIndicator;
++        private RectTransform m_DisplayRoot;
++        private RectTransform m_SelectedSlot;
++        private Image m_CancelOverlay;
++        private CombatPhase m_CombatPhase;
++        private ItemType m_ItemType;
++        private Vector3 m_OriginalSlotScale = Vector3.one;
++        private Vector3 m_LastWorldPosition;
++        private bool m_HasWorldPosition;
++        private bool m_IsPointerDown;
++        private bool m_SuppressDisableAbort;
++        private int m_PointerId = NoPointerId;
++
++        public CombatItemTargetingState State { get; private set; } = CombatItemTargetingState.Idle;
++
++        public event Action<Vector3> TargetConfirmed;
++        public event Action TargetCanceled;
++
++        private void Awake()
++        {
++            m_InputImage = GetComponent<Image>();
++            if (m_InputImage != null)
++            {
++                m_InputImage.color = Color.clear;
++                m_InputImage.raycastTarget = true;
++            }
++
++            gameObject.SetActive(false);
++        }
++
++        public bool BeginTargeting(
++            ItemType itemType,
++            CombatPhase combatPhase,
++            RectTransform selectedSlot,
++            Image cancelOverlay)
++        {
++            if (combatPhase == null || selectedSlot == null ||
++                (itemType != ItemType.Meteor && itemType != ItemType.Mercenary))
++            {
++                return false;
++            }
++
++            AbortTargeting();
++
++            if (!combatPhase.BeginItemCastingSlowMotion())
++            {
++                return false;
++            }
++
++            m_ItemType = itemType;
++            m_CombatPhase = combatPhase;
++            m_SelectedSlot = selectedSlot;
++            m_CancelOverlay = cancelOverlay;
++            m_OriginalSlotScale = selectedSlot.localScale;
++            selectedSlot.localScale = m_OriginalSlotScale * 1.1f;
++            SetCancelOverlay(false);
++            m_PointerId = NoPointerId;
++            m_IsPointerDown = false;
++            m_HasWorldPosition = false;
++            State = CombatItemTargetingState.Armed;
++
++            EnsureRangeIndicator();
++            if (m_RangeIndicator != null)
++            {
++                m_RangeIndicator.gameObject.SetActive(false);
++            }
++
++            gameObject.SetActive(true);
++            return true;
++        }
++
++        public void AbortTargeting()
++        {
++            if (State == CombatItemTargetingState.Idle && m_CombatPhase == null)
++            {
++                return;
++            }
++
++            CombatPhase phase = m_CombatPhase;
++            RestoreSelectionVisuals();
++            ClearState();
++            phase?.EndItemCastingSlowMotion();
++        }
++
++        public void OnInitializePotentialDrag(PointerEventData eventData)
++        {
++            if (eventData != null)
++            {
++                eventData.useDragThreshold = false;
++            }
++        }
++
++        public void OnPointerDown(PointerEventData eventData)
++        {
++            if (State != CombatItemTargetingState.Armed || eventData == null ||
++                m_PointerId != NoPointerId)
++            {
++                return;
++            }
++
++            m_PointerId = eventData.pointerId;
++            m_IsPointerDown = true;
++            EvaluatePointer(eventData.position);
++            eventData.Use();
++        }
++
++        public void OnDrag(PointerEventData eventData)
++        {
++            if (!IsActivePointer(eventData))
++            {
++                return;
++            }
++
++            EvaluatePointer(eventData.position);
++            eventData.Use();
++        }
++
++        public void OnPointerUp(PointerEventData eventData)
++        {
++            if (!IsActivePointer(eventData))
++            {
++                return;
++            }
++
++            EvaluatePointer(eventData.position);
++            bool isValid = m_IsPointerDown && State == CombatItemTargetingState.DraggingValid &&
++                           m_HasWorldPosition;
++            Vector3 targetPosition = m_LastWorldPosition;
++
++            FinishTargetingVisuals();
++            if (isValid)
++            {
++                TargetConfirmed?.Invoke(targetPosition);
++            }
++            else
++            {
++                TargetCanceled?.Invoke();
++            }
++
++            eventData.Use();
++        }
++
++        private void LateUpdate()
++        {
++            if (State == CombatItemTargetingState.DraggingValid && m_HasWorldPosition)
++            {
++                UpdateRangeIndicator(m_LastWorldPosition);
++            }
++        }
++
++        private bool IsActivePointer(PointerEventData eventData)
++        {
++            return eventData != null && m_IsPointerDown && eventData.pointerId == m_PointerId;
++        }
++
++        private void EvaluatePointer(Vector2 screenPosition)
++        {
++            if (m_CombatPhase == null || !m_CombatPhase.CanCommitGroundTargetItem())
++            {
++                SetInvalidTargetingState();
++                return;
++            }
++
++            UnityEngine.Camera mainCamera = UnityEngine.Camera.main;
++            BattlefieldArea area = BattlefieldArea.Active;
++            if (mainCamera == null || area == null || IsBlockingUi(screenPosition) ||
++                !area.TryGetGroundPosition(mainCamera, screenPosition, out Vector3 worldPosition))
++            {
++                SetInvalidTargetingState();
++                return;
++            }
++
++            if (m_ItemType == ItemType.Mercenary)
++            {
++                worldPosition = area.ClampPosition(
++                    worldPosition,
++                    m_CombatPhase.MercenaryFormationPadding);
++            }
++
++            m_LastWorldPosition = worldPosition;
++            m_HasWorldPosition = true;
++            State = CombatItemTargetingState.DraggingValid;
++            SetCancelOverlay(false);
++            if (m_RangeIndicator != null)
++            {
++                m_RangeIndicator.gameObject.SetActive(true);
++                UpdateRangeIndicator(worldPosition);
++            }
++        }
++
++        private bool IsBlockingUi(Vector2 screenPosition)
++        {
++            EventSystem eventSystem = EventSystem.current;
++            if (eventSystem == null)
++            {
++                return false;
++            }
++
++            PointerEventData pointerData = new PointerEventData(eventSystem)
++            {
++                position = screenPosition
++            };
++            List<RaycastResult> results = new List<RaycastResult>();
++            eventSystem.RaycastAll(pointerData, results);
++
++            for (int i = 0; i < results.Count; i++)
++            {
++                GameObject hitObject = results[i].gameObject;
++                if (hitObject == null || hitObject == gameObject ||
++                    hitObject.transform.IsChildOf(transform))
++                {
++                    continue;
++                }
++
++                if (m_RangeIndicator != null &&
++                    (hitObject == m_RangeIndicator.gameObject ||
++                     hitObject.transform.IsChildOf(m_RangeIndicator.transform)))
++                {
++                    continue;
++                }
++
++                return true;
++            }
++
++            return false;
++        }
++
++        private void SetInvalidTargetingState()
++        {
++            State = CombatItemTargetingState.DraggingInvalid;
++            m_HasWorldPosition = false;
++            SetCancelOverlay(true);
++            if (m_RangeIndicator != null)
++            {
++                m_RangeIndicator.gameObject.SetActive(false);
++            }
++        }
++
++        private void EnsureRangeIndicator()
++        {
++            Transform groundWorldRoot =
++                UIManager.Instance?.GetRootFromType(EUIObjectPoolingParent.GroundWorld)?.transform;
++
++            if (m_RangeIndicator == null)
++            {
++                GameObject indicatorObject = new GameObject(
++                    "CombatItemRangeIndicator",
++                    typeof(RectTransform),
++                    typeof(CanvasRenderer),
++                    typeof(UI_CombatItemRangeIndicator));
++
++                Transform root = groundWorldRoot;
++                if (root == null)
++                {
++                    root = transform.parent != null ? transform.parent : transform;
++                }
++
++                indicatorObject.transform.SetParent(root, false);
++                m_RangeIndicator = indicatorObject.GetComponent<UI_CombatItemRangeIndicator>();
++                m_DisplayRoot = root as RectTransform;
++            }
++
++            if (groundWorldRoot != null && m_RangeIndicator.transform.parent != groundWorldRoot)
++            {
++                m_RangeIndicator.transform.SetParent(groundWorldRoot, false);
++                m_DisplayRoot = groundWorldRoot as RectTransform;
++            }
++
++            if (m_DisplayRoot == null)
++            {
++                m_DisplayRoot = m_RangeIndicator != null
++                    ? m_RangeIndicator.transform.parent as RectTransform
++                    : transform.parent as RectTransform;
++            }
++
++            CombatItemRangeShape shape = m_ItemType == ItemType.Meteor
++                ? CombatItemRangeShape.Circle
++                : CombatItemRangeShape.Rectangle;
++            m_RangeIndicator?.Configure(shape, RangeFillColor, RangeOutlineColor);
++        }
++
++        private void UpdateRangeIndicator(Vector3 worldPosition)
++        {
++            if (m_RangeIndicator == null || m_DisplayRoot == null || UnityEngine.Camera.main == null)
++            {
++                return;
++            }
++
++            UnityEngine.Camera camera = UnityEngine.Camera.main;
++            Vector2 center = WorldToDisplayPoint(camera, worldPosition, out bool centerVisible);
++            if (!centerVisible)
++            {
++                m_RangeIndicator.gameObject.SetActive(false);
++                return;
++            }
++
++            Vector2 size;
++            if (m_ItemType == ItemType.Meteor)
++            {
++                float radius = m_CombatPhase.MeteorTargetRadius;
++                Vector2 left = WorldToDisplayPoint(camera, worldPosition - Vector3.right * radius, out bool leftVisible);
++                Vector2 right = WorldToDisplayPoint(camera, worldPosition + Vector3.right * radius, out bool rightVisible);
++                Vector2 bottom = WorldToDisplayPoint(camera, worldPosition - Vector3.forward * radius, out bool bottomVisible);
++                Vector2 top = WorldToDisplayPoint(camera, worldPosition + Vector3.forward * radius, out bool topVisible);
++                if (!leftVisible || !rightVisible || !bottomVisible || !topVisible)
++                {
++                    m_RangeIndicator.gameObject.SetActive(false);
++                    return;
++                }
++
++                size = new Vector2(
++                    Mathf.Max(1f, Mathf.Abs(right.x - left.x)),
++                    Mathf.Max(1f, Mathf.Abs(top.y - bottom.y)));
++            }
++            else
++            {
++                Vector2 halfSize = m_CombatPhase.MercenaryFormationPreviewSize * 0.5f;
++                Vector2 left = WorldToDisplayPoint(camera, worldPosition - Vector3.right * halfSize.x, out bool leftVisible);
++                Vector2 right = WorldToDisplayPoint(camera, worldPosition + Vector3.right * halfSize.x, out bool rightVisible);
++                Vector2 bottom = WorldToDisplayPoint(camera, worldPosition - Vector3.forward * halfSize.y, out bool bottomVisible);
++                Vector2 top = WorldToDisplayPoint(camera, worldPosition + Vector3.forward * halfSize.y, out bool topVisible);
++                if (!leftVisible || !rightVisible || !bottomVisible || !topVisible)
++                {
++                    m_RangeIndicator.gameObject.SetActive(false);
++                    return;
++                }
++
++                size = new Vector2(
++                    Mathf.Max(1f, Mathf.Abs(right.x - left.x)),
++                    Mathf.Max(1f, Mathf.Abs(top.y - bottom.y)));
++            }
++
++            RectTransform indicatorRect = m_RangeIndicator.rectTransform;
++            indicatorRect.anchorMin = new Vector2(0.5f, 0.5f);
++            indicatorRect.anchorMax = new Vector2(0.5f, 0.5f);
++            indicatorRect.pivot = new Vector2(0.5f, 0.5f);
++            indicatorRect.anchoredPosition = center;
++            indicatorRect.sizeDelta = size;
++        }
++
++        private Vector2 WorldToDisplayPoint(UnityEngine.Camera camera, Vector3 worldPosition, out bool visible)
++        {
++            Vector3 screenPosition = camera.WorldToScreenPoint(worldPosition);
++            visible = screenPosition.z > 0f;
++            if (!visible)
++            {
++                return Vector2.zero;
++            }
++
++            RectTransformUtility.ScreenPointToLocalPointInRectangle(
++                m_DisplayRoot,
++                screenPosition,
++                null,
++                out Vector2 localPosition);
++            return localPosition;
++        }
++
++        private void FinishTargetingVisuals()
++        {
++            CombatPhase phase = m_CombatPhase;
++            RestoreSelectionVisuals();
++            ClearState();
++            phase?.EndItemCastingSlowMotion();
++        }
++
++        private void RestoreSelectionVisuals()
++        {
++            if (m_SelectedSlot != null)
++            {
++                m_SelectedSlot.localScale = m_OriginalSlotScale;
++            }
++
++            SetCancelOverlay(false);
++            if (m_RangeIndicator != null)
++            {
++                m_RangeIndicator.gameObject.SetActive(false);
++            }
++        }
++
++        private void ClearState()
++        {
++            State = CombatItemTargetingState.Idle;
++            m_CombatPhase = null;
++            m_SelectedSlot = null;
++            m_CancelOverlay = null;
++            m_PointerId = NoPointerId;
++            m_IsPointerDown = false;
++            m_HasWorldPosition = false;
++
++            if (gameObject.activeSelf)
++            {
++                m_SuppressDisableAbort = true;
++                gameObject.SetActive(false);
++                m_SuppressDisableAbort = false;
++            }
++        }
++
++        private void SetCancelOverlay(bool visible)
++        {
++            if (m_CancelOverlay != null)
++            {
++                m_CancelOverlay.enabled = visible;
++                m_CancelOverlay.raycastTarget = false;
++            }
++        }
++
++        private void OnDisable()
++        {
++            if (!m_SuppressDisableAbort &&
++                (State != CombatItemTargetingState.Idle || m_CombatPhase != null))
++            {
++                AbortTargeting();
++            }
++        }
++
++        private void OnDestroy()
++        {
++            AbortTargeting();
++            if (m_RangeIndicator != null)
++            {
++                Destroy(m_RangeIndicator.gameObject);
++            }
++        }
++    }
++}
++#endif
+diff --git a/Assets/Scripts/UI/UI_CombatItemTargetingController.cs.meta b/Assets/Scripts/UI/UI_CombatItemTargetingController.cs.meta
+new file mode 100644
+index 00000000..add84677
+--- /dev/null
++++ b/Assets/Scripts/UI/UI_CombatItemTargetingController.cs.meta
+@@ -0,0 +1,2 @@
++fileFormatVersion: 2
++guid: 7ba4f504f2fdf424eabdaac41dc970a3
+\ No newline at end of file
+diff --git a/Assets/Scripts/UI/UI_UnitHPBar.cs b/Assets/Scripts/UI/UI_UnitHPBar.cs
+index 50601086..fa1a075c 100644
+--- a/Assets/Scripts/UI/UI_UnitHPBar.cs
++++ b/Assets/Scripts/UI/UI_UnitHPBar.cs
+@@ -240,6 +240,7 @@ namespace InTheArena.UI
+ 
+             if (m_BackgroundFrame != null)
+             {
++                m_BackgroundFrame.raycastTarget = false;
+                 RectTransform frameRect = m_BackgroundFrame.rectTransform;
+                 if (frameRect != null && frameRect != m_RectTransform)
+                 {
+@@ -281,6 +282,7 @@ namespace InTheArena.UI
+ 
+             if (m_HpFillImage != null)
+             {
++                m_HpFillImage.raycastTarget = false;
+                 m_HpFillImage.type = Image.Type.Filled;
+                 m_HpFillImage.fillMethod = Image.FillMethod.Horizontal;
+                 RectTransform fillRect = m_HpFillImage.rectTransform;
+@@ -301,6 +303,11 @@ namespace InTheArena.UI
+                     m_ShieldFillImage = shieldChild.GetComponent<Image>();
+                 }
+             }
++
++            if (m_ShieldFillImage != null)
++            {
++                m_ShieldFillImage.raycastTarget = false;
++            }
+         }
+     }
+ }
+diff --git a/Assets/Sprites/UI/Sheet/32x32-Tilesheet.png.meta b/Assets/Sprites/UI/Sheet/32x32-Tilesheet.png.meta
+index 34387148..05a9ecb9 100644
+--- a/Assets/Sprites/UI/Sheet/32x32-Tilesheet.png.meta
++++ b/Assets/Sprites/UI/Sheet/32x32-Tilesheet.png.meta
+@@ -747,6 +747,28 @@ TextureImporter:
+       indices: 
+       edges: []
+       weights: []
++    - serializedVersion: 2
++      name: 32x32-Tilesheet_29
++      rect:
++        serializedVersion: 2
++        x: 76
++        y: 108
++        width: 7
++        height: 8
++      alignment: 0
++      pivot: {x: 0, y: 0}
++      border: {x: 0, y: 0, z: 0, w: 0}
++      customData: 
++      outline: []
++      physicsShape: []
++      tessellationDetail: 0
++      bones: []
++      spriteID: 7f3e0471c2e6ec840a2386a68dce352e
++      internalID: 2014313799
++      vertices: []
++      indices: 
++      edges: []
++      weights: []
+     outline: []
+     customData: 
+     physicsShape: []
+@@ -783,6 +805,7 @@ TextureImporter:
+       32x32-Tilesheet_26: 1833183777
+       32x32-Tilesheet_27: 782494019
+       32x32-Tilesheet_28: -147293978
++      32x32-Tilesheet_29: 2014313799
+       32x32-Tilesheet_3: -333696598
+       32x32-Tilesheet_4: 2123483889
+       32x32-Tilesheet_5: 526565082

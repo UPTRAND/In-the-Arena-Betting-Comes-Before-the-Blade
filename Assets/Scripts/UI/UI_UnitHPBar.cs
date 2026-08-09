@@ -240,6 +240,7 @@ namespace InTheArena.UI
 
             if (m_BackgroundFrame != null)
             {
+                m_BackgroundFrame.raycastTarget = false;
                 RectTransform frameRect = m_BackgroundFrame.rectTransform;
                 if (frameRect != null && frameRect != m_RectTransform)
                 {
@@ -281,6 +282,7 @@ namespace InTheArena.UI
 
             if (m_HpFillImage != null)
             {
+                m_HpFillImage.raycastTarget = false;
                 m_HpFillImage.type = Image.Type.Filled;
                 m_HpFillImage.fillMethod = Image.FillMethod.Horizontal;
                 RectTransform fillRect = m_HpFillImage.rectTransform;
@@ -300,6 +302,11 @@ namespace InTheArena.UI
                 {
                     m_ShieldFillImage = shieldChild.GetComponent<Image>();
                 }
+            }
+
+            if (m_ShieldFillImage != null)
+            {
+                m_ShieldFillImage.raycastTarget = false;
             }
         }
     }
