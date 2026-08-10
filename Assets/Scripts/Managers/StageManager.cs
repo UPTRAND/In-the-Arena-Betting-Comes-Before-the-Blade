@@ -204,12 +204,13 @@ namespace InTheArena.MainGame
                     await Awaitable.NextFrameAsync();
                 }
 
+                // Keep the loading overlay closed until the stage header and opening intro are primed.
+                await WaitForMainGameReadyAsync(m_StageCts.Token);
                 await ScreenFaderTransition.FadeInAsync(LoadingExitFadeSeconds, m_StageCts.Token);
 
                 session?.Complete();
                 }
 
-                await WaitForMainGameReadyAsync(m_StageCts.Token);
                 await RunStageLoopAsync(m_StageCts.Token);
             }
             catch (OperationCanceledException)

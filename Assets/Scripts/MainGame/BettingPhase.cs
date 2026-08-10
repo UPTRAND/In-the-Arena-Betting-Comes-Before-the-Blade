@@ -110,6 +110,7 @@ namespace InTheArena.MainGame
         [Header("Shared UI References")]
         [SerializeField] private UI_BettingPhase m_BettingUi;
         [SerializeField] private CanvasGroup m_BettingContentCanvasGroup;
+        [SerializeField] private UI_StageIntro m_StageIntroUi;
         [SerializeField] private TMP_Text m_NowColInfoText;
         [SerializeField] private Image m_NowColImage;
         [SerializeField] private EventTrigger m_SliderHandlePointerTrigger;
@@ -125,6 +126,9 @@ namespace InTheArena.MainGame
         private static readonly Color AgreeWarningColor = new Color(0.783f, 0.084f, 0.070f, 1f);
         private AwaitableCompletionSource m_PhaseCompletionSource;
         private RoundBetTicket m_DraftTicket;
+        private bool m_StageIntroPending;
+        private bool m_HasBettingContentRestingPosition;
+        private Vector2 m_BettingContentRestingPosition;
 
         public event Action<ItemData> OnItemUsed;
 
@@ -132,6 +136,12 @@ namespace InTheArena.MainGame
 
         private void Awake()
         {
+            if (m_StageIntroUi == null)
+            {
+                m_StageIntroUi = FindAnyObjectByType<UI_StageIntro>(FindObjectsInactive.Include);
+            }
+            CacheBettingContentRestingPosition();
+            SetBettingContentVisible(false);
             RefreshTopBar(null);
         }
 
@@ -180,8 +190,58 @@ namespace InTheArena.MainGame
                 canvasGroup.interactable = false;
                 canvasGroup.blocksRaycasts = false;
             }
-            SetBettingContentVisible(true);
+            ResetBettingContentPosition();
+            SetBettingContentVisible(!m_StageIntroPending);
             SetNowCol(Context.CurrentCall);
+        }
+
+        public void PrimeStageOpening(StageData stageData)
+        {
+            m_StageIntroPending = m_StageIntroUi != null;
+            CacheBettingContentRestingPosition();
+            ResetBettingContentPosition();
+            SetBettingContentVisible(false);
+            RefreshTopBar(Context);
+            m_StageIntroUi?.Prime(stageData);
+        }
+
+        public async Awaitable PlayStageOpeningAsync(StageData stageData, CancellationToken token)
+        {
+            if (!m_StageIntroPending || m_StageIntroUi == null)
+            {
+                ResetBettingContentPosition();
+                SetBettingContentVisible(true);
+                return;
+            }
+
+            try
+            {
+                await m_StageIntroUi.PlayAsync(stageData, token);
+                token.ThrowIfCancellationRequested();
+                await RevealBettingContentFromBottomAsync(token);
+                token.ThrowIfCancellationRequested();
+                m_StageIntroPending = false;
+            }
+            finally
+            {
+                m_StageIntroUi.ReleaseAfterBettingReveal();
+            }
+        }
+
+        public void LockInteractionForCombatPreparation()
+        {
+            CanvasGroup root = m_BettingCanvasGroup;
+            if (root != null)
+            {
+                root.interactable = false;
+                root.blocksRaycasts = false;
+            }
+
+            if (m_BettingContentCanvasGroup != null)
+            {
+                m_BettingContentCanvasGroup.interactable = false;
+                m_BettingContentCanvasGroup.blocksRaycasts = false;
+            }
         }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
@@ -832,6 +892,53 @@ namespace InTheArena.MainGame
             m_BettingContentCanvasGroup.blocksRaycasts = visible;
         }
 
+        private async Awaitable RevealBettingContentFromBottomAsync(CancellationToken token)
+        {
+            if (m_BettingContentCanvasGroup == null) return;
+
+            RectTransform contentRect = m_BettingContentCanvasGroup.transform as RectTransform;
+            if (contentRect == null) return;
+
+            CacheBettingContentRestingPosition();
+            RectTransform parentRect = contentRect.parent as RectTransform;
+            float slideDistance = parentRect != null
+                ? Mathf.Max(parentRect.rect.height, contentRect.rect.height)
+                : Screen.height;
+
+            contentRect.DOKill();
+            contentRect.anchoredPosition = m_BettingContentRestingPosition + Vector2.down * slideDistance;
+            m_BettingContentCanvasGroup.gameObject.SetActive(true);
+            m_BettingContentCanvasGroup.alpha = 1f;
+            m_BettingContentCanvasGroup.interactable = false;
+            m_BettingContentCanvasGroup.blocksRaycasts = false;
+
+            Tween slideTween = contentRect
+                .DOAnchorPos(m_BettingContentRestingPosition, 0.5f)
+                .SetEase(Ease.OutCubic)
+                .SetUpdate(true);
+            await AwaitTweenAsync(slideTween, token);
+            token.ThrowIfCancellationRequested();
+        }
+
+        private void CacheBettingContentRestingPosition()
+        {
+            if (m_HasBettingContentRestingPosition || m_BettingContentCanvasGroup == null) return;
+            if (m_BettingContentCanvasGroup.transform is not RectTransform contentRect) return;
+            m_BettingContentRestingPosition = contentRect.anchoredPosition;
+            m_HasBettingContentRestingPosition = true;
+        }
+
+        private void ResetBettingContentPosition()
+        {
+            CacheBettingContentRestingPosition();
+            if (!m_HasBettingContentRestingPosition || m_BettingContentCanvasGroup == null) return;
+            if (m_BettingContentCanvasGroup.transform is RectTransform contentRect)
+            {
+                contentRect.DOKill();
+                contentRect.anchoredPosition = m_BettingContentRestingPosition;
+            }
+        }
+
         private void SetNowCol(int value)
         {
             if (m_NowColInfoText != null) m_NowColInfoText.text = $"{Mathf.Max(0, value)} Col";
@@ -916,6 +1023,7 @@ namespace InTheArena.MainGame
             m_PhaseCompletionSource?.TrySetResult();
         }
 
+#pragma warning disable CS1998 // Phase API requires an Awaitable even though this transition is now immediate.
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             UnsubscribeEvents();
@@ -923,13 +1031,17 @@ namespace InTheArena.MainGame
             CanvasGroup canvasGroup = m_BettingContentCanvasGroup ?? m_BettingCanvasGroup;
             if (canvasGroup != null && canvasGroup.gameObject != null)
             {
-                await AwaitTweenAsync(canvasGroup.DOFade(0f, 0.3f).SetEase(Ease.InQuad), token);
-                if (canvasGroup != null && canvasGroup.gameObject != null)
-                    canvasGroup.gameObject.SetActive(false);
+                canvasGroup.DOKill();
+                canvasGroup.alpha = 0f;
+                canvasGroup.interactable = false;
+                canvasGroup.blocksRaycasts = false;
+                canvasGroup.gameObject.SetActive(false);
             }
+            ResetBettingContentPosition();
             if (this != null && transform != null)
                 transform.DOKill();
         }
+#pragma warning restore CS1998
 
         private static async Awaitable AwaitTweenAsync(Tween tween, CancellationToken token)
         {
