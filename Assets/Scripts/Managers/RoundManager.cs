@@ -172,7 +172,6 @@ namespace InTheArena.MainGame
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
 
                 SoundManager.Instance?.PlayRandomBgm(BattleBgmIds);
-                m_ActivePhase = m_CombatPhase;
 
                 m_CombatPhase.InitializePhase(m_Context);
 

@@ -98,8 +98,15 @@ namespace InTheArena.MainGame
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
+            if (m_CombatCts == null)
+            {
+                throw new InvalidOperationException(
+                    "CombatPhase must be prepared before EnterPhaseAsync is called.");
+            }
+
+            CancellationToken combatToken = m_CombatCts.Token;
             StartUnitAI();
-            await RunCombatLoopAsync(m_CombatCts.Token);
+            await RunCombatLoopAsync(combatToken);
         }
 
         private void InitializeCombat()
