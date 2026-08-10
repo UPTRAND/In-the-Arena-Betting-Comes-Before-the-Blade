@@ -113,10 +113,10 @@ TextureImporter:
       name: "ChatGPT_Image_2026\uB144_8\uC6D4_7\uC77C_\uC624\uC804_06_12_14-removebg-preview_0"
       rect:
         serializedVersion: 2
-        x: 59
-        y: 46
-        width: 197
-        height: 209
+        x: 58
+        y: 42
+        width: 200
+        height: 212
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,7 +125,7 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e6dab492d3bf85d42a1726f9756be3af
+      spriteID: e9eeb15e4a50aa44fa9a0cc97877c3df
       internalID: 836791550
       vertices: []
       indices: 
@@ -135,10 +135,10 @@ TextureImporter:
       name: "ChatGPT_Image_2026\uB144_8\uC6D4_7\uC77C_\uC624\uC804_06_12_14-removebg-preview_1"
       rect:
         serializedVersion: 2
-        x: 315
-        y: 46
-        width: 204
-        height: 209
+        x: 314
+        y: 42
+        width: 205
+        height: 216
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -147,7 +147,7 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7dd87dee01d5ac646bc06cbd59e1b634
+      spriteID: 594aeca67eb50bf46aab7a14efc92834
       internalID: -1492589472
       vertices: []
       indices: 
@@ -157,10 +157,10 @@ TextureImporter:
       name: "ChatGPT_Image_2026\uB144_8\uC6D4_7\uC77C_\uC624\uC804_06_12_14-removebg-preview_2"
       rect:
         serializedVersion: 2
-        x: 584
-        y: 40
-        width: 216
-        height: 223
+        x: 582
+        y: 36
+        width: 218
+        height: 226
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -169,7 +169,7 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7b6a2bb3ea322c24088d68b51e645758
+      spriteID: c1dc98f0099781d4493fb0a0235ef4b1
       internalID: 126461900
       vertices: []
       indices: 
