@@ -620,14 +620,14 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 0}
+  m_TargetGraphic: {fileID: 3454356136246969574}
   m_FillRect: {fileID: 1121}
   m_HandleRect: {fileID: 0}
   m_Direction: 0
   m_MinValue: 0
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0.649
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -726,7 +726,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -1010438637, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
+  m_Sprite: {fileID: -1854622403, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -922,7 +922,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -1010438637, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
+  m_Sprite: {fileID: -1854622403, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1697,7 +1697,7 @@ GameObject:
   - component: {fileID: 3068354282977093747}
   - component: {fileID: 555967185026707385}
   m_Layer: 5
-  m_Name: Button
+  m_Name: CloseButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1750,7 +1750,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 2143327226, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
+  m_Sprite: {fileID: 2014313799, guid: d1c6bece3ee797d4db0641e54bd16ec1, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

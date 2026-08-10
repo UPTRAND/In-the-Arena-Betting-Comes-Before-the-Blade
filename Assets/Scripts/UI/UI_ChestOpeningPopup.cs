@@ -52,12 +52,14 @@ namespace InTheArena.UI
         {
             if (m_State == PopupState.WaitingForOpen)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                 m_State = PopupState.Opening;
                 PlayTouchEmphasis();
                 StartCoroutine(OpenRoutine());
             }
             else if (m_State == PopupState.Opened)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Destroy(gameObject);
             }
         }

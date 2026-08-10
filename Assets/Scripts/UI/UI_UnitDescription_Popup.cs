@@ -94,6 +94,7 @@ public sealed class UI_UnitDescription_Popup : UI_Base
     }
 private void ClosePopup()
     {
+        SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
         UIManager.Instance?.CloseControl(this);
     }
 }

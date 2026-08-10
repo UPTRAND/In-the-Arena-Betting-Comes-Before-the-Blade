@@ -39,6 +39,7 @@ namespace InTheArena.UI
 
         private void OnBuyClicked()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             ShowFeedback("아이템은 더 이상 인벤토리에 보관되지 않으며 즉시 사용됩니다.");
         }
 

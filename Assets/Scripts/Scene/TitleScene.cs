@@ -80,6 +80,7 @@ namespace InTheArena.Scene
 
             if (!string.IsNullOrEmpty(m_TargetSceneName))
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                 AsyncSceneLoader.LoadScene(m_TargetSceneName);
             }
         }

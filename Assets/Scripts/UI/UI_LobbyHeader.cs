@@ -156,6 +156,7 @@ namespace InTheArena.UI
 
         private void OpenOptionsPopup()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             UI_OptionsPopup.Show(m_OptionsPopupPrefab, GetComponentInParent<UI_Root>());
         }
 

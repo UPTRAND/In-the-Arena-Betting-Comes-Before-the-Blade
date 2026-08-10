@@ -123,12 +123,14 @@ namespace InTheArena.UI
         {
             if (RoundManager.Instance == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 ShowFeedback("라운드 매니저를 찾을 수 없습니다.");
                 return;
             }
 
             if (RoundManager.Instance.BettingPhase == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 ShowFeedback("현재 배팅 페이즈가 아닙니다.");
                 return;
             }
@@ -143,6 +145,7 @@ namespace InTheArena.UI
             if (itemData == null || bettingPhase == null || roundContext == null || playerState == null ||
                 popup == null || popup.ParentRoot == null || coordinator == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 ShowFeedback("아이템 구매 팝업 또는 배팅 페이즈가 없어 사용 불가합니다.");
                 return;
             }
@@ -155,6 +158,7 @@ namespace InTheArena.UI
 
             if (itemData.PriceGold < 0)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 ShowFeedback("아이템 가격이 잘못되었습니다.");
                 return;
             }
@@ -162,6 +166,7 @@ namespace InTheArena.UI
             m_BettingPhase = bettingPhase;
             m_RoundContext = roundContext;
             m_PlayerState = playerState;
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             _ = TryUseItemThroughPurchaseFlowAsync(itemData, bettingPhase, coordinator, popup);
             RefreshItemButtons();
         }
@@ -183,15 +188,19 @@ namespace InTheArena.UI
             switch (coordinator.LastResult)
             {
                 case ItemPurchaseUseResult.PurchaseSucceeded:
+                    SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                     ShowFeedback("베팅 아이템을 구매했습니다.");
                     break;
                 case ItemPurchaseUseResult.UseSucceeded:
+                    SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                     ShowFeedback("베팅 아이템을 사용했습니다.");
                     break;
                 case ItemPurchaseUseResult.Rejected:
+                    SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                     ShowFeedback("이번 라운드에 이미 사용한 아이템입니다.");
                     break;
                 case ItemPurchaseUseResult.Failed:
+                    SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                     ShowFeedback("베팅 아이템을 처리하지 못했습니다.");
                     break;
             }
@@ -474,6 +483,7 @@ namespace InTheArena.UI
 
         private void OpenOptionsPopup()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             UI_OptionsPopup.Show(m_OptionsPopupPrefab, GetComponentInParent<UI_Root>());
         }
     }

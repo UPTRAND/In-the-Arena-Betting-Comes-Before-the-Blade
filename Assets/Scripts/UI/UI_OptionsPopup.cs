@@ -101,6 +101,12 @@ namespace InTheArena.UI
 
         private void ClosePopup()
         {
+            ClosePopup(true);
+        }
+
+        private void ClosePopup(bool playSfx)
+        {
+            if (playSfx) SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             if (UIManager.Instance != null)
             {
                 UIManager.Instance.CloseControl(this);
@@ -113,7 +119,8 @@ namespace InTheArena.UI
 
         private void ReturnToLobby()
         {
-            ClosePopup();
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
+            ClosePopup(false);
             if (SceneManager.GetActiveScene().name != LobbySceneName)
             {
                 if (StageManager.Instance != null)
@@ -129,6 +136,7 @@ namespace InTheArena.UI
 
         private void QuitGame()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             Application.Quit();
         }
 

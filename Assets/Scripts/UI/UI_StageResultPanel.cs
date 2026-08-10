@@ -273,6 +273,7 @@ namespace InTheArena.UI
         {
             if (m_ReturnToLobbyButton != null && m_ReturnToLobbyButton.gameObject.activeSelf)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 DisableInput();
                 m_CompletionSource?.TrySetResult();
             }
@@ -282,19 +283,26 @@ namespace InTheArena.UI
         {
             m_IsGiveUpConfirming = false;
             if (StageManager.Instance != null && m_RetryButton != null && m_RetryButton.gameObject.activeSelf)
+            {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                 StageManager.Instance.RetryStageClearSave();
+            }
         }
 
         private void OnGiveUpClicked()
         {
             if (!m_IsGiveUpConfirming)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 m_IsGiveUpConfirming = true;
                 if (m_ErrorText != null) m_ErrorText.text = "Give up stage clear save?";
                 if (m_GiveUpButtonText != null) m_GiveUpButtonText.text = "Confirm give up";
             }
             else if (StageManager.Instance != null && m_GiveUpButton != null && m_GiveUpButton.gameObject.activeSelf)
+            {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 StageManager.Instance.GiveUpStageClearSave();
+            }
         }
 
         private void DisableCompletionInput()
