@@ -78,6 +78,12 @@ namespace InTheArena.MainGame
             m_InitialBlueUnitCount = BlueAliveCount;
             m_RedParticipantCount = m_InitialRedUnitCount;
             m_BlueParticipantCount = m_InitialBlueUnitCount;
+            m_CombatHud?.BindAndShow(
+                this,
+                Context,
+                StageManager.Instance?.PlayerState);
+
+            Canvas.ForceUpdateCanvases();
             var cameraController = InTheArena.Camera.CameraController.Instance;
             if (cameraController != null)
             {
@@ -86,16 +92,12 @@ namespace InTheArena.MainGame
                     m_CombatCts.Token);
             }
             if (m_CombatCts.IsCancellationRequested) return;
+
+            OnCombatStateChanged?.Invoke();
         }
 
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
-            m_CombatHud?.BindAndShow(
-                this,
-                Context,
-                StageManager.Instance?.PlayerState);
-            Canvas.ForceUpdateCanvases();
-            OnCombatStateChanged?.Invoke();
             StartUnitAI();
             await RunCombatLoopAsync(m_CombatCts.Token);
         }

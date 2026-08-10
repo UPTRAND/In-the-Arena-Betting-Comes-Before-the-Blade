@@ -30,6 +30,8 @@ namespace InTheArena.UI
         [SerializeField] private RectTransform m_RedSwordRect;
         [SerializeField] private RectTransform m_BlueSwordRect;
         [SerializeField] private RectTransform m_ShieldRect;
+        [Tooltip("합체 상태에서 각 칼 중심이 방패 중심으로부터 떨어지는 거리입니다. 낮을수록 중앙에 모입니다.")]
+        [SerializeField, Min(0f)] private float m_SwordHorizontalOffset = 0f;
 
         [Header("Stage Information")]
         [SerializeField] private GameObject m_InfoRoot;
@@ -219,8 +221,8 @@ namespace InTheArena.UI
             m_BlueSwordRect.sizeDelta = Vector2.one * (SwordSize * scale);
             m_ShieldRect.sizeDelta = Vector2.one * (ShieldSize * scale);
 
-            m_RedTargetPosition = new Vector2(-52f * scale, -2f * scale);
-            m_BlueTargetPosition = new Vector2(52f * scale, 0f);
+            m_RedTargetPosition = new Vector2(-m_SwordHorizontalOffset * scale, -2f * scale);
+            m_BlueTargetPosition = new Vector2(m_SwordHorizontalOffset * scale, 0f);
             m_ShieldRect.anchoredPosition = Vector2.zero;
         }
 

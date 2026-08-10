@@ -153,6 +153,8 @@ namespace InTheArena.MainGame
                 await m_BettingPhase.EnterPhaseAsync(m_RoundCts.Token);
                 
                 m_RoundCts.Token.ThrowIfCancellationRequested();
+                await ScreenFaderTransition.FadeOutAsync(1f, m_RoundCts.Token);
+                m_RoundCts.Token.ThrowIfCancellationRequested();
 
                 m_BettingPhase.LockInteractionForCombatPreparation();
                 StageBackgroundController.ShowBattleBackgrounds();
@@ -174,6 +176,7 @@ namespace InTheArena.MainGame
 
                 await CleanupActivePhaseAsync();
                 m_ActivePhase = m_CombatPhase;
+                await ScreenFaderTransition.FadeInAsync(1f, m_RoundCts.Token);
                 await m_CombatPhase.EnterPhaseAsync(m_RoundCts.Token);
 
                 m_RoundCts.Token.ThrowIfCancellationRequested();

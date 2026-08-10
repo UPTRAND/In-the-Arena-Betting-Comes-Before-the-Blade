@@ -16411,6 +16411,7 @@ MonoBehaviour:
   m_RedSwordRect: {fileID: 5122601166681717255}
   m_BlueSwordRect: {fileID: 3553222835602755360}
   m_ShieldRect: {fileID: 3268913311662998517}
+  m_SwordHorizontalOffset: 40
   m_InfoRoot: {fileID: 733073343006773071}
   m_StageText: {fileID: 2083253264745727592}
   m_RoundText: {fileID: 1697562489622883934}
