@@ -696,6 +696,7 @@ MonoBehaviour:
   - {fileID: 1818478476}
   - {fileID: 79602468}
   - {fileID: 879143924}
+  - {fileID: 879000002}
   _targetFrameRate: 60
   _vSyncCount: 0
 --- !u!4 &873386173
@@ -716,7 +717,68 @@ Transform:
   - {fileID: 1818478475}
   - {fileID: 79602469}
   - {fileID: 879143925}
+  - {fileID: 879000003}
   m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &879000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 879000003}
+  - component: {fileID: 879000002}
+  m_Layer: 0
+  m_Name: SoundManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &879000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 879000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc5a221c27ac5c54e89eb908efbc9a04, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SoundManager
+  m_Catalog: {fileID: 11400000, guid: c9387be12d7242758d07a2575deca6af, type: 2}
+  m_AudioMixer: {fileID: 24100000, guid: d8d2c260ebfa4bd4ab3d4c65e8321d11, type: 2}
+  m_MasterGroupName: Master
+  m_BgmGroupName: BGM
+  m_SfxGroupName: SFX
+  m_MasterVolumeParameter: MasterVolume
+  m_BgmVolumeParameter: BGMVolume
+  m_SfxVolumeParameter: SFXVolume
+  m_SceneBgmBindings:
+  - m_SceneName: Title
+    m_BgmId: main_title
+  - m_SceneName: Lobby
+    m_BgmId: main_title
+  - m_SceneName: MainGame
+    m_BgmId: betting_phase
+  m_SfxPoolSize: 24
+--- !u!4 &879000003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 879000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 873386173}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &879143923
 GameObject:
