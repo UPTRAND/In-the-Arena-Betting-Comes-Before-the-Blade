@@ -150,9 +150,9 @@ namespace InTheArena.MainGame.Editor
                 8 => Combine(RoyalKnights(units), new[] { units.Peasant, units.Thief }),
                 9 => CentralCastle(units),
                 10 => Combine(RoyalKnights(units), CentralCastle(units)),
-                11 => Combine(new[] { units.Lumberjack }, RoyalKnights(units), CentralCastle(units)),
+                11 => Combine(new[] { units.Lumberjack }, RoyalKnights(units)),
                 12 => Combine(new[] { units.Hunter, units.Lumberjack }, CentralCastle(units)),
-                13 => Combine(new[] { units.Blacksmith, units.Hunter }, RoyalKnights(units)),
+                13 => Combine(new[] { units.Blacksmith, units.Hunter }, CentralCastle(units)),
                 14 => CentralOutskirts(units),
                 15 => Combine(RoyalKnights(units), CentralCastle(units), CentralOutskirts(units)),
                 _ => RoyalKnights(units)

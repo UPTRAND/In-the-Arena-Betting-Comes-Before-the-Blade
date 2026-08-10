@@ -22,6 +22,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9a2bd3d156fbdb5179c116dbc25591e6, type: 2}
   - {fileID: 11400000, guid: 6962060a6158043ffa0647e7e87d17f9, type: 2}
   - {fileID: 11400000, guid: bc7f7cb66050c5510854625b8c5c62e4, type: 2}
-  m_TargetCall: 2400
+  - {fileID: 11400000, guid: b3040000000000000000000000000004, type: 2}
+  m_TargetCall: 2500
   m_EnableFactionBet: 1
   m_SpecialBetTypes: 

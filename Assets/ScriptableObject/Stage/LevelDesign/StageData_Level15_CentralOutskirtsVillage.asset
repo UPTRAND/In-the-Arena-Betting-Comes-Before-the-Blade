@@ -15,7 +15,7 @@ MonoBehaviour:
   m_StageName: "\uC13C\uD2B8\uB7F4 \uC678\uACFD \uB9C8\uC744"
   m_Region: 0
   m_StageNum: 15
-  m_BackgroundSprite: {fileID: 21300000, guid: 067db931f670e1a449e321af44f373ab, type: 3}
+  m_BackgroundSprite: {fileID: 21300000, guid: 0bfe34e5aab99da448485306b06f002f, type: 3}
   m_InitialCall: 500
   m_RoundDatas:
   - {fileID: 11400000, guid: 9065dfc3bb3b7170d8c2eca265b798b8, type: 2}

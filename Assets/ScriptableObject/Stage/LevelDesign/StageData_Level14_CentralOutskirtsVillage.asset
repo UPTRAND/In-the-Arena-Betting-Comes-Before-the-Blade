@@ -15,7 +15,7 @@ MonoBehaviour:
   m_StageName: "\uC13C\uD2B8\uB7F4 \uC678\uACFD \uB9C8\uC744"
   m_Region: 0
   m_StageNum: 14
-  m_BackgroundSprite: {fileID: 21300000, guid: 067db931f670e1a449e321af44f373ab, type: 3}
+  m_BackgroundSprite: {fileID: 21300000, guid: 0bfe34e5aab99da448485306b06f002f, type: 3}
   m_InitialCall: 500
   m_RoundDatas:
   - {fileID: 11400000, guid: 15fb07b3d39251827322fce2144d21ea, type: 2}
@@ -25,6 +25,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ecbd2f2eedbde527c5a3670f0a8e5fc5, type: 2}
   - {fileID: 11400000, guid: 0eccef7e41d22f70e44e2708a6c02752, type: 2}
   - {fileID: 11400000, guid: 56cbb95819e6a515938ef67017dc24c3, type: 2}
-  m_TargetCall: 7600
+  m_TargetCall: 7000
   m_EnableFactionBet: 1
   m_SpecialBetTypes: 
