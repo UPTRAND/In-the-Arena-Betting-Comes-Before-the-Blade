@@ -554,12 +554,14 @@ namespace InTheArena.MainGame
         private void OnGameEndTimeChanged(int value)
         {
             m_DraftTicket.SetRemainingTime(value == 0 ? null : (RemainingTimePrediction)(value - 1));
+            PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
 
         private void OnOddEvenChanged(int value)
         {
             m_DraftTicket.SetOddEven(value == 0 ? null : (OddEvenPrediction)(value - 1));
+            PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
 
@@ -567,38 +569,52 @@ namespace InTheArena.MainGame
         {
             m_DraftTicket.SetFirstEliminatedColumn(
                 value == 0 ? null : (FirstEliminatedColumnPrediction?)(value - 1));
+            PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
 
         private void OnSurvivingRowChanged(int value)
         {
             m_DraftTicket.SetSurvivingRow(value == 0 ? null : (SurvivingRowPrediction?)(value - 1));
+            PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
 
         private void SetFaction(FactionPrediction prediction)
         {
             m_DraftTicket.SetFaction(prediction);
+            PlaySelectionSfx(prediction != FactionPrediction.NotSelected);
             RefreshBetSummary();
         }
 
         private void ToggleRemainingTime(RemainingTimePrediction value)
         {
-            m_DraftTicket.SetRemainingTime(m_DraftTicket.RemainingTime == value ? null : value);
+            bool selected = m_DraftTicket.RemainingTime != value;
+            m_DraftTicket.SetRemainingTime(selected ? value : null);
+            PlaySelectionSfx(selected);
             RefreshBetSummary();
         }
 
         private void ToggleOddEven(OddEvenPrediction value)
         {
-            m_DraftTicket.SetOddEven(m_DraftTicket.OddEven == value ? null : value);
+            bool selected = m_DraftTicket.OddEven != value;
+            m_DraftTicket.SetOddEven(selected ? value : null);
+            PlaySelectionSfx(selected);
             RefreshBetSummary();
         }
 
         private void ToggleFirstEliminatedColumn(FirstEliminatedColumnPrediction prediction)
         {
-            m_DraftTicket.SetFirstEliminatedColumn(
-                m_DraftTicket.FirstEliminatedColumn == prediction ? null : prediction);
+            bool selected = m_DraftTicket.FirstEliminatedColumn != prediction;
+            m_DraftTicket.SetFirstEliminatedColumn(selected ? prediction : null);
+            PlaySelectionSfx(selected);
             RefreshBetSummary();
+        }
+
+        private static void PlaySelectionSfx(bool selected)
+        {
+            SoundManager.Instance?.PlaySfx(
+                selected ? SfxIds.ButtonPositive : SfxIds.ButtonNegative);
         }
 
         private void UpdateSurvivingSlotAvailability()
@@ -1012,11 +1028,13 @@ namespace InTheArena.MainGame
             int callBeforeBet = Context.CurrentCall;
             if (!Context.StageSession.TryPlaceBet(m_DraftTicket, Context, out string error))
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogError($"[BettingPhase] {error}");
                 return;
             }
 
             Context.BetTicket = m_DraftTicket;
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             StopAttention();
             AnimateNowCol(callBeforeBet, Context.CurrentCall);
             CompletePhase();

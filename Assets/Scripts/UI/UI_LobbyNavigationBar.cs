@@ -12,7 +12,8 @@ namespace InTheArena.UI
         [SerializeField] private Button m_StageButton;
         [SerializeField] private Button m_SocialButton;
         public event Action<LobbyTab> TabSelected;
-        protected override void Awake() { base.Awake(); m_UnitsButton.onClick.AddListener(() => Select(LobbyTab.Units)); m_StageButton.onClick.AddListener(() => Select(LobbyTab.Stage)); m_SocialButton.onClick.AddListener(() => Select(LobbyTab.Social)); }
+        protected override void Awake() { base.Awake(); m_UnitsButton.onClick.AddListener(() => SelectFromButton(LobbyTab.Units)); m_StageButton.onClick.AddListener(() => SelectFromButton(LobbyTab.Stage)); m_SocialButton.onClick.AddListener(() => SelectFromButton(LobbyTab.Social)); }
+        private void SelectFromButton(LobbyTab tab) { SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive); Select(tab); }
         public void Select(LobbyTab tab) { SetSelected(tab); TabSelected?.Invoke(tab); }
         public void SetSelected(LobbyTab tab) { m_UnitsButton.interactable = tab != LobbyTab.Units; m_StageButton.interactable = tab != LobbyTab.Stage; m_SocialButton.interactable = tab != LobbyTab.Social; }
     }

@@ -430,17 +430,20 @@ namespace InTheArena.UI
             Debug.Log($"[UI_BattlePhaseHUD] {message}");
             if (success)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                 presenter?.SetState(ItemSlotVisualState.Used);
                 RefreshItemButtons();
             }
             else
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 presenter?.SetState(ItemSlotVisualState.Normal);
             }
         }
 
         private void OnTargetCanceled()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             CancelTargetingRequest();
         }
 
@@ -524,11 +527,21 @@ namespace InTheArena.UI
             }
 
             m_CombatPhase.ToggleCombatSpeed();
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             RefreshCombatState();
         }
 
-        private void OnBattleSwapClicked() => SetBattleView(true);
-        private void OnBettingSwapClicked() => SetBattleView(false);
+        private void OnBattleSwapClicked()
+        {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
+            SetBattleView(true);
+        }
+
+        private void OnBettingSwapClicked()
+        {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
+            SetBattleView(false);
+        }
 
         private void SetBattleView(bool showBattle)
         {
@@ -543,6 +556,7 @@ namespace InTheArena.UI
                 return;
             }
 
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             if (CanUseNewImmediateFlow(itemData))
             {
                 RequestImmediateItemUse(itemData);
@@ -600,6 +614,10 @@ namespace InTheArena.UI
                 coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded ||
                 coordinator.LastResult == ItemPurchaseUseResult.Failed)
             {
+                SoundManager.Instance?.PlaySfx(
+                    coordinator.LastResult == ItemPurchaseUseResult.Failed
+                        ? SfxIds.ButtonNegative
+                        : SfxIds.ButtonPositive);
                 RefreshItemButtons();
             }
         }

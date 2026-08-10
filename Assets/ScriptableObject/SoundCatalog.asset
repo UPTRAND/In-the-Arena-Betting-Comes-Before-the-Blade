@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01389fdef86b666419a26db4e6b385af, type: 3}
+  m_Name: SoundCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SoundCatalog
+  m_BgmEntries:
+  - m_Id: main_title
+    m_Clip: {fileID: 8300000, guid: a9b4e25634f3a154ebc48b962fab2ecf, type: 3}
+  - m_Id: betting_phase
+    m_Clip: {fileID: 8300000, guid: 7794886d32c2f8944af86b74992b60e8, type: 3}
+  - m_Id: battle_phase_1
+    m_Clip: {fileID: 8300000, guid: eb9634ad3ab32e744af92d8cc3051b37, type: 3}
+  - m_Id: battle_phase_2
+    m_Clip: {fileID: 8300000, guid: 75f9a33d722131a4580ae3e78404b3f4, type: 3}
+  - m_Id: battle_phase_3
+    m_Clip: {fileID: 8300000, guid: 79dd95c37f37501458ceb4bc1a06926a, type: 3}
+  m_SfxEntries:
+  - m_Id: betting_win
+    m_Clip: {fileID: 8300000, guid: d8e83ea7fe067044d9279d349056101f, type: 3}
+  - m_Id: betting_fail
+    m_Clip: {fileID: 8300000, guid: c2abd612e627f984883c657ddeeef252, type: 3}
+  - m_Id: button_positive
+    m_Clip: {fileID: 8300000, guid: 672ea927d48eb0442a03fff3b1bf16d9, type: 3}
+  - m_Id: button_negative
+    m_Clip: {fileID: 8300000, guid: 9a54f076ef8ecea46aac08b8ae8b46a1, type: 3}
+  - m_Id: unit_death
+    m_Clip: {fileID: 8300000, guid: a07a5bfb752b4a04abe58450b2a95275, type: 3}
+  - m_Id: unit_hit
+    m_Clip: {fileID: 8300000, guid: 819048a35d6f02347a41bad3c64b9489, type: 3}
+  - m_Id: unit_skill
+    m_Clip: {fileID: 8300000, guid: cc0e85d2cd8592e46a82c2f71998856e, type: 3}

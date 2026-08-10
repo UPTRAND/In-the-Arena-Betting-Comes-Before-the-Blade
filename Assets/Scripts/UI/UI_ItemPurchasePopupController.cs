@@ -124,15 +124,18 @@ namespace InTheArena.UI
             if (m_Mode == ItemConfirmationMode.Purchase &&
                 m_CurrentGold < m_ActiveItem.PriceGold)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 ShowInsufficientGold();
                 return;
             }
 
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             Complete(ItemPurchaseDecision.Confirmed);
         }
 
         private void OnPopupPanelClicked()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             Complete(ItemPurchaseDecision.Cancelled);
         }
 
@@ -274,6 +277,7 @@ namespace InTheArena.UI
 
             if (!isInsidePopup)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Complete(ItemPurchaseDecision.Cancelled);
             }
         }

@@ -547,7 +547,7 @@ namespace InTheArena.Unit
             if (m_Collider != null) m_Collider.enabled = false;
             UnitRegistry.NotifyDeath(this);
             OnDied?.Invoke(killer);
-            PlayClip(m_DeathSound);
+            PlayConfiguredOrCatalogSfx(m_DeathSound, SfxIds.UnitDeath);
             m_AnimationPresenter?.PlayDeath();
             if (!m_HoldDeathPresentation) gameObject.SetActive(false);
         }
@@ -832,7 +832,10 @@ namespace InTheArena.Unit
                 : SkillExecutionResult.Interrupted;
             m_CastingTargets.Clear();
             if (result == SkillExecutionResult.Success)
+            {
+                SoundManager.Instance?.PlaySfx(SfxIds.UnitSkill, -1f);
                 OnSkillCastComplete?.Invoke(skill);
+            }
         }
 
         public void CancelCasting() => CancelCast();
@@ -1251,7 +1254,7 @@ namespace InTheArena.Unit
                 m_MaterialPropertyBlock.SetFloat(Shader.PropertyToID("_FlashAmount"), 1f);
                 renderer.SetPropertyBlock(m_MaterialPropertyBlock);
             }
-            PlayClip(m_HitSound);
+            PlayConfiguredOrCatalogSfx(m_HitSound, SfxIds.UnitHit);
             if (!IsAttacking && !IsCastingSkill)
                 m_AnimationPresenter?.PlayHit();
         }
@@ -1319,7 +1322,21 @@ namespace InTheArena.Unit
 
         private void PlayClip(AudioClip clip)
         {
-            if (clip != null && m_AudioSource != null) m_AudioSource.PlayOneShot(clip);
+            if (clip == null || m_AudioSource == null) return;
+            m_AudioSource.pitch = 1f;
+            m_AudioSource.PlayOneShot(clip);
+        }
+
+        private void PlayConfiguredOrCatalogSfx(AudioClip configuredClip, string catalogId)
+        {
+            if (configuredClip != null && m_AudioSource != null)
+            {
+                m_AudioSource.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+                m_AudioSource.PlayOneShot(configuredClip);
+                return;
+            }
+
+            SoundManager.Instance?.PlaySfx(catalogId, -1f);
         }
 
         private void RegisterRuntime()

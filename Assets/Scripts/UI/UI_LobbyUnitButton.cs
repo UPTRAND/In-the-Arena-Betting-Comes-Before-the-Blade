@@ -35,8 +35,11 @@ namespace InTheArena.UI
 
         private void OnClicked()
         {
-            if (m_UnitData != null)
+            if (m_UnitData != null && m_ClickHandler != null)
+            {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
                 m_ClickHandler?.Invoke(m_UnitData);
+            }
         }
 
         private void OnDestroy()

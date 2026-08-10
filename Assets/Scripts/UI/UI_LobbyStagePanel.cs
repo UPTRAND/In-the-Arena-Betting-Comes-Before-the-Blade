@@ -112,12 +112,14 @@ namespace InTheArena.UI
 
             if (m_Target == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.Log("[Lobby] Target stage is not ready.");
                 return;
             }
 
             if (StageManager.Instance == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogError("[Lobby] StageManager was not found.");
                 return;
             }
@@ -132,10 +134,12 @@ namespace InTheArena.UI
             SaveManager save = SaveManager.Instance;
             if (save == null || !save.TrySpendHeart())
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.Log($"[Lobby] Not enough hearts. Next heart in {save?.GetRemainingHeartTime():mm\\:ss}");
                 return;
             }
 
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             _ = StageManager.Instance.StartStageAsync(m_Target);
         }
 
@@ -144,19 +148,22 @@ namespace InTheArena.UI
             SaveManager save = SaveManager.Instance;
             if (save == null || save.Availability != SaveAvailability.Ready)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogWarning("[Lobby] Chest is unavailable because save data is not ready.");
                 return;
             }
-            if (save.Stars < 3) { Debug.LogWarning("[Lobby] Chest requires 3 stars."); return; }
-            if (!ChestDrawService.TryDraw(m_ChestItems, new UnityChestRandom(), out ChestReward reward)) { Debug.LogError("[Lobby] Chest item list is invalid."); return; }
+            if (save.Stars < 3) { SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative); Debug.LogWarning("[Lobby] Chest requires 3 stars."); return; }
+            if (!ChestDrawService.TryDraw(m_ChestItems, new UnityChestRandom(), out ChestReward reward)) { SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative); Debug.LogError("[Lobby] Chest item list is invalid."); return; }
             if (!save.TryOpenChest(reward.Item.ItemType, reward.Amount, out string error))
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogWarning($"[Lobby] Chest save failed: {error}");
                 return;
             }
             UI_ChestOpeningPopup prefab = Resources.Load<UI_ChestOpeningPopup>("UI/UI_ChestOpeningPopup");
-            if (prefab == null) { Debug.LogError("[Lobby] Chest popup prefab could not be loaded."); return; }
+            if (prefab == null) { SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative); Debug.LogError("[Lobby] Chest popup prefab could not be loaded."); return; }
             UI_ChestOpeningPopup popup = Instantiate(prefab, GetComponentInParent<UI_Root>()?.transform);
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             popup.Show(reward);
         }
 

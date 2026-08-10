@@ -36,6 +36,7 @@ namespace InTheArena.UI
         private Vector2 m_MyBetStartPosition;
         private Vector2 m_MyOddsStartPosition;
         private bool m_HasSummaryStartPositions;
+        private bool m_ResultSfxPlayed;
 
         public event Action ContinueClicked;
         public event Action PayoutRevealCompleted;
@@ -57,6 +58,7 @@ namespace InTheArena.UI
             m_Ticket = ticket;
             m_CombatResult = combatResult;
             m_Settlement = settlement;
+            m_ResultSfxPlayed = false;
             if (m_ContinueButton != null)
                 m_ContinueButton.interactable = true;
         }
@@ -216,6 +218,13 @@ namespace InTheArena.UI
         private void ShowFinalResult()
         {
             if (m_MyResult == null) return;
+            if (!m_ResultSfxPlayed && m_Settlement != null)
+            {
+                m_ResultSfxPlayed = true;
+                SoundManager.Instance?.PlaySfx(
+                    m_Settlement.IsWin ? SfxIds.BettingWin : SfxIds.BettingFail);
+            }
+
             int payout = Mathf.Max(0, m_Settlement?.PayoutCall ?? 0);
             m_MyResult.gameObject.SetActive(true);
             m_MyResult.localScale = Vector3.one * 0.82f;
@@ -344,6 +353,7 @@ namespace InTheArena.UI
 
         private void OnContinueButtonClicked()
         {
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             CancelResultAnimation();
             ContinueClicked?.Invoke();
         }

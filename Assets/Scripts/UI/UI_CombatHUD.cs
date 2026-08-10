@@ -76,6 +76,7 @@ namespace InTheArena.UI
                 return;
 
             m_CombatPhase.ToggleCombatSpeed();
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             Refresh();
         }
 

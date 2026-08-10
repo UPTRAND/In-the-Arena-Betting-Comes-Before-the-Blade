@@ -70,6 +70,7 @@ namespace InTheArena.UI
         {
             if (m_TargetStageData == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogWarning("[UI_StageButtonTest] 스테이지 데이터가 할당되지 않았습니다.");
                 return;
             }
@@ -77,6 +78,7 @@ namespace InTheArena.UI
             var stageManager = StageManager.Instance;
             if (stageManager == null)
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
                 Debug.LogError("[UI_StageButtonTest] StageManager 인스턴스를 찾을 수 없습니다.");
                 return;
             }
@@ -85,6 +87,7 @@ namespace InTheArena.UI
             if (m_StartButton != null)
                 m_StartButton.interactable = false;
 
+            SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             if (m_LoadingOverlay != null)
                 m_LoadingOverlay.SetActive(true);
 
