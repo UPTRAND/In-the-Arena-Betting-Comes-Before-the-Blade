@@ -261,6 +261,34 @@ public class SaveManager : Manager_Base
         return true;
     }
 
+    public bool TryAddItem(ItemType itemType, int amount, out string error)
+    {
+        error = null;
+        if (m_IsReadOnly || m_State == null || Availability != SaveAvailability.Ready ||
+            itemType == ItemType.None || amount <= 0)
+        {
+            error = "Item grant is unavailable.";
+            return false;
+        }
+
+        int currentCount = m_State.GetItemCount(itemType);
+        if (currentCount > int.MaxValue - amount)
+        {
+            error = "Item count exceeds the supported limit.";
+            return false;
+        }
+
+        PlayerProgressState copy = m_State.DeepClone();
+        copy.SetItemCount(itemType, currentCount + amount);
+        if (!TrySave(copy, out error))
+        {
+            return false;
+        }
+
+        m_State = copy;
+        return true;
+    }
+
     public bool TryPurchaseItem(ItemType itemType, int priceGold, out string error)
     {
         error = null;

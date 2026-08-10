@@ -21,7 +21,9 @@ namespace InTheArena.UI
         private AwaitableCompletionSource m_CompletionSource;
         private Button m_PopupPanelButton;
         private ItemData m_ActiveItem;
+        private ItemConfirmationMode m_Mode;
         private int m_CurrentGold;
+        private int m_OwnedCount;
         private bool m_IsShowing;
         private bool m_IsRequestCompleted;
         private bool m_ListenersRegistered;
@@ -38,7 +40,9 @@ namespace InTheArena.UI
 
         public async Awaitable ShowAsync(
             ItemData itemData,
+            ItemConfirmationMode mode,
             int currentGold,
+            int ownedCount,
             CancellationToken token)
         {
             if (m_IsShowing || itemData == null)
@@ -48,7 +52,7 @@ namespace InTheArena.UI
 
             ResolveReferences();
             RegisterListeners();
-            SetDisplay(itemData, currentGold);
+            SetDisplay(itemData, mode, currentGold, ownedCount);
 
             var source = new AwaitableCompletionSource();
             m_LastDecision = ItemPurchaseDecision.Cancelled;
@@ -92,6 +96,19 @@ namespace InTheArena.UI
             }
         }
 
+        public Awaitable ShowAsync(
+            ItemData itemData,
+            int currentGold,
+            CancellationToken token)
+        {
+            return ShowAsync(
+                itemData,
+                ItemConfirmationMode.Purchase,
+                currentGold,
+                0,
+                token);
+        }
+
         public void Cancel()
         {
             Complete(ItemPurchaseDecision.Cancelled);
@@ -99,7 +116,13 @@ namespace InTheArena.UI
 
         private void OnBuyClicked()
         {
-            if (m_ActiveItem == null || m_CurrentGold < m_ActiveItem.PriceGold)
+            if (m_ActiveItem == null)
+            {
+                return;
+            }
+
+            if (m_Mode == ItemConfirmationMode.Purchase &&
+                m_CurrentGold < m_ActiveItem.PriceGold)
             {
                 ShowInsufficientGold();
                 return;
@@ -173,32 +196,46 @@ namespace InTheArena.UI
             return target != null ? target.GetComponent<Button>() : null;
         }
 
-        private void SetDisplay(ItemData itemData, int currentGold)
+        private void SetDisplay(
+            ItemData itemData,
+            ItemConfirmationMode mode,
+            int currentGold,
+            int ownedCount)
         {
             m_ActiveItem = itemData;
+            m_Mode = mode;
             m_CurrentGold = Mathf.Max(0, currentGold);
+            m_OwnedCount = Mathf.Max(0, ownedCount);
 
             if (m_ItemInfoText != null)
             {
-                m_ItemInfoText.text = "아이템이 부족합니다.";
+                m_ItemInfoText.text = mode == ItemConfirmationMode.Purchase
+                    ? "아이템이 부족합니다."
+                    : string.IsNullOrEmpty(itemData.ItemName) ? "아이템" : itemData.ItemName;
             }
 
             if (m_SecondaryInfoText != null)
             {
-                m_SecondaryInfoText.text = "구매하시겠습니까?";
+                m_SecondaryInfoText.text = mode == ItemConfirmationMode.Purchase
+                    ? "구매하시겠습니까?"
+                    : $"사용하시겠습니까? (보유 x{m_OwnedCount})";
             }
 
             if (m_GoldText != null)
             {
                 m_GoldText.text = $"{m_CurrentGold} G";
+                m_GoldText.gameObject.SetActive(mode == ItemConfirmationMode.Purchase);
             }
 
             if (m_PriceText != null)
             {
-                m_PriceText.text = $"{itemData.PriceGold} G";
+                m_PriceText.text = mode == ItemConfirmationMode.Purchase
+                    ? $"{itemData.PriceGold} G"
+                    : "사용";
             }
 
-            if (m_CurrentGold < itemData.PriceGold)
+            if (mode == ItemConfirmationMode.Purchase &&
+                m_CurrentGold < itemData.PriceGold)
             {
                 ShowInsufficientGold();
             }

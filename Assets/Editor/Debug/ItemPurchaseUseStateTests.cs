@@ -214,7 +214,7 @@ public sealed class ItemPurchaseUseStateTests
     }
 
     [UnityTest]
-    public IEnumerator Coordinator_TargetRequestRequiresConfirmedPopup()
+    public IEnumerator Coordinator_TargetPurchaseCompletesWithoutEnteringTargeting()
     {
         CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
         SetDefaultItemCount(itemData.ItemType, 0);
@@ -241,40 +241,12 @@ public sealed class ItemPurchaseUseStateTests
             popup.Complete(ItemPurchaseDecision.Confirmed);
             yield return null;
 
-            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.AwaitingTarget));
-
-            targetingCancellationSource.Cancel();
-            yield return null;
-
             Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
-
-            coordinator.RequestTargetedPreviewAsync(itemData, popup, CancellationToken.None);
-            yield return null;
-            popup.Complete(ItemPurchaseDecision.Confirmed);
-            yield return null;
-
-            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
-            coordinator.CancelActiveRequest();
-            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
-
-            coordinator.RequestTargetedPreviewAsync(itemData, popup, CancellationToken.None);
-            yield return null;
-            popup.Complete(ItemPurchaseDecision.Confirmed);
-            yield return null;
-
-            long version = coordinator.ActiveRequestVersion;
-            Assert.That(coordinator.TryCompleteTargetPreview(
-                version,
-                new FakeExecutor(true),
-                out ItemPurchaseUseResult result,
-                out _), Is.True);
-            Assert.That(result, Is.EqualTo(ItemPurchaseUseResult.PreviewSucceeded));
-            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.PurchaseSucceeded));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
             Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
-            Assert.That(playerState.Gold, Is.EqualTo(50));
+            Assert.That(targetingCancellationSource.IsCancellationRequested, Is.False);
         }
         finally
         {
@@ -283,7 +255,7 @@ public sealed class ItemPurchaseUseStateTests
     }
 
     [UnityTest]
-    public IEnumerator Coordinator_OwnedItemUsesWithoutOpeningPurchasePopup()
+    public IEnumerator Coordinator_OwnedItemRequiresUseConfirmation()
     {
         CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
         GameObject saveManagerObject = CreateItemSaveManager(itemData.ItemType, 100, 1);
@@ -293,17 +265,27 @@ public sealed class ItemPurchaseUseStateTests
                 context,
                 playerState,
                 new ItemPurchaseUseService(context, playerState));
+            var popup = new PendingConfirmationView();
+            var executor = new FakeExecutor(true);
 
             coordinator.RequestImmediateUseAsync(
                 itemData,
-                null,
-                new FakeExecutor(true),
+                popup,
+                executor,
                 CancellationToken.None);
             yield return null;
 
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.UseSucceeded));
-            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.Zero);
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingUse));
+            Assert.That(popup.ObservedMode, Is.EqualTo(ItemConfirmationMode.Use));
+            Assert.That(executor.CallCount, Is.Zero);
+
+            popup.Complete(ItemPurchaseDecision.Cancelled);
+            yield return null;
+
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
             Assert.That(SaveManager.Instance.Gold, Is.EqualTo(100));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
         }
         finally
         {
@@ -313,7 +295,7 @@ public sealed class ItemPurchaseUseStateTests
     }
 
     [UnityTest]
-    public IEnumerator Coordinator_PurchasesThenUsesWhenItemIsNotOwned()
+    public IEnumerator Coordinator_PurchaseOnlyDoesNotExecuteItem()
     {
         CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
         GameObject saveManagerObject = CreateItemSaveManager(itemData.ItemType, 100, 0);
@@ -324,11 +306,12 @@ public sealed class ItemPurchaseUseStateTests
                 playerState,
                 new ItemPurchaseUseService(context, playerState));
             var popup = new PendingConfirmationView();
+            var executor = new FakeExecutor(true);
 
             coordinator.RequestImmediateUseAsync(
                 itemData,
                 popup,
-                new FakeExecutor(true),
+                executor,
                 CancellationToken.None);
             yield return null;
             Assert.That(popup.ObservedGold, Is.EqualTo(100));
@@ -336,10 +319,12 @@ public sealed class ItemPurchaseUseStateTests
             popup.Complete(ItemPurchaseDecision.Confirmed);
             yield return null;
 
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.UseSucceeded));
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.PurchaseSucceeded));
             Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
-            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.Zero);
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
             Assert.That(playerState.Gold, Is.EqualTo(50));
+            Assert.That(executor.CallCount, Is.Zero);
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
         }
         finally
         {
@@ -349,10 +334,10 @@ public sealed class ItemPurchaseUseStateTests
     }
 
     [UnityTest]
-    public IEnumerator Coordinator_PurchasedTargetedItemRemainsAfterCancellation()
+    public IEnumerator Coordinator_TargetedUseCancelKeepsOwnedItem()
     {
         CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
-        GameObject saveManagerObject = CreateItemSaveManager(itemData.ItemType, 100, 0);
+        GameObject saveManagerObject = CreateItemSaveManager(itemData.ItemType, 100, 2);
         try
         {
             var coordinator = new ItemPurchaseUseCoordinator(
@@ -368,8 +353,10 @@ public sealed class ItemPurchaseUseStateTests
 
             Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
             coordinator.CancelActiveRequest();
-            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
-            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(100));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(2));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
         }
         finally
         {
@@ -429,8 +416,8 @@ public sealed class ItemPurchaseUseStateTests
             popup.Complete(ItemPurchaseDecision.Confirmed);
             yield return null;
 
-            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.PreviewSucceeded));
-            Assert.That(executor.CallCount, Is.EqualTo(1));
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.PurchaseSucceeded));
+            Assert.That(executor.CallCount, Is.EqualTo(0));
             Assert.That(playerState.Gold, Is.EqualTo(50));
         }
         finally
@@ -944,6 +931,12 @@ public sealed class ItemPurchaseUseStateTests
 
         public int CallCount { get; private set; }
 
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            message = m_Result ? "preview available" : "preview unavailable";
+            return m_Result;
+        }
+
         public bool TryExecute(ItemData itemData, out string message)
         {
             CallCount++;
@@ -964,6 +957,12 @@ public sealed class ItemPurchaseUseStateTests
         public int CallCount { get; private set; }
         public int RollbackCount { get; private set; }
 
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            message = "use available";
+            return true;
+        }
+
         public bool TryExecute(ItemData itemData, out string message)
         {
             CallCount++;
@@ -983,11 +982,20 @@ public sealed class ItemPurchaseUseStateTests
         private bool m_IsCompleted;
 
         public int ObservedGold { get; private set; }
+        public int ObservedCount { get; private set; }
+        public ItemConfirmationMode ObservedMode { get; private set; }
         public ItemPurchaseDecision LastDecision { get; private set; } = ItemPurchaseDecision.Cancelled;
 
-        public Awaitable ShowAsync(ItemData itemData, int currentGold, CancellationToken token)
+        public Awaitable ShowAsync(
+            ItemData itemData,
+            ItemConfirmationMode mode,
+            int currentGold,
+            int ownedCount,
+            CancellationToken token)
         {
             ObservedGold = currentGold;
+            ObservedCount = ownedCount;
+            ObservedMode = mode;
             LastDecision = ItemPurchaseDecision.Cancelled;
             m_IsCompleted = false;
             m_Source = new AwaitableCompletionSource();

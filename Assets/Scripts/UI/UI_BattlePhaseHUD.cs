@@ -57,6 +57,9 @@ namespace InTheArena.UI
         [SerializeField] private Button m_ItemSlot3Button;
         [SerializeField] private Image m_ItemSlot3Icon;
         [SerializeField] private ItemData m_ItemSlot3Data;
+        private UI_ItemSlotPresenter m_ItemSlot1Presenter;
+        private UI_ItemSlotPresenter m_ItemSlot2Presenter;
+        private UI_ItemSlotPresenter m_ItemSlot3Presenter;
         [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
         [SerializeField] private Sprite m_CancelOverlaySprite;
         [SerializeField] private TMP_FontAsset m_DuplicateItemFeedbackFont;
@@ -73,7 +76,6 @@ namespace InTheArena.UI
         private StagePlayerState m_PlayerState;
 
         private ItemData m_ActiveTargetingItemData;
-        private RectTransform m_ActiveTargetingSlot;
         private Image m_ActiveTargetingCancelOverlay;
         private bool m_IsSubscribed;
         private CancellationTokenSource m_ItemUseLifetimeCancellation;
@@ -91,6 +93,7 @@ namespace InTheArena.UI
             EnsureCancelOverlays();
             EnsureDuplicateItemFeedback();
             ApplyItemIcons();
+            ResolveItemPresenters();
             SetBattleView(true);
             ResetDisplay();
         }
@@ -120,6 +123,7 @@ namespace InTheArena.UI
 
             Enable();
             ApplyItemIcons();
+            ResolveItemPresenters();
             SetBattleView(true);
             Refresh();
         }
@@ -270,6 +274,10 @@ namespace InTheArena.UI
                 coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
                 coordinator.ActiveRequestVersion != requestVersion)
             {
+                if (coordinator.LastResult == ItemPurchaseUseResult.PurchaseSucceeded)
+                {
+                    RefreshItemButtons();
+                }
                 return;
             }
 
@@ -287,8 +295,8 @@ namespace InTheArena.UI
 
             m_ActiveTargetingRequestVersion = requestVersion;
             m_ActiveTargetingItemData = itemData;
-            m_ActiveTargetingSlot = selectedSlot;
             m_ActiveTargetingCancelOverlay = cancelOverlay;
+            ResolvePresenter(itemData)?.SetState(ItemSlotVisualState.Casting);
         }
 
         private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
@@ -370,14 +378,15 @@ namespace InTheArena.UI
         {
             m_ActiveTargetingRequestVersion = -1;
             m_ActiveTargetingItemData = null;
-            m_ActiveTargetingSlot = null;
             m_ActiveTargetingCancelOverlay = null;
         }
 
         private void CancelTargetingRequest()
         {
             long requestVersion = m_ActiveTargetingRequestVersion;
+            ItemData itemData = m_ActiveTargetingItemData;
             m_CombatItemTargetingController?.AbortTargeting();
+            ResolvePresenter(itemData)?.SetState(ItemSlotVisualState.Normal);
             ClearTargetingBinding();
 
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
@@ -409,6 +418,7 @@ namespace InTheArena.UI
             }
 
             IItemPurchaseUseExecutor executor = CreateExecutor(itemData, worldPosition);
+            UI_ItemSlotPresenter presenter = ResolvePresenter(itemData);
             ClearTargetingBinding();
 
             bool success = coordinator.TryCompleteTargetUse(
@@ -420,7 +430,12 @@ namespace InTheArena.UI
             Debug.Log($"[UI_BattlePhaseHUD] {message}");
             if (success)
             {
+                presenter?.SetState(ItemSlotVisualState.Used);
                 RefreshItemButtons();
+            }
+            else
+            {
+                presenter?.SetState(ItemSlotVisualState.Normal);
             }
         }
 
@@ -528,14 +543,6 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (CanUseNewTargetingFlow(itemData) &&
-                m_RoundContext?.RoundItemUsage != null &&
-                m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType))
-            {
-                ShowDuplicateItemFeedback();
-                return;
-            }
-
             if (CanUseNewImmediateFlow(itemData))
             {
                 RequestImmediateItemUse(itemData);
@@ -589,7 +596,9 @@ namespace InTheArena.UI
                 new CombatTimeExtensionUseExecutor(m_CombatPhase),
                 m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
 
-            if (coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded)
+            if (coordinator.LastResult == ItemPurchaseUseResult.PurchaseSucceeded ||
+                coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded ||
+                coordinator.LastResult == ItemPurchaseUseResult.Failed)
             {
                 RefreshItemButtons();
             }
@@ -754,6 +763,8 @@ namespace InTheArena.UI
 
         private void RefreshItemButtons()
         {
+            ResolveItemPresenters();
+            RefreshItemPresenters();
             SetItemButtonState(m_ItemSlot1Button, m_ItemSlot1Data);
             SetItemButtonState(m_ItemSlot2Button, m_ItemSlot2Data);
             SetItemButtonState(m_ItemSlot3Button, m_ItemSlot3Data);
@@ -768,23 +779,81 @@ namespace InTheArena.UI
 
             if (CanUseNewTargetingFlow(itemData))
             {
-                bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
-                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
-                bool canAfford = CanUseOrPurchaseItem(itemData);
-                button.interactable = CanAcceptCombatInput() && (alreadyUsed || canAfford);
+                button.interactable = CanAcceptCombatInput();
                 return;
             }
 
             if (CanUseNewImmediateFlow(itemData))
             {
-                bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
-                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
-                bool canAfford = CanUseOrPurchaseItem(itemData);
-                button.interactable = CanAcceptCombatInput() && !alreadyUsed && canAfford;
+                button.interactable = CanAcceptCombatInput();
                 return;
             }
 
             button.interactable = false;
+        }
+
+        private void ResolveItemPresenters()
+        {
+            m_ItemSlot1Presenter = ResolvePresenter(m_ItemSlot1Button, m_ItemSlot1Presenter);
+            m_ItemSlot2Presenter = ResolvePresenter(m_ItemSlot2Button, m_ItemSlot2Presenter);
+            m_ItemSlot3Presenter = ResolvePresenter(m_ItemSlot3Button, m_ItemSlot3Presenter);
+        }
+
+        private static UI_ItemSlotPresenter ResolvePresenter(
+            Button button,
+            UI_ItemSlotPresenter presenter)
+        {
+            if (presenter != null || button == null)
+            {
+                return presenter;
+            }
+
+            return button.GetComponent<UI_ItemSlotPresenter>() ??
+                button.gameObject.AddComponent<UI_ItemSlotPresenter>();
+        }
+
+        private UI_ItemSlotPresenter ResolvePresenter(ItemData itemData)
+        {
+            if (itemData == null)
+            {
+                return null;
+            }
+
+            if (ReferenceEquals(itemData, m_ItemSlot1Data)) return m_ItemSlot1Presenter;
+            if (ReferenceEquals(itemData, m_ItemSlot2Data)) return m_ItemSlot2Presenter;
+            if (ReferenceEquals(itemData, m_ItemSlot3Data)) return m_ItemSlot3Presenter;
+            return null;
+        }
+
+        private void RefreshItemPresenters()
+        {
+            RefreshPresenter(m_ItemSlot1Presenter, m_ItemSlot1Data);
+            RefreshPresenter(m_ItemSlot2Presenter, m_ItemSlot2Data);
+            RefreshPresenter(m_ItemSlot3Presenter, m_ItemSlot3Data);
+        }
+
+        private void RefreshPresenter(
+            UI_ItemSlotPresenter presenter,
+            ItemData itemData)
+        {
+            if (presenter == null)
+            {
+                return;
+            }
+
+            presenter.Bind(itemData);
+            if (ReferenceEquals(itemData, m_ActiveTargetingItemData) &&
+                m_ActiveTargetingRequestVersion >= 0)
+            {
+                presenter.SetState(ItemSlotVisualState.Casting, false);
+                return;
+            }
+
+            bool used = m_RoundContext != null && itemData != null &&
+                m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
+            presenter.SetState(
+                used ? ItemSlotVisualState.Used : ItemSlotVisualState.Normal,
+                false);
         }
 
         private bool CanUseNewImmediateFlow(ItemData itemData)
@@ -801,14 +870,6 @@ namespace InTheArena.UI
                 popup.ParentRoot != null &&
                 m_RoundContext != null &&
                 m_PlayerState != null;
-        }
-
-        private static bool CanUseOrPurchaseItem(ItemData itemData)
-        {
-            SaveManager saveManager = SaveManager.Instance;
-            return itemData != null && saveManager != null &&
-                (saveManager.GetItemCount(itemData.ItemType) > 0 ||
-                 (itemData.PriceGold >= 0 && saveManager.Gold >= itemData.PriceGold));
         }
 
         private bool CanUseNewTargetingFlow(ItemData itemData)

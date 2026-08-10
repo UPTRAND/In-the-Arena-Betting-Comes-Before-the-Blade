@@ -15,6 +15,18 @@ namespace InTheArena.MainGame
             m_BettingPhase = bettingPhase;
         }
 
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            if (m_BettingPhase == null)
+            {
+                message = "베팅 페이즈가 없습니다.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
+        }
+
         public bool TryExecute(ItemData itemData, out string message)
         {
             message = string.Empty;
@@ -57,6 +69,18 @@ namespace InTheArena.MainGame
             m_CombatPhase = combatPhase;
         }
 
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            if (m_CombatPhase == null)
+            {
+                message = "전투 페이즈가 없습니다.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
+        }
+
         public bool TryExecute(ItemData itemData, out string message)
         {
             if (m_CombatPhase == null)
@@ -85,6 +109,19 @@ namespace InTheArena.MainGame
             m_TargetPosition = targetPosition;
         }
 
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded ||
+                !m_CombatPhase.CanCommitGroundTargetItem())
+            {
+                message = "유효하지 않은 전투 상태입니다.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
+        }
+
         public bool TryExecute(ItemData itemData, out string message)
         {
             if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded)
@@ -106,6 +143,19 @@ namespace InTheArena.MainGame
         {
             m_CombatPhase = combatPhase;
             m_TargetPosition = targetPosition;
+        }
+
+        public bool CanExecute(ItemData itemData, out string message)
+        {
+            if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded ||
+                !m_CombatPhase.CanCommitGroundTargetItem())
+            {
+                message = "유효하지 않은 전투 상태입니다.";
+                return false;
+            }
+
+            message = string.Empty;
+            return true;
         }
 
         public bool TryExecute(ItemData itemData, out string message)

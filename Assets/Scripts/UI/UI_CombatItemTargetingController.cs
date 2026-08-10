@@ -34,11 +34,9 @@ namespace InTheArena.UI
         private Image m_InputImage;
         private UI_CombatItemRangeIndicator m_RangeIndicator;
         private RectTransform m_DisplayRoot;
-        private RectTransform m_SelectedSlot;
         private Image m_CancelOverlay;
         private CombatPhase m_CombatPhase;
         private ItemType m_ItemType;
-        private Vector3 m_OriginalSlotScale = Vector3.one;
         private Vector3 m_LastWorldPosition;
         private bool m_HasWorldPosition;
         private bool m_IsPointerDown;
@@ -83,10 +81,7 @@ namespace InTheArena.UI
 
             m_ItemType = itemType;
             m_CombatPhase = combatPhase;
-            m_SelectedSlot = selectedSlot;
             m_CancelOverlay = cancelOverlay;
-            m_OriginalSlotScale = selectedSlot.localScale;
-            selectedSlot.localScale = m_OriginalSlotScale * 1.1f;
             SetCancelOverlay(false);
             m_PointerId = NoPointerId;
             m_IsPointerDown = false;
@@ -362,11 +357,6 @@ namespace InTheArena.UI
 
         private void RestoreSelectionVisuals()
         {
-            if (m_SelectedSlot != null)
-            {
-                m_SelectedSlot.localScale = m_OriginalSlotScale;
-            }
-
             SetCancelOverlay(false);
             if (m_RangeIndicator != null)
             {
@@ -378,7 +368,6 @@ namespace InTheArena.UI
         {
             State = CombatItemTargetingState.Idle;
             m_CombatPhase = null;
-            m_SelectedSlot = null;
             m_CancelOverlay = null;
             m_PointerId = NoPointerId;
             m_IsPointerDown = false;

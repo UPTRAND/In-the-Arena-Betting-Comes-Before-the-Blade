@@ -35,6 +35,9 @@ namespace InTheArena.UI
         private Image m_AdditionalBetIcon;
         private Image m_InsuranceIcon;
         private Image m_RerollIcon;
+        private UI_ItemSlotPresenter m_AdditionalBetPresenter;
+        private UI_ItemSlotPresenter m_InsurancePresenter;
+        private UI_ItemSlotPresenter m_RerollPresenter;
         private bool m_IsSubscribed;
         private CancellationTokenSource m_ItemUseLifetimeCancellation;
 
@@ -44,6 +47,7 @@ namespace InTheArena.UI
             m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             ResolveItemIcons();
             ApplyItemIcons();
+            ResolveItemPresenters();
             RefreshItemCounts();
             m_SettingsButton ??= FindDescendant(transform, "Settings_Button")?.GetComponent<Button>();
 
@@ -85,6 +89,7 @@ namespace InTheArena.UI
 
             ResolveItemIcons();
             ApplyItemIcons();
+            ResolveItemPresenters();
 
             if (!BIsOpened)
             {
@@ -154,19 +159,6 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (roundContext.RoundItemUsage.HasUsed(itemData.ItemType))
-            {
-                RefreshItemButtons();
-                return;
-            }
-
-            if (!CanUseOrPurchaseItem(itemData))
-            {
-                ShowFeedback("골드가 부족합니다.");
-                RefreshItemButtons();
-                return;
-            }
-
             m_BettingPhase = bettingPhase;
             m_RoundContext = roundContext;
             m_PlayerState = playerState;
@@ -188,9 +180,21 @@ namespace InTheArena.UI
 
             RefreshItemButtons();
             RefreshItemCounts();
-            ShowFeedback(coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded
-                ? "베팅 아이템을 사용했습니다."
-                : "베팅 아이템을 사용하지 못했습니다.");
+            switch (coordinator.LastResult)
+            {
+                case ItemPurchaseUseResult.PurchaseSucceeded:
+                    ShowFeedback("베팅 아이템을 구매했습니다.");
+                    break;
+                case ItemPurchaseUseResult.UseSucceeded:
+                    ShowFeedback("베팅 아이템을 사용했습니다.");
+                    break;
+                case ItemPurchaseUseResult.Rejected:
+                    ShowFeedback("이번 라운드에 이미 사용한 아이템입니다.");
+                    break;
+                case ItemPurchaseUseResult.Failed:
+                    ShowFeedback("베팅 아이템을 처리하지 못했습니다.");
+                    break;
+            }
         }
 
         private void ShowFeedback(string message)
@@ -315,15 +319,25 @@ namespace InTheArena.UI
             UpdateCountText(m_AdditionalBetData, m_AdditionalBetCountText);
             UpdateCountText(m_InsuranceData, m_InsuranceCountText);
             UpdateCountText(m_RerollData, m_RerollCountText);
+            RefreshPresenter(
+                m_AdditionalBetPresenter,
+                m_AdditionalBetData);
+            RefreshPresenter(
+                m_InsurancePresenter,
+                m_InsuranceData);
+            RefreshPresenter(
+                m_RerollPresenter,
+                m_RerollData);
         }
 
         private void UpdateCountText(ItemData itemData, TMP_Text countText)
         {
             if (itemData != null && countText != null)
             {
-                bool hasBeenUsed = m_RoundContext != null &&
-                                    m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
-                countText.text = hasBeenUsed ? "사용 완료" : string.Empty;
+                int count = SaveManager.Instance != null
+                    ? SaveManager.Instance.GetItemCount(itemData.ItemType)
+                    : 0;
+                countText.text = $"x{count}";
             }
         }
 
@@ -343,27 +357,59 @@ namespace InTheArena.UI
 
             StagePlayerState playerState = m_PlayerState ?? StageManager.Instance?.PlayerState;
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
-            bool canUse = itemData != null &&
+            bool canRequest = itemData != null &&
                           itemData.ItemType != ItemType.None &&
                           itemData.PriceGold >= 0 &&
                           m_BettingPhase != null &&
                           !m_BettingPhase.IsPhaseCompleted &&
-                          m_RoundContext != null &&
-                          playerState != null &&
-                          coordinator != null &&
-                          coordinator.State == ItemPurchaseUseState.Idle &&
-                          !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
-                          CanUseOrPurchaseItem(itemData);
+                           m_RoundContext != null &&
+                           playerState != null &&
+                           coordinator != null &&
+                           coordinator.State == ItemPurchaseUseState.Idle;
 
-            button.interactable = canUse;
+            button.interactable = canRequest;
         }
 
-        private static bool CanUseOrPurchaseItem(ItemData itemData)
+        private void ResolveItemPresenters()
         {
-            SaveManager saveManager = SaveManager.Instance;
-            return itemData != null && saveManager != null &&
-                (saveManager.GetItemCount(itemData.ItemType) > 0 ||
-                 (itemData.PriceGold >= 0 && saveManager.Gold >= itemData.PriceGold));
+            m_AdditionalBetPresenter = ResolvePresenter(
+                m_AdditionalBetButton,
+                m_AdditionalBetPresenter);
+            m_InsurancePresenter = ResolvePresenter(
+                m_InsuranceButton,
+                m_InsurancePresenter);
+            m_RerollPresenter = ResolvePresenter(
+                m_RerollButton,
+                m_RerollPresenter);
+        }
+
+        private static UI_ItemSlotPresenter ResolvePresenter(
+            Button button,
+            UI_ItemSlotPresenter presenter)
+        {
+            if (presenter != null || button == null)
+            {
+                return presenter;
+            }
+
+            return button.GetComponent<UI_ItemSlotPresenter>() ??
+                button.gameObject.AddComponent<UI_ItemSlotPresenter>();
+        }
+
+        private void RefreshPresenter(
+            UI_ItemSlotPresenter presenter,
+            ItemData itemData)
+        {
+            if (presenter == null)
+            {
+                return;
+            }
+
+            presenter.Bind(itemData);
+            bool used = m_RoundContext != null && itemData != null &&
+                m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
+            presenter.SetState(
+                used ? ItemSlotVisualState.Used : ItemSlotVisualState.Normal);
         }
 
         private void ResolveItemIcons()
