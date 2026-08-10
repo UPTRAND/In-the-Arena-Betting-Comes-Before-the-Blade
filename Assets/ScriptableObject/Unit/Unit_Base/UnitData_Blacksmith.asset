@@ -18,7 +18,7 @@ MonoBehaviour:
   m_AttackType: 0
   m_BasicAttackData: {fileID: 11400000, guid: bca93f8deeed419f97606b7b2b72045c, type: 2}
   m_BaseStat:
-    maxHp: 180
+    maxHp: 120
     attackPower: 7
     defense: 8
     attackSpeed: 0.45

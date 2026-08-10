@@ -39,7 +39,7 @@ MonoBehaviour:
     - rid: 920000000000000002
       type: {class: HealSkillEffect, ns: InTheArena.Unit, asm: Assembly-CSharp}
       data:
-        m_BaseHeal: 45
+        m_BaseHeal: 25
         m_AttackPowerRatio: 0
         m_MaxHealthRatio: 0
         m_HealVfxPrefab: {fileID: 5879443292268764709, guid: 690be56a7ce75554dbc7a58c528018a0, type: 3}
