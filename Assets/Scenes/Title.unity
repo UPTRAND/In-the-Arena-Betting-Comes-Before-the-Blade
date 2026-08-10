@@ -748,7 +748,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveManager
   m_DefaultClearedStageNumber: 0
-  m_DefaultGold: 0
+  m_DefaultGold: 1000
   m_DefaultHearts: 5
   m_DefaultStars: 0
   m_InitializationOrder: 5
