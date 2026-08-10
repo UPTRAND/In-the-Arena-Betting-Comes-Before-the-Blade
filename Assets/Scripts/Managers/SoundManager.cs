@@ -3,10 +3,32 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
+
+internal static class SfxIds
+{
+    public const string BettingWin = "betting_win";
+    public const string BettingFail = "betting_fail";
+    public const string ButtonPositive = "button_positive";
+    public const string ButtonNegative = "button_negative";
+    public const string UnitDeath = "unit_death";
+    public const string UnitHit = "unit_hit";
+    public const string UnitSkill = "unit_skill";
+}
 
 [DisallowMultipleComponent]
 public sealed class SoundManager : Manager_Base
 {
+    [System.Serializable]
+    private sealed class SceneBgmBinding
+    {
+        [SerializeField] private string m_SceneName;
+        [SerializeField] private string m_BgmId;
+
+        public string SceneName => m_SceneName;
+        public string BgmId => m_BgmId;
+    }
+
     private const ushort SoundInitializationOrder = 10;
     private const float MinimumLinearVolume = 0.0001f;
     private const string MasterVolumeKey = "InTheArena.MasterVolume";
@@ -28,6 +50,10 @@ public sealed class SoundManager : Manager_Base
     [SerializeField] private string m_MasterVolumeParameter = "MasterVolume";
     [SerializeField] private string m_BgmVolumeParameter = "BGMVolume";
     [SerializeField] private string m_SfxVolumeParameter = "SFXVolume";
+
+    [Header("Scene BGM")]
+    [SerializeField] private List<SceneBgmBinding> m_SceneBgmBindings =
+        new List<SceneBgmBinding>();
 
     [Header("SFX Pool")]
     [SerializeField, Min(1)] private int m_SfxPoolSize = 24;
@@ -106,6 +132,8 @@ public sealed class SoundManager : Manager_Base
         ApplyVolume(m_MasterVolumeParameter, m_MasterVolume);
         ApplyVolume(m_BgmVolumeParameter, m_BgmVolume);
         ApplyVolume(m_SfxVolumeParameter, m_SfxVolume);
+        SceneManager.activeSceneChanged += OnActiveSceneChanged;
+        StartCoroutine(PlayCurrentSceneBgmAfterInitialization());
         return true;
     }
 
@@ -240,6 +268,7 @@ public sealed class SoundManager : Manager_Base
 
     public override void Release()
     {
+        SceneManager.activeSceneChanged -= OnActiveSceneChanged;
         StopBgmFade();
         foreach (Coroutine routine in m_SfxFadeRoutines.Values)
             if (routine != null) StopCoroutine(routine);
@@ -267,6 +296,26 @@ public sealed class SoundManager : Manager_Base
         if (groups.Length > 0) return groups[0];
         WarnOnce("group-" + groupName, $"AudioMixer group '{groupName}' was not found.");
         return null;
+    }
+
+    private IEnumerator PlayCurrentSceneBgmAfterInitialization()
+    {
+        yield return null;
+        PlaySceneBgm(SceneManager.GetActiveScene().name);
+    }
+
+    private void OnActiveSceneChanged(Scene previous, Scene next)
+        => PlaySceneBgm(next.name);
+
+    private void PlaySceneBgm(string sceneName)
+    {
+        for (int i = 0; i < m_SceneBgmBindings.Count; i++)
+        {
+            SceneBgmBinding binding = m_SceneBgmBindings[i];
+            if (binding == null || binding.SceneName != sceneName) continue;
+            PlayBgm(binding.BgmId);
+            return;
+        }
     }
 
     private AudioSource CreateSource(Transform parent, string sourceName, AudioMixerGroup group)

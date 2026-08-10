@@ -13,6 +13,14 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class RoundManager : MonoBehaviour
     {
+        private const string BettingBgmId = "betting_phase";
+        private static readonly string[] BattleBgmIds =
+        {
+            "battle_phase_1",
+            "battle_phase_2",
+            "battle_phase_3"
+        };
+
         private static RoundManager _instance;
 
         /// <summary>
@@ -138,6 +146,7 @@ namespace InTheArena.MainGame
 
                 // 2. Betting Phase
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
+                SoundManager.Instance?.PlayBgm(BettingBgmId);
                 StageBackgroundController.HideBattleBackgrounds();
                 m_ActivePhase = m_BettingPhase;
                 m_BettingPhase.InitializePhase(m_Context);
@@ -159,6 +168,10 @@ namespace InTheArena.MainGame
 
                 // 3. Combat Phase
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Combat Phase 시작");
+
+                SoundManager.Instance?.PlayRandomBgm(BattleBgmIds);
+                m_ActivePhase = m_CombatPhase;
+
                 m_CombatPhase.InitializePhase(m_Context);
 
                 try
