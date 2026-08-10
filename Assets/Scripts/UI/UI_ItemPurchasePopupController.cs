@@ -1,4 +1,4 @@
-#if UNITY_6000_0_OR_NEWER
+﻿#if UNITY_6000_0_OR_NEWER
 using System.Threading;
 using InTheArena.MainGame;
 using TMPro;
@@ -185,7 +185,7 @@ namespace InTheArena.UI
 
             if (m_SecondaryInfoText != null)
             {
-                m_SecondaryInfoText.text = "바로 구매할까요?";
+                m_SecondaryInfoText.text = "구매하시겠습니까?";
             }
 
             if (m_GoldText != null)

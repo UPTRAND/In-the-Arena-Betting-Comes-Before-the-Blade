@@ -160,7 +160,7 @@ namespace InTheArena.UI
                 return;
             }
 
-            if (playerState.Gold < itemData.PriceGold)
+            if (!CanUseOrPurchaseItem(itemData))
             {
                 ShowFeedback("골드가 부족합니다.");
                 RefreshItemButtons();
@@ -353,9 +353,17 @@ namespace InTheArena.UI
                           coordinator != null &&
                           coordinator.State == ItemPurchaseUseState.Idle &&
                           !m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType) &&
-                          playerState.Gold >= itemData.PriceGold;
+                          CanUseOrPurchaseItem(itemData);
 
             button.interactable = canUse;
+        }
+
+        private static bool CanUseOrPurchaseItem(ItemData itemData)
+        {
+            SaveManager saveManager = SaveManager.Instance;
+            return itemData != null && saveManager != null &&
+                (saveManager.GetItemCount(itemData.ItemType) > 0 ||
+                 (itemData.PriceGold >= 0 && saveManager.Gold >= itemData.PriceGold));
         }
 
         private void ResolveItemIcons()

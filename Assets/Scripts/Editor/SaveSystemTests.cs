@@ -518,6 +518,56 @@ namespace InTheArena.Tests.Editor
             UnityEngine.Object.DestroyImmediate(smGo);
         }
 
+        [Test]
+        public void TryPurchaseItem_SavesGoldAndItemCountTogether()
+        {
+            var managerObject = new GameObject("SaveManager");
+            var manager = managerObject.AddComponent<SaveManager>();
+            var state = new PlayerProgressState();
+            state.SetGold(100);
+            manager.InitializeForTests(new FakeSaveRepository(), new FakeClock(), state);
+
+            bool purchased = manager.TryPurchaseItem(ItemType.Meteor, 50, out string error);
+
+            Assert.IsTrue(purchased, error);
+            Assert.AreEqual(50, manager.Gold);
+            Assert.AreEqual(1, manager.GetItemCount(ItemType.Meteor));
+            UnityEngine.Object.DestroyImmediate(managerObject);
+        }
+
+        [Test]
+        public void TryPurchaseItem_InsufficientGoldLeavesStateUntouched()
+        {
+            var managerObject = new GameObject("SaveManager");
+            var manager = managerObject.AddComponent<SaveManager>();
+            var state = new PlayerProgressState();
+            state.SetGold(49);
+            manager.InitializeForTests(new FakeSaveRepository(), new FakeClock(), state);
+
+            Assert.IsFalse(manager.TryPurchaseItem(ItemType.Meteor, 50, out _));
+            Assert.AreEqual(49, manager.Gold);
+            Assert.AreEqual(0, manager.GetItemCount(ItemType.Meteor));
+            UnityEngine.Object.DestroyImmediate(managerObject);
+        }
+
+        [Test]
+        public void TryPurchaseItem_SaveFailureLeavesStateUntouched()
+        {
+            var managerObject = new GameObject("SaveManager");
+            var manager = managerObject.AddComponent<SaveManager>();
+            var state = new PlayerProgressState();
+            state.SetGold(100);
+            manager.InitializeForTests(
+                new FakeSaveRepository { FailNextSave = true },
+                new FakeClock(),
+                state);
+
+            Assert.IsFalse(manager.TryPurchaseItem(ItemType.Meteor, 50, out _));
+            Assert.AreEqual(100, manager.Gold);
+            Assert.AreEqual(0, manager.GetItemCount(ItemType.Meteor));
+            UnityEngine.Object.DestroyImmediate(managerObject);
+        }
+
         // ==========================================
         // 5. 저장소 테스트
         // ==========================================

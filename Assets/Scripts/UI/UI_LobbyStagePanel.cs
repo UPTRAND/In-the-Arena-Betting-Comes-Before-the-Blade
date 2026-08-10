@@ -17,6 +17,8 @@ namespace InTheArena.UI
         [SerializeField] private TMP_Text m_StartButtonLabel;
         [SerializeField] private Image m_BackgroundImage;
         [SerializeField] private List<StageData> m_StageDatas = new List<StageData>();
+        [SerializeField] private Button m_ChestButton;
+        [SerializeField] private List<ItemData> m_ChestItems = new List<ItemData>();
 
         private StageData m_Target;
 
@@ -24,6 +26,8 @@ namespace InTheArena.UI
         {
             base.Awake();
             m_StartButton.onClick.AddListener(StartStage);
+            m_ChestButton ??= FindDescendant(transform, "Chest_Button")?.GetComponent<Button>();
+            if (m_ChestButton != null) m_ChestButton.onClick.AddListener(OpenChest);
         }
 
         public override void OnOpened()
@@ -63,6 +67,7 @@ namespace InTheArena.UI
             }
 
             RefreshBackground();
+            RefreshChestButton();
         }
 
         private int GetNextStageNumber()
@@ -132,6 +137,46 @@ namespace InTheArena.UI
             }
 
             _ = StageManager.Instance.StartStageAsync(m_Target);
+        }
+
+        private void OpenChest()
+        {
+            SaveManager save = SaveManager.Instance;
+            if (save == null || save.Availability != SaveAvailability.Ready)
+            {
+                Debug.LogWarning("[Lobby] Chest is unavailable because save data is not ready.");
+                return;
+            }
+            if (save.Stars < 3) { Debug.LogWarning("[Lobby] Chest requires 3 stars."); return; }
+            if (!ChestDrawService.TryDraw(m_ChestItems, new UnityChestRandom(), out ChestReward reward)) { Debug.LogError("[Lobby] Chest item list is invalid."); return; }
+            if (!save.TryOpenChest(reward.Item.ItemType, reward.Amount, out string error))
+            {
+                Debug.LogWarning($"[Lobby] Chest save failed: {error}");
+                return;
+            }
+            UI_ChestOpeningPopup prefab = Resources.Load<UI_ChestOpeningPopup>("UI/UI_ChestOpeningPopup");
+            if (prefab == null) { Debug.LogError("[Lobby] Chest popup prefab could not be loaded."); return; }
+            UI_ChestOpeningPopup popup = Instantiate(prefab, GetComponentInParent<UI_Root>()?.transform);
+            popup.Show(reward);
+        }
+
+        private void RefreshChestButton()
+        {
+            if (m_ChestButton == null) return;
+            SaveManager save = SaveManager.Instance;
+            m_ChestButton.interactable = save != null && save.Availability == SaveAvailability.Ready && save.Stars >= 3;
+        }
+
+        private static Transform FindDescendant(Transform root, string objectName)
+        {
+            if (root == null) return null;
+            if (root.name == objectName) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform result = FindDescendant(root.GetChild(i), objectName);
+                if (result != null) return result;
+            }
+            return null;
         }
     }
 }

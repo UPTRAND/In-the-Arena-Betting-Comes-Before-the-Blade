@@ -582,11 +582,7 @@ namespace InTheArena.MainGame
             if (m_StageCts != null && m_StageCts.IsCancellationRequested)
                 return;
 
-            var op = SceneManager.LoadSceneAsync(m_LobbySceneName, LoadSceneMode.Single);
-            if (op != null)
-            {
-                await op.ToAwaitable();
-            }
+            await AsyncSceneLoader.LoadSceneAsync(m_LobbySceneName);
         }
 
         private static void QueueLobbyRewardPresentation()

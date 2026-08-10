@@ -11,5 +11,13 @@ namespace InTheArena.Save
         public int stars;
         public int selectedStageDifficulty;
         public long lastHeartRecoveryUtcTicks;
+        public ItemCountPayload[] itemCounts;
+    }
+
+    [Serializable]
+    public sealed class ItemCountPayload
+    {
+        public int itemType;
+        public int count;
     }
 }

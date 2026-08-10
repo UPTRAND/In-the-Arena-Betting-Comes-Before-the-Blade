@@ -939,25 +939,9 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 779652196}
     m_Modifications:
-    - target: {fileID: 902762678139049280, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
-      propertyPath: m_Color.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 902762678139049280, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
-      propertyPath: m_Color.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 902762678139049280, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
-      propertyPath: m_Color.r
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 951457725372098844, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
       propertyPath: m_Name
       value: UI_LobbyStagePanel
-      objectReference: {fileID: 0}
-    - target: {fileID: 951457725372098844, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2129571287915696477, guid: 4d2957a7b36961a48878a13a2521537a, type: 3}
       propertyPath: m_Pivot.x

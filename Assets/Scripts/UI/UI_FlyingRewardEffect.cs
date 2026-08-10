@@ -15,9 +15,11 @@ namespace InTheArena.UI
         private const float ScatterDuration = 0.18f;
         private const float FlightDuration = 0.55f;
         private const float LaunchInterval = 0.06f;
-        private const float ScatterRadius = 60f;
+        private const float ScatterHorizontalRange = 360f;
+        private const float ScatterVerticalMin = 190f;
+        private const float ScatterVerticalMax = 320f;
         private const float AppearDuration = 0.25f;
-        private const float FlightStartDelay = 2f;
+        private const float FlightStartDelay = 0.25f;
         private const string PreviewPrefabPath = "UI/UI_FlyingRewardPreview";
         private static readonly List<GameObject> ActiveIcons = new List<GameObject>(16);
         private static readonly Dictionary<RectTransform, TargetPulse> ActiveTargetPulses = new Dictionary<RectTransform, TargetPulse>(4);
@@ -147,7 +149,10 @@ namespace InTheArena.UI
             group.alpha = 0f;
             ActiveIcons.Add(root);
 
-            Vector2 scatter = start + UnityEngine.Random.insideUnitCircle * ScatterRadius;
+            float verticalDirection = UnityEngine.Random.value < 0.5f ? -1f : 1f;
+            Vector2 scatter = start + new Vector2(
+                UnityEngine.Random.Range(-ScatterHorizontalRange, ScatterHorizontalRange),
+                verticalDirection * UnityEngine.Random.Range(ScatterVerticalMin, ScatterVerticalMax));
             Vector2 control = Vector2.Lerp(scatter, end, 0.45f) + UnityEngine.Random.insideUnitCircle * 45f;
             Sequence sequence = DOTween.Sequence().SetTarget(root).SetUpdate(true);
             sequence.Append(group.DOFade(1f, AppearDuration));

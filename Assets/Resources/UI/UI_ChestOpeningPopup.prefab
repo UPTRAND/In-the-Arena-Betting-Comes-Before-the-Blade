@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &784923156
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 784923157}
+  - component: {fileID: 784923158}
+  m_Layer: 5
+  m_Name: UI_ChestOpeningPopup
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!224 &784923157
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 784923156}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &784923158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 784923156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cb2c909c4164d998a0e7e1b8ac1b008, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.UI_ChestOpeningPopup
+  m_ChestSprites:
+  - {fileID: -1629364339, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  - {fileID: 1301280962, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  - {fileID: 486665617, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  - {fileID: 1284718252, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  - {fileID: -1172435634, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  - {fileID: -516596220, guid: c42379e609bf81645a2bcf4d6a23c0db, type: 3}
+  m_ResultFont: {fileID: 11400000, guid: 1fadbbd329bde0443aaaf0ca6d833e1d, type: 2}

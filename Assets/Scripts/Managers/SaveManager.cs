@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using InTheArena.Save;
+using InTheArena.MainGame;
 
 public enum HeartRefreshResult
 {
@@ -46,6 +47,7 @@ public class SaveManager : Manager_Base
     public int Hearts => m_State?.Hearts ?? 0;
     public int Stars => m_State?.Stars ?? 0;
     public int ClearedStageNumber => m_State?.ClearedStageNumber ?? 0;
+    public int GetItemCount(ItemType itemType) => m_State?.GetItemCount(itemType) ?? 0;
 
     private bool m_IsSaving = false;
 
@@ -220,6 +222,68 @@ public class SaveManager : Manager_Base
             return true;
         }
         return false;
+    }
+
+    public bool TryOpenChest(ItemType itemType, int amount, out string error)
+    {
+        error = null;
+        if (m_IsReadOnly || m_State == null || Availability != SaveAvailability.Ready || itemType == ItemType.None || amount <= 0)
+        {
+            error = "Save data or reward is unavailable.";
+            return false;
+        }
+        const int chestCost = 3;
+        if (m_State.Stars < chestCost)
+        {
+            error = "Not enough stars.";
+            return false;
+        }
+        PlayerProgressState copy = m_State.DeepClone();
+        copy.SetStars(copy.Stars - chestCost);
+        copy.SetItemCount(itemType, copy.GetItemCount(itemType) + amount);
+        if (!TrySave(copy, out error)) return false;
+        m_State = copy;
+        return true;
+    }
+
+    public bool TrySpendItem(ItemType itemType, out string error)
+    {
+        error = null;
+        if (m_IsReadOnly || m_State == null || Availability != SaveAvailability.Ready || m_State.GetItemCount(itemType) <= 0)
+        {
+            error = "Item is unavailable.";
+            return false;
+        }
+        PlayerProgressState copy = m_State.DeepClone();
+        copy.SetItemCount(itemType, copy.GetItemCount(itemType) - 1);
+        if (!TrySave(copy, out error)) return false;
+        m_State = copy;
+        return true;
+    }
+
+    public bool TryPurchaseItem(ItemType itemType, int priceGold, out string error)
+    {
+        error = null;
+        if (m_IsReadOnly || m_State == null || Availability != SaveAvailability.Ready ||
+            itemType == ItemType.None || priceGold < 0)
+        {
+            error = "Item purchase is unavailable.";
+            return false;
+        }
+
+        if (m_State.Gold < priceGold)
+        {
+            error = "Not enough gold.";
+            return false;
+        }
+
+        PlayerProgressState copy = m_State.DeepClone();
+        copy.SetGold(copy.Gold - priceGold);
+        copy.SetItemCount(itemType, copy.GetItemCount(itemType) + 1);
+        if (!TrySave(copy, out error)) return false;
+
+        m_State = copy;
+        return true;
     }
 
 

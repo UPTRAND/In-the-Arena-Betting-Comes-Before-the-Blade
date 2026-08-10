@@ -33,8 +33,20 @@ namespace InTheArena.UI
             }
         }
 
-        private void Start()
+        private async void Start()
         {
+            // AsyncSceneLoader clears its transition tweens after the target scene is active.
+            // Wait until that cleanup has completed so this reward sequence cannot be killed midway.
+            while (InTheArena.Util.LoadingProgressService.Instance.IsLoading)
+            {
+                await Awaitable.NextFrameAsync();
+            }
+
+            if (this == null)
+            {
+                return;
+            }
+
             TryPlayPendingStageClearRewards();
         }
 

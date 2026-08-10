@@ -770,9 +770,7 @@ namespace InTheArena.UI
             {
                 bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
                     m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
-                bool canAfford = itemData.PriceGold >= 0 &&
-                    m_PlayerState != null &&
-                    m_PlayerState.Gold >= itemData.PriceGold;
+                bool canAfford = CanUseOrPurchaseItem(itemData);
                 button.interactable = CanAcceptCombatInput() && (alreadyUsed || canAfford);
                 return;
             }
@@ -781,9 +779,7 @@ namespace InTheArena.UI
             {
                 bool alreadyUsed = m_RoundContext?.RoundItemUsage != null &&
                     m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType);
-                bool canAfford = itemData.PriceGold >= 0 &&
-                    m_PlayerState != null &&
-                    m_PlayerState.Gold >= itemData.PriceGold;
+                bool canAfford = CanUseOrPurchaseItem(itemData);
                 button.interactable = CanAcceptCombatInput() && !alreadyUsed && canAfford;
                 return;
             }
@@ -805,6 +801,14 @@ namespace InTheArena.UI
                 popup.ParentRoot != null &&
                 m_RoundContext != null &&
                 m_PlayerState != null;
+        }
+
+        private static bool CanUseOrPurchaseItem(ItemData itemData)
+        {
+            SaveManager saveManager = SaveManager.Instance;
+            return itemData != null && saveManager != null &&
+                (saveManager.GetItemCount(itemData.ItemType) > 0 ||
+                 (itemData.PriceGold >= 0 && saveManager.Gold >= itemData.PriceGold));
         }
 
         private bool CanUseNewTargetingFlow(ItemData itemData)

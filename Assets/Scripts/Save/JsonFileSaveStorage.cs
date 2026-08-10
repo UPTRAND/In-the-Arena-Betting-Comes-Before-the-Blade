@@ -397,7 +397,9 @@ namespace InTheArena.Save
         {
             string payloadJson = env.schemaVersion < 3
                 ? JsonUtility.ToJson(LegacyChecksumPayload.From(env.payload))
-                : JsonUtility.ToJson(env.payload);
+                : env.schemaVersion < 4
+                    ? JsonUtility.ToJson(PreChestChecksumPayload.From(env.payload))
+                    : JsonUtility.ToJson(env.payload);
             string raw = $"{env.schemaVersion}_{env.revision}_{env.savedAtUtcTicks}_{payloadJson}";
 
             using (var sha256 = System.Security.Cryptography.SHA256.Create())
@@ -429,6 +431,31 @@ namespace InTheArena.Save
                     gold = payload.gold,
                     hearts = payload.hearts,
                     stars = payload.stars,
+                    lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks
+                };
+            }
+        }
+
+        [Serializable]
+        private sealed class PreChestChecksumPayload
+        {
+            public int clearedStageNumber;
+            public int gold;
+            public int hearts;
+            public int stars;
+            public int selectedStageDifficulty;
+            public long lastHeartRecoveryUtcTicks;
+
+            public static PreChestChecksumPayload From(PlayerSavePayload payload)
+            {
+                if (payload == null) return new PreChestChecksumPayload();
+                return new PreChestChecksumPayload
+                {
+                    clearedStageNumber = payload.clearedStageNumber,
+                    gold = payload.gold,
+                    hearts = payload.hearts,
+                    stars = payload.stars,
+                    selectedStageDifficulty = payload.selectedStageDifficulty,
                     lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks
                 };
             }

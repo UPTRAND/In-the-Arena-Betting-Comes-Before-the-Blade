@@ -66,6 +66,7 @@ namespace InTheArena.MainGame
         private bool m_HasActiveRequestCancellationRegistration;
         private int m_ObservedGold;
         private int m_ObservedRound;
+        private bool m_RequiresPurchase;
         private long m_RequestVersion;
         private long m_ActiveRequestVersion;
         private bool m_IsDisposed;
@@ -98,7 +99,9 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (itemData == null || itemData.ItemType == ItemType.None || m_Context.CurrentRound <= 0)
+            SaveManager saveManager = SaveManager.Instance;
+            if (itemData == null || itemData.ItemType == ItemType.None || m_Context.CurrentRound <= 0 ||
+                saveManager == null)
             {
                 return false;
             }
@@ -107,8 +110,9 @@ namespace InTheArena.MainGame
             m_ActiveRequestVersion = m_RequestVersion;
             m_ActiveItem = itemData;
             m_Mode = mode;
-            m_ObservedGold = m_PlayerState.Gold;
+            m_ObservedGold = saveManager.Gold;
             m_ObservedRound = m_Context.CurrentRound;
+            m_RequiresPurchase = saveManager.GetItemCount(itemData.ItemType) <= 0;
             m_State = ItemPurchaseUseState.ConfirmingPurchase;
             requestVersion = m_ActiveRequestVersion;
             return true;
@@ -122,12 +126,17 @@ namespace InTheArena.MainGame
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
             {
                 return;
             }
 
-            m_ActivePopup = popup;
+            if (m_RequiresPurchase && popup == null)
+            {
+                FinishRequest(requestVersion);
+                return;
+            }
+
             m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             RegisterRequestCancellation(token);
 
@@ -138,26 +147,9 @@ namespace InTheArena.MainGame
 
             try
             {
-                await popup.ShowAsync(
-                    itemData,
-                    m_ObservedGold,
-                    m_ActiveCancellationSource.Token);
-
-                ItemPurchaseDecision decision = popup.LastDecision;
-
-                if (!IsActiveRequest(requestVersion))
+                if (!await TryPurchaseIfNeededAsync(itemData, popup, requestVersion))
                 {
                     FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
-                    return;
-                }
-
-                m_ActivePopup = null;
-
-                if (decision != ItemPurchaseDecision.Confirmed)
-                {
-                    FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
                     return;
                 }
 
@@ -197,12 +189,17 @@ namespace InTheArena.MainGame
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
             {
                 return;
             }
 
-            m_ActivePopup = popup;
+            if (m_RequiresPurchase && popup == null)
+            {
+                FinishRequest(requestVersion);
+                return;
+            }
+
             m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             RegisterRequestCancellation(token);
 
@@ -213,26 +210,9 @@ namespace InTheArena.MainGame
 
             try
             {
-                await popup.ShowAsync(
-                    itemData,
-                    m_ObservedGold,
-                    m_ActiveCancellationSource.Token);
-
-                ItemPurchaseDecision decision = popup.LastDecision;
-
-                if (!IsActiveRequest(requestVersion))
+                if (!await TryPurchaseIfNeededAsync(itemData, popup, requestVersion))
                 {
                     FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
-                    return;
-                }
-
-                m_ActivePopup = null;
-
-                if (decision != ItemPurchaseDecision.Confirmed)
-                {
-                    FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
                     return;
                 }
 
@@ -268,12 +248,17 @@ namespace InTheArena.MainGame
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
             {
                 return;
             }
 
-            m_ActivePopup = popup;
+            if (m_RequiresPurchase && popup == null)
+            {
+                FinishRequest(requestVersion);
+                return;
+            }
+
             m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             RegisterRequestCancellation(token);
 
@@ -284,26 +269,9 @@ namespace InTheArena.MainGame
 
             try
             {
-                await popup.ShowAsync(
-                    itemData,
-                    m_ObservedGold,
-                    m_ActiveCancellationSource.Token);
-
-                ItemPurchaseDecision decision = popup.LastDecision;
-
-                if (!IsActiveRequest(requestVersion))
+                if (!await TryPurchaseIfNeededAsync(itemData, popup, requestVersion))
                 {
                     FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
-                    return;
-                }
-
-                m_ActivePopup = null;
-
-                if (decision != ItemPurchaseDecision.Confirmed)
-                {
-                    FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
                     return;
                 }
 
@@ -329,12 +297,17 @@ namespace InTheArena.MainGame
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (popup == null || !TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
             {
                 return -1;
             }
 
-            m_ActivePopup = popup;
+            if (m_RequiresPurchase && popup == null)
+            {
+                FinishRequest(requestVersion);
+                return -1;
+            }
+
             m_ActiveCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(token);
             RegisterRequestCancellation(token);
 
@@ -345,26 +318,9 @@ namespace InTheArena.MainGame
 
             try
             {
-                await popup.ShowAsync(
-                    itemData,
-                    m_ObservedGold,
-                    m_ActiveCancellationSource.Token);
-
-                ItemPurchaseDecision decision = popup.LastDecision;
-
-                if (!IsActiveRequest(requestVersion))
+                if (!await TryPurchaseIfNeededAsync(itemData, popup, requestVersion))
                 {
                     FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
-                    return -1;
-                }
-
-                m_ActivePopup = null;
-
-                if (decision != ItemPurchaseDecision.Confirmed)
-                {
-                    FinishRequest(requestVersion);
-                    m_LastResult = ItemPurchaseUseResult.Cancelled;
                     return -1;
                 }
 
@@ -384,6 +340,49 @@ namespace InTheArena.MainGame
                 m_LastResult = ItemPurchaseUseResult.Failed;
                 return -1;
             }
+        }
+
+        private async Awaitable<bool> TryPurchaseIfNeededAsync(
+            ItemData itemData,
+            IItemPurchaseConfirmationView popup,
+            long requestVersion)
+        {
+            if (!m_RequiresPurchase)
+            {
+                return true;
+            }
+
+            m_ActivePopup = popup;
+            await popup.ShowAsync(
+                itemData,
+                m_ObservedGold,
+                m_ActiveCancellationSource.Token);
+
+            if (!IsActiveRequest(requestVersion))
+            {
+                m_LastResult = ItemPurchaseUseResult.Cancelled;
+                return false;
+            }
+
+            m_ActivePopup = null;
+            if (popup.LastDecision != ItemPurchaseDecision.Confirmed)
+            {
+                m_LastResult = ItemPurchaseUseResult.Cancelled;
+                return false;
+            }
+
+            SaveManager saveManager = SaveManager.Instance;
+            if (saveManager == null ||
+                !saveManager.TryPurchaseItem(itemData.ItemType, itemData.PriceGold, out _))
+            {
+                m_LastResult = ItemPurchaseUseResult.Failed;
+                return false;
+            }
+
+            m_PlayerState.Gold = saveManager.Gold;
+            m_ObservedGold = saveManager.Gold;
+            m_RequiresPurchase = false;
+            return true;
         }
 
         private bool TryBeginTargetCommit(long requestVersion)
@@ -524,6 +523,7 @@ namespace InTheArena.MainGame
             m_ActiveItem = null;
             m_ObservedGold = 0;
             m_ObservedRound = 0;
+            m_RequiresPurchase = false;
             m_State = ItemPurchaseUseState.Idle;
         }
 

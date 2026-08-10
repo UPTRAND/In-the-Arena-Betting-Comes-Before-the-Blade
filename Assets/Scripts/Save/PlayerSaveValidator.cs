@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using InTheArena.MainGame;
 
 namespace InTheArena.Save
 {
@@ -14,7 +16,7 @@ namespace InTheArena.Save
 
     public static class PlayerSaveValidator
     {
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
 
         public static bool ValidateAndNormalize(PlayerSaveEnvelope envelope, IClock clock)
         {
@@ -37,6 +39,20 @@ namespace InTheArena.Save
             payload.hearts = Math.Clamp(payload.hearts, 0, 5); // MaxHearts는 보통 SaveManager에 있지만 임시로 5로 고정 또는 Repository에서 검증
             payload.stars = Math.Max(0, payload.stars);
             payload.selectedStageDifficulty = Math.Clamp(payload.selectedStageDifficulty, 0, 2);
+            var normalizedItems = new Dictionary<ItemType, int>();
+            if (payload.itemCounts != null)
+            {
+                foreach (ItemCountPayload entry in payload.itemCounts)
+                {
+                    if (entry == null || !Enum.IsDefined(typeof(ItemType), entry.itemType)) continue;
+                    ItemType type = (ItemType)entry.itemType;
+                    if (type == ItemType.None || entry.count <= 0) continue;
+                    normalizedItems[type] = Math.Max(0, normalizedItems.TryGetValue(type, out int oldCount) ? oldCount + entry.count : entry.count);
+                }
+            }
+            var itemEntries = new List<ItemCountPayload>();
+            foreach (var pair in normalizedItems) itemEntries.Add(new ItemCountPayload { itemType = (int)pair.Key, count = pair.Value });
+            payload.itemCounts = itemEntries.ToArray();
 
             long nowTicks = clock.UtcNow.Ticks;
             if (payload.lastHeartRecoveryUtcTicks > nowTicks)
