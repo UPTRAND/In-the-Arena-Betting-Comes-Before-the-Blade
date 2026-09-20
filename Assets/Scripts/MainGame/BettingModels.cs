@@ -1,9 +1,22 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace InTheArena.MainGame
 {
+    /// <summary>UI·배팅 모델·콘텐츠 검증이 공유하는 금액 규칙입니다.</summary>
+    public static class BettingRules
+    {
+        public const int WagerStepCall = 100;
+
+        /// <summary>최소 금액 이상이며 베팅 단위에 맞는 금액인지 검사합니다.</summary>
+        public static bool IsValidWager(int amount)
+        {
+            return amount >= WagerStepCall && amount % WagerStepCall == 0;
+        }
+    }
+
     public enum SpecialBetType
     {
         RemainingTime = 0,
@@ -94,18 +107,48 @@ namespace InTheArena.MainGame
             _ => 0
         };
 
-        public void SetWager(int wagerCall) => WagerCall = wagerCall;
-        public void SetFaction(FactionPrediction faction) => Faction = faction;
-        public void SetRemainingTime(RemainingTimePrediction? prediction) => RemainingTime = prediction;
-        public void SetOddEven(OddEvenPrediction? prediction) => OddEven = prediction;
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetWager(int wagerCall)
+        {
+            EnsureEditable();
+            WagerCall = wagerCall;
+        }
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetFaction(FactionPrediction faction)
+        {
+            EnsureEditable();
+            Faction = faction;
+        }
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetRemainingTime(RemainingTimePrediction? prediction)
+        {
+            EnsureEditable();
+            RemainingTime = prediction;
+        }
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetOddEven(OddEvenPrediction? prediction)
+        {
+            EnsureEditable();
+            OddEven = prediction;
+        }
 
-        public void SetFirstEliminatedColumn(FirstEliminatedColumnPrediction? prediction) =>
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetFirstEliminatedColumn(FirstEliminatedColumnPrediction? prediction)
+        {
+            EnsureEditable();
             FirstEliminatedColumn = prediction;
+        }
 
-        public void SetSurvivingRow(SurvivingRowPrediction? prediction) => SurvivingRow = prediction;
+        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+        public void SetSurvivingRow(SurvivingRowPrediction? prediction)
+        {
+            EnsureEditable();
+            SurvivingRow = prediction;
+        }
 
         public void ClearSpecialPredictions()
         {
+            EnsureEditable();
             RemainingTime = null;
             OddEven = null;
             FirstEliminatedColumn = null;
@@ -114,6 +157,7 @@ namespace InTheArena.MainGame
 
         public void SetItemUsages(bool hasAdditionalBet, bool hasInsurance)
         {
+            EnsureEditable();
             HasAdditionalBet = hasAdditionalBet;
             HasInsurance = hasInsurance;
         }
@@ -132,9 +176,9 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (WagerCall < 1 || WagerCall > availableCall)
+            if (!BettingRules.IsValidWager(WagerCall) || WagerCall > availableCall)
             {
-                error = $"베팅액은 1~{availableCall} Call 범위여야 합니다.";
+                error = $"베팅액은 {BettingRules.WagerStepCall} Call 단위이며 보유 Call 이하여야 합니다.";
                 return false;
             }
 
@@ -163,6 +207,15 @@ namespace InTheArena.MainGame
             return true;
         }
 
+        /// <summary>확정한 티켓은 정산 시까지 동일한 선택을 유지합니다.</summary>
+        private void EnsureEditable()
+        {
+            if (IsPlaced)
+            {
+                throw new InvalidOperationException("확정된 베팅 티켓은 수정할 수 없습니다.");
+            }
+        }
+
         internal void MarkPlaced() => IsPlaced = true;
         internal void MarkSettled() => IsSettled = true;
     }
@@ -173,7 +226,7 @@ namespace InTheArena.MainGame
         public float RemainingTime { get; }
         public int RedAliveCount { get; }
         public int BlueAliveCount { get; }
-        public HashSet<SurvivingRowPrediction> SurvivingRows { get; }
+        public IReadOnlyList<SurvivingRowPrediction> SurvivingRows { get; }
         public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; }
 
         public int TotalAliveCount => RedAliveCount + BlueAliveCount;
@@ -190,8 +243,8 @@ namespace InTheArena.MainGame
             RemainingTime = Math.Max(0f, remainingTime);
             RedAliveCount = Math.Max(0, redAliveCount);
             BlueAliveCount = Math.Max(0, blueAliveCount);
-            SurvivingRows = new HashSet<SurvivingRowPrediction>(
-                survivingRows ?? Array.Empty<SurvivingRowPrediction>());
+            var rows = new HashSet<SurvivingRowPrediction>(survivingRows ?? Array.Empty<SurvivingRowPrediction>());
+            SurvivingRows = new List<SurvivingRowPrediction>(rows).AsReadOnly();
             FirstEliminatedColumn = firstEliminatedColumn;
         }
     }
@@ -216,7 +269,7 @@ namespace InTheArena.MainGame
             WagerCall = wagerCall;
             Multiplier = multiplier;
             PayoutCall = payoutCall;
-            FailedCategories = failedCategories ?? Array.Empty<string>();
+            FailedCategories = new List<string>(failedCategories ?? Array.Empty<string>()).AsReadOnly();
         }
     }
 

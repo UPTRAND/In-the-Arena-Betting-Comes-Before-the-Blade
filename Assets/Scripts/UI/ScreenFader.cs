@@ -53,6 +53,13 @@ public class ScreenFader : MonoBehaviour
 
     public static ScreenFader Instance { get; private set; }
 
+    /// <summary>동적으로 생성된 오버레이 참조를 리플렉션 없이 연결합니다.</summary>
+    public void ConfigureOverlay(CanvasGroup canvasGroup, Image fadeImage)
+    {
+        m_CanvasGroup = canvasGroup;
+        m_FadeScreenImage = fadeImage;
+    }
+
     public EFadingState FadingState
     {
         get => m_FadingState;

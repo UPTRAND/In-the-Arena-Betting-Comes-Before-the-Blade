@@ -42,7 +42,7 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class BettingPhase : RoundPhaseBase
     {
-        private const int WagerStepCall = 100;
+        public const int WagerStepCall = BettingRules.WagerStepCall;
         private const int AdditionalBetBonusCall = 500;
         private const float DropdownOptionHeight = 65f;
         [Header("Round / Team Info")]

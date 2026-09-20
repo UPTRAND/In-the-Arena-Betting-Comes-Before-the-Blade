@@ -52,34 +52,47 @@ namespace InTheArena.MainGame
         }
 #pragma warning restore 1998
 
+        /// <summary>공개 전에 준비한 완료 객체로 조기 클릭과 취소를 모두 처리합니다.</summary>
         public override async Awaitable EnterPhaseAsync(CancellationToken token)
         {
             if (m_ResultUi != null)
             {
-                await Awaitable.WaitForSecondsAsync(m_ResultDelay);
+                await Awaitable.WaitForSecondsAsync(m_ResultDelay, token);
                 token.ThrowIfCancellationRequested();
 
-                m_ResultUi.PlayResultAnimation();
+                if (!IsPhaseCompleted)
+                {
+                    m_ResultUi.PlayResultAnimation();
+                }
             }
             else
             {
                 Debug.LogWarning("[ResultPhase] UI_ResultPhase 참조가 없어 자동으로 페이즈를 완료합니다.");
-                await Awaitable.WaitForSecondsAsync(m_ResultDelay);
+                await Awaitable.WaitForSecondsAsync(m_ResultDelay, token);
                 CompletePhase();
                 return;
             }
 
-            m_PhaseCompletionSource = new AwaitableCompletionSource();
-            using (token.Register(() => m_PhaseCompletionSource?.TrySetResult()))
+            AwaitableCompletionSource completion = m_PhaseCompletionSource;
+
+            // 현재 라운드의 대기만 깨워 취소를 관찰하게 합니다.
+            void WakeCancelledWait()
             {
-                await m_PhaseCompletionSource.Awaitable;
+                completion.TrySetResult();
+            }
+
+            using (token.Register(WakeCancelledWait))
+            {
+                await completion.Awaitable;
             }
             token.ThrowIfCancellationRequested();
         }
 
+        /// <summary>입력을 공개하기 전에 이번 결과의 완료 상태와 대기를 준비합니다.</summary>
         private void InitializeResult()
         {
             IsPhaseCompleted = false;
+            m_PhaseCompletionSource = new AwaitableCompletionSource();
             m_IsWin = Context.Settlement != null && Context.Settlement.IsWin;
             m_RewardCall = Context.Settlement != null ? Context.Settlement.PayoutCall : 0;
         }
@@ -140,6 +153,7 @@ namespace InTheArena.MainGame
 
         private void OnDestroy()
         {
+            m_PhaseCompletionSource?.TrySetResult();
             transform.DOKill();
             if (m_ResultUi != null && m_ResultUi.CanvasGroup != null)
                 m_ResultUi.CanvasGroup.DOKill();

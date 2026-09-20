@@ -69,46 +69,63 @@ namespace InTheArena.Unit
 
     public static class DecisionSystem
     {
+        /// <summary>스킬 자체의 사거리와 조건을 먼저 확인한 뒤 기본 공격 또는 이동을 선택합니다.</summary>
         public static UnitIntent Decide(Unit owner, Unit target, float attackRangeRatio)
         {
             if (owner == null || owner.IsDead || owner.IsStunned)
+            {
                 return new UnitIntent(UnitIntentType.Hold);
+            }
+
+            if (owner.IsAttacking || owner.IsCastingSkill)
+            {
+                return new UnitIntent(UnitIntentType.Hold, target);
+            }
+
+            var request = new SkillUseRequest(target);
+            if (owner.CanUseSkill(request))
+            {
+                return new UnitIntent(UnitIntentType.CastSkill, target);
+            }
+
             if (target == null || target.IsDead || !target.gameObject.activeInHierarchy)
+            {
                 return new UnitIntent(UnitIntentType.AcquireTarget);
+            }
 
             Vector3 delta = target.GroundPosition - owner.GroundPosition;
             delta.y = 0f;
-            bool ranged = owner.CurrentBasicAttackData?.Delivery
-                is HomingProjectileAttackDelivery;
+            bool ranged = owner.CurrentBasicAttackData?.Delivery?.IsRanged == true;
             float configuredStopRange =
                 owner.CurrentAttackRange * Mathf.Clamp01(attackRangeRatio);
-            float attackRange = ranged
-                ? owner.CurrentAttackRange
-                : Mathf.Max(
+            float attackRange = owner.CurrentAttackRange;
+            if (!ranged)
+            {
+                attackRange = Mathf.Max(
                     configuredStopRange,
                     EngagementSlotSystem.GetContactDistance(owner, target) +
                     EngagementSlotSystem.ArrivalTolerance +
                     EngagementSlotSystem.DistanceEpsilon);
+            }
+
             if (delta.sqrMagnitude > attackRange * attackRange)
             {
-                Vector3 destination = ranged
-                    ? CalculateRangedApproachPosition(owner, target, configuredStopRange)
-                    : UnitRegistry.GetEngagementPosition(owner, target);
+                Vector3 destination;
+                if (ranged)
+                {
+                    destination = CalculateRangedApproachPosition(owner, target, configuredStopRange);
+                }
+                else
+                {
+                    destination = UnitRegistry.GetEngagementPosition(owner, target);
+                }
+
                 return new UnitIntent(
                     UnitIntentType.Move,
                     target,
                     destination);
             }
 
-            if (owner.IsAttacking || owner.IsCastingSkill)
-                return new UnitIntent(UnitIntentType.Hold, target);
-
-            for (int i = 0; i < owner.Skills.Count; i++)
-            {
-                SkillRuntime skill = owner.Skills[i];
-                if (skill != null && skill.Data.SkillType == SkillType.Active && skill.CanUse)
-                    return new UnitIntent(UnitIntentType.CastSkill, target);
-            }
             return new UnitIntent(UnitIntentType.BasicAttack, target);
         }
 

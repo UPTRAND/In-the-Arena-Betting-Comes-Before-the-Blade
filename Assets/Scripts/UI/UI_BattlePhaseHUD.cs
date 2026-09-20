@@ -161,92 +161,40 @@ namespace InTheArena.UI
             base.OnClosed();
         }
 
+        private int m_LastDisplayedSecond = -1;
+        private BettingPhase m_BettingPhase;
+        private bool m_LastSlowMotion;
+        private bool m_LastCanAcceptInput;
+
+        /// <summary>매 프레임에는 표시할 초의 변경만 확인합니다.</summary>
         private void Update()
         {
             if (m_CombatPhase != null && m_RoundContext != null)
             {
-                Refresh();
+                bool slowMotion = m_CombatPhase.IsItemCastingSlowMotion;
+                bool canAcceptInput = CanAcceptCombatInput();
+                if (slowMotion != m_LastSlowMotion || canAcceptInput != m_LastCanAcceptInput)
+                {
+                    m_LastSlowMotion = slowMotion;
+                    m_LastCanAcceptInput = canAcceptInput;
+                    RefreshCombatState();
+                    RefreshItemButtons();
+                }
+                int seconds = Mathf.CeilToInt(m_CombatPhase.RemainingCombatTime);
+                if (seconds != m_LastDisplayedSecond)
+                {
+                    m_LastDisplayedSecond = seconds;
+                    if (m_BattleTimerText != null)
+                    {
+                        m_BattleTimerText.text = seconds.ToString();
+                    }
+                }
             }
         }
 
-        #if false
-        public void OnBeginDrag(PointerEventData eventData)
-        {
-            m_DraggedItem = ResolveDraggedItem(eventData);
-            if (m_DraggedItem == null) return;
-        }
 
-        public void OnDrag(PointerEventData eventData)
-        {
-            // InputManager owns the screen-to-world conversion. No HUD-local targeting state is required.
-        }
 
-        public void OnEndDrag(PointerEventData eventData)
-        {
-            ItemData itemData = m_DraggedItem;
-            m_DraggedItem = null;
 
-            if (itemData == null || m_CombatPhase == null || InputManager.Instance == null)
-            {
-                return;
-            }
-
-            if (CanUseNewImmediateFlow(itemData) && itemData.ItemType == ItemType.TimeExtension)
-            {
-                Debug.Log("[UI_BattlePhaseHUD] 시간 연장 아이템은 클릭으로 사용해야 합니다.");
-                return;
-            }
-
-            if (CanUseNewTargetingFlow(itemData))
-            {
-                // 타기팅 기반 아이템 사용은 비동기 흐름과 InputManager.OnSkillDragEnded를 통해 커밋됨
-                return;
-            }
-
-            if (!InputManager.Instance.RaycastGroundPosition(eventData.position, out Vector3 worldPosition))
-            {
-                Debug.Log("[UI_BattlePhaseHUD] 전장 영역에 아이템을 드롭해야 합니다.");
-                return;
-            }
-
-            Debug.Log("[UI_BattlePhaseHUD] 인벤토리 기반 아이템 직접 사용은 제거되었습니다.");
-        }
-
-        #endif
-
-        #if false
-        private async void RequestTargetedItemUse(ItemData itemData)
-        {
-            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
-            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
-                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
-
-            if (coordinator == null || popup == null) return;
-
-            if (coordinator.State != ItemPurchaseUseState.Idle)
-            {
-                return;
-            }
-
-            m_TargetingLifetimeCancellation?.Cancel();
-            m_TargetingLifetimeCancellation?.Dispose();
-            m_TargetingLifetimeCancellation = new CancellationTokenSource();
-
-            long requestVersion = await coordinator.RequestTargetedUseAsync(
-                itemData,
-                popup,
-                m_TargetingLifetimeCancellation.Token);
-
-            if (requestVersion != -1 && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
-            {
-                m_ActiveTargetingRequestVersion = requestVersion;
-                m_ActiveTargetingItemData = itemData;
-                InputManager.Instance.ArmSkillTargeting(0, (int)requestVersion);
-                InputManager.Instance.OnSkillDragEnded += OnSkillDragEnded;
-            }
-        }
-
-        #endif
 
         private async void RequestTargetedItemUse(ItemData itemData)
         {
@@ -306,73 +254,7 @@ namespace InTheArena.UI
             return null;
         }
 
-        #if false
-        private void DetachTargetingInput()
-        {
-            if (InputManager.Instance != null)
-            {
-                InputManager.Instance.OnSkillDragEnded -= OnSkillDragEnded;
-                InputManager.Instance.CancelSkillDrag();
-            }
-            m_ActiveTargetingRequestVersion = -1;
-        }
 
-        private void CancelTargetingRequest()
-        {
-            long requestVersion = m_ActiveTargetingRequestVersion;
-            DetachTargetingInput();
-            m_ActiveTargetingItemData = null;
-
-            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
-            if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget && coordinator.ActiveRequestVersion == requestVersion)
-            {
-                coordinator.CancelActiveRequest();
-            }
-
-            m_TargetingLifetimeCancellation?.Cancel();
-        }
-
-        private void OnSkillDragEnded(int skillId, int sessionId, Vector2 screenPos, Vector3 worldPos, bool isCanceled, bool isValid)
-        {
-            if (sessionId != m_ActiveTargetingRequestVersion)
-            {
-                return;
-            }
-
-            if (m_CombatPhase == null || m_ActiveTargetingItemData == null)
-            {
-                CancelTargetingRequest();
-                return;
-            }
-
-            long targetVersion = m_ActiveTargetingRequestVersion;
-            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
-
-            if (isCanceled || !isValid || coordinator == null || coordinator.ActiveRequestVersion != targetVersion)
-            {
-                CancelTargetingRequest();
-                return;
-            }
-
-            DetachTargetingInput();
-
-            IItemPurchaseUseExecutor executor = CreateExecutor(m_ActiveTargetingItemData, worldPos);
-            m_ActiveTargetingItemData = null;
-
-            bool success = coordinator.TryCompleteTargetUse(
-                targetVersion,
-                executor,
-                out ItemPurchaseUseResult result,
-                out string message);
-
-            Debug.Log($"[UI_BattlePhaseHUD] {message}");
-            if (success)
-            {
-                RefreshItemButtons();
-            }
-        }
-
-        #endif
 
         private void ClearTargetingBinding()
         {
@@ -721,7 +603,11 @@ namespace InTheArena.UI
                 return;
             }
 
-            FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include)?.RefreshTopBar(m_RoundContext);
+            if (m_BettingPhase == null)
+            {
+                m_BettingPhase = FindFirstObjectByType<BettingPhase>(FindObjectsInactive.Include);
+            }
+            m_BettingPhase?.RefreshTopBar(m_RoundContext);
 
         }
 
@@ -906,38 +792,12 @@ namespace InTheArena.UI
                 m_PlayerState != null;
         }
 
-        #if false
-        private ItemData ResolveDraggedItem(PointerEventData eventData)
-        {
-            if (!CanAcceptCombatInput() || eventData == null)
-            {
-                return null;
-            }
 
-            GameObject pressedObject = eventData.pointerPressRaycast.gameObject ?? eventData.pointerPress;
-            if (pressedObject == null)
-            {
-                return null;
-            }
-
-            Transform pressedTransform = pressedObject.transform;
-            if (IsButtonTarget(pressedTransform, m_ItemSlot1Button)) return m_ItemSlot1Data;
-            if (IsButtonTarget(pressedTransform, m_ItemSlot2Button)) return m_ItemSlot2Data;
-            if (IsButtonTarget(pressedTransform, m_ItemSlot3Button)) return m_ItemSlot3Data;
-            return null;
-        }
-
-        private static bool IsButtonTarget(Transform pressedTransform, Button button)
-        {
-            return button != null && button.interactable &&
-                   (pressedTransform == button.transform || pressedTransform.IsChildOf(button.transform));
-        }
-
-        #endif
 
         private bool CanAcceptCombatInput()
         {
             return m_CombatPhase != null &&
+                   !m_CombatPhase.IsCombatEnded &&
                    !m_CombatPhase.IsPhaseCompleted &&
                    !m_CombatPhase.IsFinalEliminationPlaying;
         }

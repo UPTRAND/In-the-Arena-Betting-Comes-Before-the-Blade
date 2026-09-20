@@ -232,21 +232,47 @@ public static class UnityEditorWebServer
                     if (fs.Length < _lastLogReadPosition) _lastLogReadPosition = 0; // 유니티 재시작 등 파일이 작아졌을 때 대비
                     if (fs.Length == _lastLogReadPosition) return;
 
-                    fs.Seek(_lastLogReadPosition, SeekOrigin.Begin);
+                    _lastLogReadPosition = ReadCompleteLogLines(fs, _lastLogReadPosition, ExtractErrorFromLogLine);
 
-                    using (StreamReader reader = new StreamReader(fs, Encoding.UTF8))
-                    {
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            if (line.Contains("error CS")) ExtractErrorFromLogLine(line.Trim());
-                        }
-                    }
-                    _lastLogReadPosition = fs.Length;
                 }
             }
             catch (Exception) { /* 공유 위반(Sharing Violation) 등 일시적 파일 접근 에러는 무시 */ }
         }
+    }
+
+    /// <summary>완성된 줄까지만 소비하여 분할 기록된 UTF-8 로그를 다음 읽기에서 복원합니다.</summary>
+    internal static long ReadCompleteLogLines(Stream stream, long position, Action<string> consume)
+    {
+        if (position > stream.Length)
+        {
+            position = 0;
+        }
+        stream.Position = position;
+        long completedPosition = position;
+        using (var line = new MemoryStream())
+        {
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    position++;
+                    if (buffer[i] == (byte)'\n')
+                    {
+                        string value = Encoding.UTF8.GetString(line.GetBuffer(), 0, (int)line.Length).TrimEnd('\r');
+                        consume(value);
+                        line.SetLength(0);
+                        completedPosition = position;
+                    }
+                    else
+                    {
+                        line.WriteByte(buffer[i]);
+                    }
+                }
+            }
+        }
+        return completedPosition;
     }
 
     private static void ExtractErrorFromLogLine(string logLine)
@@ -359,11 +385,32 @@ public static class UnityEditorWebServer
             using (var stream = client.GetStream())
             {
                 stream.ReadTimeout = 2000;
-                byte[] buffer = new byte[4096];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                if (bytesRead == 0) return;
-
-                string requestStr = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                // TCP 패킷 경계는 HTTP 헤더 경계와 무관하므로 종료 표식까지 누적합니다.
+                byte[] buffer = new byte[16384];
+                int bytesRead = 0;
+                string requestStr = null;
+                var deadline = System.Diagnostics.Stopwatch.StartNew();
+                while (bytesRead < buffer.Length && deadline.ElapsedMilliseconds < 2000)
+                {
+                    stream.ReadTimeout = Math.Max(1, 2000 - (int)deadline.ElapsedMilliseconds);
+                    int received = stream.Read(buffer, bytesRead, buffer.Length - bytesRead);
+                    if (received == 0)
+                    {
+                        return;
+                    }
+                    bytesRead += received;
+                    string candidate = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    if (candidate.Contains("\r\n\r\n"))
+                    {
+                        requestStr = candidate;
+                        break;
+                    }
+                }
+                if (requestStr == null)
+                {
+                    SendResponse(stream, 400, "{\"error\":\"Incomplete or oversized headers\"}");
+                    return;
+                }
                 string[] lines = requestStr.Replace(((char)13).ToString(), "").Split((char)10);
                 if (lines.Length == 0 || string.IsNullOrEmpty(lines[0])) return;
 
@@ -437,7 +484,7 @@ public static class UnityEditorWebServer
                     catch (Exception e)
                     {
                         statusCode = 500;
-                        responseJson = $"{{\"error\":\"{e.Message}\"}}";
+                        responseJson = JsonUtility.ToJson(new HttpError { error = e.Message });
                     }
                     finally { waitHandle.Set(); }
                 };
@@ -453,12 +500,33 @@ public static class UnityEditorWebServer
         catch (Exception) { }
     }
 
+    [Serializable]
+    private sealed class HttpError
+    {
+        public string error;
+    }
+
+    /// <summary>본문의 상태와 같은 HTTP 상태줄을 만듭니다.</summary>
+    internal static string GetStatusReason(int statusCode)
+    {
+        switch (statusCode)
+        {
+            case 200: return "OK";
+            case 400: return "Bad Request";
+            case 401: return "Unauthorized";
+            case 404: return "Not Found";
+            case 504: return "Gateway Timeout";
+            default: return "Internal Server Error";
+        }
+    }
+
+    /// <summary>UTF-8 JSON 응답과 일치하는 길이·상태 코드를 전송합니다.</summary>
     private static void SendResponse(NetworkStream stream, int statusCode, string json)
     {
         try
         {
             byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
-            string statusMessage = statusCode == 200 ? "200 OK" : statusCode == 401 ? "401 Unauthorized" : statusCode == 404 ? "404 Not Found" : "500 Internal Server Error";
+            string statusMessage = statusCode + " " + GetStatusReason(statusCode);
 
             char cr = (char)13;
             char lf = (char)10;

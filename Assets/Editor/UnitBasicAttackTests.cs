@@ -6,28 +6,49 @@ using UnityEngine;
 
 public sealed class UnitBasicAttackTests
 {
-    private const string ArcherAttackPath =
-        "Assets/ScriptableObject/Unit/Unit_Attack/BasicAttackData_Archer.asset";
-    private const string KnightAttackPath =
-        "Assets/ScriptableObject/Unit/Unit_Attack/BasicAttackData_Knight.asset";
-    private const string ArrowProjectilePath =
-        "Assets/ScriptableObject/Unit/Unit_Attack/ProjectileData_Arrow.asset";
-
+    /// <summary>운영 콘텐츠 전체의 참조·최소 베팅·규칙을 빌드 검사와 같은 기준으로 확인합니다.</summary>
     [Test]
-    public void MigratedDefaultAssets_AreValidAndUseExpectedDeliveries()
+    public void BuildContent_HasValidDependencies()
     {
-        BasicAttackData archer = AssetDatabase.LoadAssetAtPath<BasicAttackData>(ArcherAttackPath);
-        BasicAttackData knight = AssetDatabase.LoadAssetAtPath<BasicAttackData>(KnightAttackPath);
-        ProjectileData arrow = AssetDatabase.LoadAssetAtPath<ProjectileData>(ArrowProjectilePath);
+        Assert.That(InTheArena.MainGame.Editor.ContentBuildValidation.CollectErrors(), Is.Empty);
+    }
 
-        Assert.That(archer, Is.Not.Null);
-        Assert.That(knight, Is.Not.Null);
-        Assert.That(arrow, Is.Not.Null);
-        Assert.That(archer.Delivery, Is.TypeOf<HomingProjectileAttackDelivery>());
-        Assert.That(knight.Delivery, Is.TypeOf<ImmediateAttackDelivery>());
-        Assert.That(arrow.IsValid(), Is.True);
-        Assert.That(archer.IsValid(), Is.True);
-        Assert.That(knight.IsValid(), Is.True);
+    /// <summary>원거리 유닛의 공유 프리팹·공격·스킬·애니메이터 연결을 확인합니다.</summary>
+    [TestCase("Prist")]
+    [TestCase("Wizard")]
+    public void CasterAssets_KeepRuntimeReferences(string unitName)
+    {
+        UnitData data = AssetDatabase.LoadAssetAtPath<UnitData>(
+            "Assets/ScriptableObject/Unit/Unit_Base/UnitData_" + unitName + ".asset");
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/Prefabs/Unit/Unit_" + unitName + ".prefab");
+        Assert.That(data, Is.Not.Null);
+        Assert.That(data.IsValid(), Is.True);
+        Assert.That(data.UnitPrefab, Is.SameAs(prefab));
+        Assert.That(data.BasicAttackData.Delivery.IsRanged, Is.True);
+        Assert.That(data.SkillDatas, Is.Not.Empty);
+        Assert.That(prefab.GetComponent<Animator>().runtimeAnimatorController, Is.Not.Null);
+    }
+
+    /// <summary>회복 유닛은 실제 프리팹의 Skill 애니메이션을 사용합니다.</summary>
+    [Test]
+    public void PristCast_UsesConfiguredSkillState()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Unit/Unit_Prist.prefab");
+        GameObject instance = Object.Instantiate(prefab);
+        try
+        {
+            Animator animator = instance.GetComponent<Animator>();
+            animator.Rebind();
+            animator.Update(0f);
+            new UnitAnimationPresenter(animator).PlayCast();
+            animator.Update(0.1f);
+            Assert.That(animator.GetCurrentAnimatorStateInfo(0).shortNameHash, Is.EqualTo(Animator.StringToHash("Skill")));
+        }
+        finally
+        {
+            Object.DestroyImmediate(instance);
+        }
     }
 
     [Test]

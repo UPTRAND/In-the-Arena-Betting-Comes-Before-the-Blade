@@ -18,6 +18,10 @@ namespace InTheArena.Editor.Unit
         [MenuItem("Tools/In The Arena/Unit/Migrate Unit Prefabs And Validate Data")]
         public static void MigrateAll()
         {
+            if (!EditorUtility.DisplayDialog("유닛 마이그레이션", "유닛 프리팹의 VisualRoot·컴포넌트 연결을 수정하고 저장합니다.", "적용", "취소"))
+            {
+                return;
+            }
             int prefabCount = MigratePrefabs();
             int invalidCount = ValidateAllData();
             AssetDatabase.SaveAssets();
@@ -29,13 +33,13 @@ namespace InTheArena.Editor.Unit
         [MenuItem("Tools/In The Arena/Unit/Create Skill System Example Assets")]
         public static void CreateSkillSystemExampleAssets()
         {
+            if (!EditorUtility.DisplayDialog("스킬 예제 재생성", "Unit_Skill/Examples와 Unit_Effect/Examples의 예제 설정을 갱신합니다. 운영 기사 데이터는 수정하지 않습니다.", "생성", "취소"))
+            {
+                return;
+            }
             EnsureFolder(SkillFolder);
             EnsureFolder(EffectFolder);
             EnsureFolder(ProjectileFolder);
-
-            string legacyHeal = "Assets/ScriptableObject/Unit/Unit_Skill/SkillData_Heal.asset";
-            if (AssetDatabase.LoadMainAssetAtPath(legacyHeal) != null)
-                AssetDatabase.DeleteAsset(legacyHeal);
 
             GameObject projectilePrefab = CreateProjectilePrefab();
             BuffData shield = CreateStatus<BuffData>(
@@ -147,7 +151,7 @@ namespace InTheArena.Editor.Unit
                 SkillExecutionMode.BehaviorOnly,
                 lifeStealBehavior);
 
-            AssignSkillsToKnight(
+            AssignSkillsToSample(
                 fireBall,
                 heal,
                 areaStun,
@@ -277,9 +281,14 @@ namespace InTheArena.Editor.Unit
             return prefab;
         }
 
-        private static void AssignSkillsToKnight(params SkillData[] skills)
+        private static void AssignSkillsToSample(params SkillData[] skills)
         {
-            const string path = "Assets/ScriptableObject/Unit/Unit_Base/UnitData_Knight.asset";
+            const string sourcePath = "Assets/ScriptableObject/Unit/Unit_Base/UnitData_Knight.asset";
+            const string path = "Assets/ScriptableObject/Unit/Unit_Skill/Examples/UnitData_SkillExample.asset";
+            if (AssetDatabase.LoadAssetAtPath<UnitData>(path) == null)
+            {
+                AssetDatabase.CopyAsset(sourcePath, path);
+            }
             UnitData knight = AssetDatabase.LoadAssetAtPath<UnitData>(path);
             if (knight == null) return;
             SetField(knight, "m_SkillDatas", new List<SkillData>(skills));

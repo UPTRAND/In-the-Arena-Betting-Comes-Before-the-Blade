@@ -21,9 +21,7 @@ namespace InTheArena.MainGame
     [DisallowMultipleComponent]
     public class StageManager : Manager_Base
     {
-        private const float LoadingEntryFadeSeconds = 0.5f;
         private const float LoadingExitFadeSeconds = 0.3f;
-        private const float MinLoadingDisplaySeconds = 1.5f;
 
         private static StageManager _instance;
 
@@ -123,8 +121,14 @@ namespace InTheArena.MainGame
             ClearStageProgressState();
         }
 
+        /// <summary>스테이지를 한 번에 하나만 실행하고 취소 시 미완료 씬 로드를 마무리합니다.</summary>
         public async Awaitable StartStageAsync(StageData stageData, CancellationToken token = default)
         {
+            if (m_IsStageRunning || m_IsReturningToLobby)
+            {
+                return;
+            }
+
             if (stageData == null || !stageData.IsValid())
             {
                 Debug.LogError("[StageManager] 유효하지 않은 스테이지 데이터입니다.");
@@ -140,8 +144,14 @@ namespace InTheArena.MainGame
             m_StageCts?.Cancel();
             m_StageCts?.Dispose();
 
-            m_StageCts = token.CanBeCanceled
-                ? CancellationTokenSource.CreateLinkedTokenSource(token) : new CancellationTokenSource();
+            if (token.CanBeCanceled)
+            {
+                m_StageCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            }
+            else
+            {
+                m_StageCts = new CancellationTokenSource();
+            }
 
             m_CurrentStageData = stageData;
             m_IsStageRunning = true;
@@ -152,64 +162,12 @@ namespace InTheArena.MainGame
 
             try
             {
-                using (var session = InTheArena.Util.LoadingProgressService.Instance?.BeginSession())
-                {
-                session?.Report(0f);
-                await ScreenFaderTransition.FadeOutAsync(LoadingEntryFadeSeconds, m_StageCts.Token);
-                Debug.Log($"[StageManager] {stageData.FullStageName} 스테이지 시작 - Loading 씬 로드 중...");
-                await SceneManager.LoadSceneAsync(m_LoadingSceneName, LoadSceneMode.Single).ToAwaitable();
-
-                await ScreenFaderTransition.FadeInAsync(LoadingEntryFadeSeconds, m_StageCts.Token);
-                float loadingSceneEnteredAt = Time.realtimeSinceStartup;
-                session?.Report(0.1f);
-
-                m_Context.Clear();
-                m_Context.InitializeStage(stageData);
-
-                PlayerState = new StagePlayerState();
-                if (SaveManager.Instance != null)
-                {
-                    PlayerState.Gold = SaveManager.Instance.Gold;
-                }
-
-                await LoadStageDataAsync(new Progress<float>(p => {
-                    session?.Report(Mathf.Lerp(0.1f, 0.8f, p));
-                }), m_StageCts.Token);
-
-                Debug.Log("[StageManager] MainGame 씬 로드 중...");
-                AsyncOperation mainGameOp = SceneManager.LoadSceneAsync(m_MainGameSceneName, LoadSceneMode.Single);
-                mainGameOp.allowSceneActivation = false;
-
-                while (mainGameOp.progress < 0.9f)
-                {
-                    float normalized = mainGameOp.progress / 0.9f;
-                    session?.Report(Mathf.Lerp(0.8f, 1f, normalized));
-                    await Awaitable.NextFrameAsync();
-                }
-
-                session?.Report(1f);
-                await Awaitable.NextFrameAsync();
-
-                float remainingDisplayTime = MinLoadingDisplaySeconds - (Time.realtimeSinceStartup - loadingSceneEnteredAt);
-                if (remainingDisplayTime > 0f)
-                {
-                    await Awaitable.WaitForSecondsAsync(remainingDisplayTime, m_StageCts.Token);
-                }
-
-                await ScreenFaderTransition.FadeOutAsync(LoadingExitFadeSeconds, m_StageCts.Token);
-
-                mainGameOp.allowSceneActivation = true;
-                while (!mainGameOp.isDone)
-                {
-                    await Awaitable.NextFrameAsync();
-                }
-
-                // Keep the loading overlay closed until the stage header and opening intro are primed.
-                await WaitForMainGameReadyAsync(m_StageCts.Token);
-                await ScreenFaderTransition.FadeInAsync(LoadingExitFadeSeconds, m_StageCts.Token);
-
-                session?.Complete();
-                }
+                await AsyncSceneLoader.LoadSceneAsync(
+                    m_MainGameSceneName,
+                    m_StageCts.Token,
+                    PrepareStageDataAsync,
+                    WaitForMainGameReadyAsync,
+                    m_LoadingSceneName);
 
                 await RunStageLoopAsync(m_StageCts.Token);
             }
@@ -235,14 +193,19 @@ namespace InTheArena.MainGame
             }
         }
 
+        /// <summary>옵션의 연속 입력을 합쳐 스테이지 종료 후 로비로 이동합니다.</summary>
         public void ReturnToLobbyFromOptions()
         {
-            if (m_IsReturningToLobby || !Application.isPlaying || SceneManager.GetActiveScene().name == m_LobbySceneName)
+            if (m_IsReturningToLobby || !Application.isPlaying ||
+                (!m_IsStageRunning && SceneManager.GetActiveScene().name == m_LobbySceneName))
+            {
                 return;
+            }
 
             ReturnToLobbyFromOptionsInternal();
         }
 
+        /// <summary>이전 스테이지의 finally 정리가 끝난 뒤 다음 화면을 엽니다.</summary>
         private async void ReturnToLobbyFromOptionsInternal()
         {
             m_IsReturningToLobby = true;
@@ -250,8 +213,14 @@ namespace InTheArena.MainGame
             try
             {
                 m_StageCts?.Cancel();
-                await Awaitable.NextFrameAsync();
-                await AsyncSceneLoader.LoadSceneAsync(m_LobbySceneName);
+                while (m_IsStageRunning && Application.isPlaying)
+                {
+                    await Awaitable.NextFrameAsync();
+                }
+                if (Application.isPlaying)
+                {
+                    await AsyncSceneLoader.LoadSceneAsync(m_LobbySceneName);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -343,22 +312,21 @@ namespace InTheArena.MainGame
             }
         }
 
+        /// <summary>옵션 복귀는 해당 요청에 맡기고 그 외 실패만 공용 로더로 복구합니다.</summary>
         private async Awaitable RecoverToLobbyAsync()
         {
+            if (!Application.isPlaying || m_IsReturningToLobby)
+            {
+                return;
+            }
+
             try
             {
-                if (!Application.isPlaying)
-                    return;
-
                 if (SceneManager.GetActiveScene().name != m_LobbySceneName)
                 {
-                    Debug.LogWarning("[StageManager] 오류/취소 복구를 위해 Lobby로 이동합니다.");
-                    var op = SceneManager.LoadSceneAsync(m_LobbySceneName, LoadSceneMode.Single);
-                    if (op != null)
-                    {
-                        await op.ToAwaitable();
-                    }
+                    await AsyncSceneLoader.LoadSceneAsync(m_LobbySceneName);
                 }
+                await ScreenFaderTransition.FadeInAsync(LoadingExitFadeSeconds);
             }
             catch (Exception ex)
             {
@@ -366,6 +334,20 @@ namespace InTheArena.MainGame
             }
         }
 
+        /// <summary>공용 로딩 화면 안에서 스테이지 상태와 데이터만 준비합니다.</summary>
+        private async Awaitable PrepareStageDataAsync(IProgress<float> progress, CancellationToken token)
+        {
+            m_Context.Clear();
+            m_Context.InitializeStage(m_CurrentStageData);
+            PlayerState = new StagePlayerState();
+            if (SaveManager.Instance != null)
+            {
+                PlayerState.Gold = SaveManager.Instance.Gold;
+            }
+            await LoadStageDataAsync(progress, token);
+        }
+
+        /// <summary>스테이지에 포함된 라운드를 확인하고 준비 진행도를 전달합니다.</summary>
         private async Awaitable LoadStageDataAsync(IProgress<float> progressReporter, CancellationToken token)
         {
             if (!m_CurrentStageData.IsValid())
@@ -425,6 +407,7 @@ namespace InTheArena.MainGame
         {
             int totalRounds = m_CurrentStageData.TotalRounds;
             int autoRetryCount = 0;
+            bool clearPanelPrepared = false;
 
             while (m_CurrentRoundIndex < totalRounds)
             {
@@ -457,12 +440,18 @@ namespace InTheArena.MainGame
                         SetStageClearCommitState(StageClearCommitState.Failed);
                     }
                     
-                    // Commit before showing the result so the player can safely leave immediately.
-                    ProcessPendingStageClearSave();
+                    // 저장 시도 전에 실패·재시도 상태를 표시할 화면을 준비합니다.
+                    await ShowResultPanelAsync(true, token);
+                    clearPanelPrepared = true;
                 }
 
                 if (m_StageClearCommitState == StageClearCommitState.Pending || m_StageClearCommitState == StageClearCommitState.Failed)
                 {
+                    if (!clearPanelPrepared)
+                    {
+                        await ShowResultPanelAsync(true, token);
+                        clearPanelPrepared = true;
+                    }
                     ProcessPendingStageClearSave();
 
                     if (m_StageClearCommitState == StageClearCommitState.Failed)
@@ -501,7 +490,10 @@ namespace InTheArena.MainGame
                 {
                     if (UIManager.Instance != null)
                     {
-                        await ShowResultPanelAsync(true, token);
+                        if (!clearPanelPrepared)
+                        {
+                            await ShowResultPanelAsync(true, token);
+                        }
                         var panel = UIManager.Instance.GetStageResultPanel();
                         if (panel != null)
                         {
@@ -549,7 +541,8 @@ namespace InTheArena.MainGame
 
         private bool CheckGameOver()
         {
-            return m_Context.CurrentCall <= 0 || m_CurrentRoundIndex >= m_CurrentStageData.TotalRounds - 1;
+            return m_Context.CurrentCall < BettingRules.WagerStepCall ||
+                   m_CurrentRoundIndex >= m_CurrentStageData.TotalRounds - 1;
         }
 
         private async Awaitable ShowResultPanelAsync(bool isClear, CancellationToken token)
@@ -566,6 +559,17 @@ namespace InTheArena.MainGame
 
             int initialCall = m_Context.CurrentStageData != null ? m_Context.CurrentStageData.InitialCall : 0;
             panel.Prepare(isClear, initialCall, m_Context.CompletedRoundSettlements);
+            if (isClear && m_StageClearCommitState != StageClearCommitState.Committed)
+            {
+                if (m_StageClearCommitState == StageClearCommitState.Failed)
+                {
+                    panel.SetMode(StageResultPanelMode.SaveFailed, m_LastStageClearSaveError);
+                }
+                else
+                {
+                    panel.SetMode(StageResultPanelMode.Saving);
+                }
+            }
             
             // ScreenFaderTransition may cause issues if called concurrently, but in this sequence it's called once at end of round
             await ScreenFaderTransition.FadeInAsync(1f, token);

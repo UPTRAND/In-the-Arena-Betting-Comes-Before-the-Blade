@@ -14,6 +14,8 @@ namespace InTheArena.Unit
         private static SkillVfxPresenter s_Instance;
 
         private readonly List<ActiveVfx> m_ActiveVfx = new List<ActiveVfx>(64);
+        private ObjectPoolingFactory<Transform> m_Factory;
+        private readonly Dictionary<GameObject, ActiveVfx> m_CachedComponents = new Dictionary<GameObject, ActiveVfx>();
 
         public static SkillVfxPresenter EnsureExists(Transform parent)
         {
@@ -40,6 +42,7 @@ namespace InTheArena.Unit
             }
 
             s_Instance = this;
+            m_Factory = new ObjectPoolingFactory<Transform>(transform);
         }
 
         private void OnEnable()
@@ -72,8 +75,7 @@ namespace InTheArena.Unit
                      !HasPlayingAnimators(active.Animators)))
                 {
                     StopEffects(active.Particles, active.Animators);
-                    active.GameObject.SetActive(false);
-                    Destroy(active.GameObject);
+                    m_Factory.Return(active.GameObject.transform);
                     m_ActiveVfx.RemoveAt(i);
                     continue;
                 }
@@ -108,8 +110,7 @@ namespace InTheArena.Unit
                 StopEffects(active.Particles, active.Animators);
                 if (active.GameObject != null)
                 {
-                    active.GameObject.SetActive(false);
-                    Destroy(active.GameObject);
+                    m_Factory.Return(active.GameObject.transform);
                 }
             }
 
@@ -123,6 +124,8 @@ namespace InTheArena.Unit
 
             SkillVfxRequestBus.Requested -= OnVfxRequested;
             ClearAll();
+            m_Factory?.Clear();
+            m_CachedComponents.Clear();
         }
 
         private void OnVfxRequested(SkillVfxRequest request)
@@ -131,15 +134,29 @@ namespace InTheArena.Unit
                 return;
 
             Quaternion rotation = request.Prefab.transform.rotation;
-            GameObject instance = Instantiate(request.Prefab, request.Position, rotation, transform);
-            if (instance == null)
+            if (!m_Factory.IsRegistered(request.Prefab))
+            {
+                m_Factory.Register(request.Prefab, new PoolPolicy(0, 108, PoolScope.Stage));
+            }
+            var spawn = new PoolSpawnContext(transform, request.Position, rotation, false);
+            if (!m_Factory.TryRent(request.Prefab, spawn, out Transform rented))
+            {
                 return;
+            }
+            GameObject instance = rented.gameObject;
 
+            instance.transform.localScale = request.Prefab.transform.localScale;
             ApplyScale(instance, request.Scale);
             instance.SetActive(true);
             ApplyTargetSorting(instance, request.Target.Unit);
-            ParticleSystem[] particles = instance.GetComponentsInChildren<ParticleSystem>(true);
-            Animator[] animators = instance.GetComponentsInChildren<Animator>(true);
+            if (!m_CachedComponents.TryGetValue(instance, out ActiveVfx cached))
+            {
+                cached = new ActiveVfx(instance, instance.GetComponentsInChildren<ParticleSystem>(true),
+                    instance.GetComponentsInChildren<Animator>(true), default, Vector3.zero, 0f);
+                m_CachedComponents.Add(instance, cached);
+            }
+            ParticleSystem[] particles = cached.Particles;
+            Animator[] animators = cached.Animators;
             PlayEffects(particles, animators);
             m_ActiveVfx.Add(new ActiveVfx(
                 instance,
@@ -147,7 +164,7 @@ namespace InTheArena.Unit
                 animators,
                 request.Target,
                 ResolveFollowOffset(request.Target.Unit, request.Position),
-                request.Duration));
+                request.Duration, request.FollowTarget, request.StopOnTargetDeath));
         }
 
         private static void ApplyScale(GameObject instance, float scale)
@@ -222,6 +239,7 @@ namespace InTheArena.Unit
                 Animator animator = animators[i];
                 if (animator == null) continue;
                 animator.gameObject.SetActive(true);
+                animator.enabled = true;
                 animator.Rebind();
                 animator.Update(0f);
             }
@@ -283,6 +301,8 @@ namespace InTheArena.Unit
             public readonly bool HasFollowTarget;
             public readonly Vector3 FollowOffset;
             public readonly float Duration;
+            public readonly bool FollowEnabled;
+            public readonly bool StopOnTargetDeath;
             public float Elapsed;
 
             public ActiveVfx(
@@ -291,7 +311,7 @@ namespace InTheArena.Unit
                 Animator[] animators,
                 UnitHandle followTarget,
                 Vector3 followOffset,
-                float duration)
+                float duration, bool followEnabled = true, bool stopOnTargetDeath = true)
             {
                 GameObject = gameObject;
                 Particles = particles;
@@ -300,6 +320,8 @@ namespace InTheArena.Unit
                 HasFollowTarget = followTarget.Unit != null;
                 FollowOffset = followOffset;
                 Duration = Mathf.Max(0f, duration);
+                FollowEnabled = followEnabled;
+                StopOnTargetDeath = stopOnTargetDeath;
                 Elapsed = 0f;
             }
 
@@ -316,13 +338,13 @@ namespace InTheArena.Unit
             public bool ShouldStopBecauseFollowTargetDied()
             {
                 Unit target = FollowTarget.Unit;
-                return HasFollowTarget && (target == null || target.IsDead);
+                return StopOnTargetDeath && HasFollowTarget && (target == null || target.IsDead);
             }
 
             public void UpdateFollowPosition()
             {
                 Unit target = FollowTarget.Unit;
-                if (GameObject == null || target == null || target.IsDead)
+                if (!FollowEnabled || GameObject == null || target == null || target.IsDead)
                     return;
 
                 GameObject.transform.position = target.HitPosition + FollowOffset;

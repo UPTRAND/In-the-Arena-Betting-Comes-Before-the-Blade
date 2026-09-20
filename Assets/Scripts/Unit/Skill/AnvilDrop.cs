@@ -7,6 +7,50 @@ namespace InTheArena.Unit
     [DisallowMultipleComponent]
     public sealed class AnvilDrop : MonoBehaviour
     {
+        private static ObjectPoolingFactory<AnvilDrop> s_Factory;
+        private static readonly List<AnvilDrop> ActiveDrops = new List<AnvilDrop>();
+
+        /// <summary>전투 수명에 묶인 프리팹별 제한 풀에서 낙하체를 대여합니다.</summary>
+        public static bool TryRent(GameObject prefab, Vector3 position, out AnvilDrop drop)
+        {
+            drop = null;
+            if (prefab == null || prefab.GetComponent<AnvilDrop>() == null)
+            {
+                return false;
+            }
+            if (s_Factory == null)
+            {
+                s_Factory = new ObjectPoolingFactory<AnvilDrop>(BattleSimulation.EnsureExists().transform);
+            }
+            if (!s_Factory.IsRegistered(prefab))
+            {
+                s_Factory.Register(prefab, new PoolPolicy(0, 108, PoolScope.Stage));
+            }
+            var spawn = new PoolSpawnContext(null, position, Quaternion.identity, false);
+            return s_Factory.TryRent(prefab, spawn, out drop);
+        }
+
+        /// <summary>결과 확정 시 미도착 낙하체를 피해 없이 회수합니다.</summary>
+        public static void CancelAll()
+        {
+            for (int i = ActiveDrops.Count - 1; i >= 0; i--)
+            {
+                if (ActiveDrops[i] != null)
+                {
+                    s_Factory?.Return(ActiveDrops[i]);
+                }
+            }
+            ActiveDrops.Clear();
+        }
+
+        /// <summary>전투 씬 종료 시 풀과 정적 참조를 정리합니다.</summary>
+        public static void ClearPool()
+        {
+            CancelAll();
+            s_Factory?.Clear();
+            s_Factory = null;
+        }
+
         private UnitHandle m_Source;
         private Vector3 m_StartPosition;
         private Vector3 m_ImpactPosition;
@@ -18,6 +62,7 @@ namespace InTheArena.Unit
         private float m_StartZRotationDegrees;
         private float m_ZRotationDegrees;
         private float m_Elapsed;
+        private float m_LastStep;
         private string m_ActionName;
         private GameObject m_ImpactVfxPrefab;
         private Vector3 m_ImpactVfxOffset;
@@ -59,30 +104,55 @@ namespace InTheArena.Unit
             m_ImpactVfxScale = Mathf.Max(0f, impactVfxScale);
             m_ImpactVfxDuration = Mathf.Max(0f, impactVfxDuration);
             m_Elapsed = 0f;
+            m_LastStep = 0f;
             m_ActionName = string.IsNullOrWhiteSpace(actionName) ? "스킬" : actionName;
             transform.position = m_StartPosition;
             transform.rotation = Quaternion.Euler(
                 m_BaseXRotationDegrees,
                 0f,
                 m_StartZRotationDegrees);
+            gameObject.SetActive(true);
         }
 
-        private void Update()
+        /// <summary>유닛·투사체와 같은 논리 틱을 구독합니다.</summary>
+        private void OnEnable()
         {
-            m_Elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(m_Elapsed / m_FallDuration);
-            float easedT = t * t;
+            BattleSimulation.SimulationStepped += AdvanceFall;
+            ActiveDrops.Add(this);
+        }
 
-            transform.position = Vector3.Lerp(m_StartPosition, m_ImpactPosition, easedT);
-            transform.rotation = Quaternion.Euler(
-                m_BaseXRotationDegrees,
-                0f,
-                m_StartZRotationDegrees + m_ZRotationDegrees * t);
+        /// <summary>풀 반환이나 파괴 시 틱 구독을 해제합니다.</summary>
+        private void OnDisable()
+        {
+            BattleSimulation.SimulationStepped -= AdvanceFall;
+            ActiveDrops.Remove(this);
+        }
 
-            if (t < 1f) return;
+        /// <summary>전투가 받아들인 시간만큼 낙하를 진행합니다.</summary>
+        private void AdvanceFall(float deltaTime)
+        {
+            m_LastStep = deltaTime;
+            m_Elapsed += deltaTime;
+            if (m_Elapsed < m_FallDuration)
+            {
+                return;
+            }
 
             ApplyImpact();
-            Destroy(gameObject);
+            if (s_Factory == null || !s_Factory.Return(this))
+            {
+                gameObject.SetActive(false);
+                Destroy(gameObject);
+            }
+        }
+
+        /// <summary>낙하 판정과 분리하여 화면 위치·회전을 렌더 프레임마다 보간합니다.</summary>
+        private void LateUpdate()
+        {
+            float elapsed = Mathf.Max(0f, m_Elapsed - m_LastStep + m_LastStep * BattleSimulation.InterpolationAlpha);
+            float t = Mathf.Clamp01(elapsed / m_FallDuration);
+            transform.position = Vector3.Lerp(m_StartPosition, m_ImpactPosition, t * t);
+            transform.rotation = Quaternion.Euler(m_BaseXRotationDegrees, 0f, m_StartZRotationDegrees + m_ZRotationDegrees * t);
         }
 
         private void ApplyImpact()
@@ -90,33 +160,39 @@ namespace InTheArena.Unit
             Unit source = m_Source.Unit;
             if (source == null || source.IsDead || m_Damage <= 0f) return;
 
-            IReadOnlyList<Unit> enemies = source.Team == 0
-                ? UnitRegistry.BlueTeam
-                : UnitRegistry.RedTeam;
-            float radiusSqr = m_ImpactRadius * m_ImpactRadius;
             Unit firstHitTarget = null;
-            for (int i = 0; i < enemies.Count; i++)
+            using (UnityEngine.Pool.ListPool<UnitHandle>.Get(out var targets))
             {
-                Unit target = enemies[i];
-                if (target == null || target.IsDead) continue;
-
-                Vector3 delta = target.GroundPosition - m_DamageCenter;
-                delta.y = 0f;
-                if (delta.sqrMagnitude > radiusSqr) continue;
-
-                var damage = new DamageContext
+                UnitRegistry.CaptureEnemiesInRadius(source.Team, m_DamageCenter, m_ImpactRadius, targets);
+                for (int i = 0; i < targets.Count; i++)
                 {
-                    Source = new UnitHandle(source),
-                    Target = target,
-                    Amount = m_Damage + target.CurrentDefense,
-                    IsCritical = false,
-                    IsSkill = true,
-                    IsReaction = false
-                };
-                float actualDamage = target.ApplyDamage(in damage);
-                if (actualDamage <= 0f) continue;
-                if (firstHitTarget == null) firstHitTarget = target;
-                source.LogCombatAction(m_ActionName, target, actualDamage, "피해");
+                    Unit target = targets[i].Unit;
+                    if (target == null || target.IsDead)
+                    {
+                        continue;
+                    }
+
+                    var damage = new DamageContext
+                    {
+                        Source = new UnitHandle(source),
+                        Target = target,
+                        Amount = m_Damage,
+                        IgnoreDefense = true,
+                        IsCritical = false,
+                        IsSkill = true,
+                        IsReaction = false
+                    };
+                    float actualDamage = target.ApplyDamage(in damage);
+                    if (actualDamage <= 0f)
+                    {
+                        continue;
+                    }
+                    if (firstHitTarget == null)
+                    {
+                        firstHitTarget = target;
+                    }
+                    source.LogCombatAction(m_ActionName, target, actualDamage, "피해");
+                }
             }
 
             SkillVfxUtility.TryRequest(

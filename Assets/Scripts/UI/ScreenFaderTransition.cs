@@ -1,6 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
-using System.Reflection;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,10 +9,6 @@ using UnityEngine.UI;
 /// </summary>
 public static class ScreenFaderTransition
 {
-    private static readonly FieldInfo CanvasGroupField = typeof(ScreenFader).GetField(
-        "m_CanvasGroup", BindingFlags.Instance | BindingFlags.NonPublic);
-    private static readonly FieldInfo FadeImageField = typeof(ScreenFader).GetField(
-        "m_FadeScreenImage", BindingFlags.Instance | BindingFlags.NonPublic);
 
     public static async Awaitable FadeOutAsync(float duration, CancellationToken token = default)
     {
@@ -76,11 +71,6 @@ public static class ScreenFaderTransition
             ConfigureOverlayCanvas(ScreenFader.Instance.gameObject);
             return ScreenFader.Instance;
         }
-        if (CanvasGroupField == null || FadeImageField == null)
-        {
-            Debug.LogError("[ScreenFaderTransition] ScreenFader 필드를 찾을 수 없습니다.");
-            return null;
-        }
 
         var root = new GameObject(
             "[UI] ScreenFader",
@@ -106,8 +96,7 @@ public static class ScreenFaderTransition
         image.raycastTarget = true;
 
         var fader = root.AddComponent<ScreenFader>();
-        CanvasGroupField.SetValue(fader, canvasGroup);
-        FadeImageField.SetValue(fader, image);
+        fader.ConfigureOverlay(canvasGroup, image);
         canvasGroup.alpha = 0f;
         canvasGroup.blocksRaycasts = false;
         canvasGroup.interactable = false;

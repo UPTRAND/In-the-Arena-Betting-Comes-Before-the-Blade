@@ -96,11 +96,21 @@ public static class SceneToolbar
             return;
         }
 
-        if (!(bool)WindowExistsProperty.GetValue(null))
-            return;
-
-        ShowAllMethod.Invoke(null, new object[] { ToolbarPath });
-        s_VisibilityApplied = HasOverlay(StartElementPath) && HasOverlay(ScenesElementPath);
+        try
+        {
+            if (!(bool)WindowExistsProperty.GetValue(null))
+            {
+                return;
+            }
+            ShowAllMethod.Invoke(null, new object[] { ToolbarPath });
+            s_VisibilityApplied = HasOverlay(StartElementPath) && HasOverlay(ScenesElementPath);
+        }
+        catch (Exception exception)
+        {
+            // 내부 API가 바뀌면 자동 표시만 중단하고 기본 툴바·메뉴를 유지합니다.
+            s_VisibilityApplied = true;
+            Debug.LogWarning("[SceneToolbar] 자동 표시를 중단합니다: " + exception.GetType().Name);
+        }
     }
 
     private static bool HasOverlay(string path)

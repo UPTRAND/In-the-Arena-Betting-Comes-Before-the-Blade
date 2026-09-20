@@ -67,6 +67,10 @@ namespace InTheArena.UI
             CancelResultAnimation();
             ClearRoundChecks();
             m_InitialCall = Mathf.Max(0, initialCall);
+            if (m_TargetCallText != null && StageManager.Instance?.CurrentStageData != null)
+            {
+                m_TargetCallText.text = $"Target  {StageManager.Instance.CurrentStageData.TargetCall} Col";
+            }
             m_Settlements.Clear();
             if (settlements != null) m_Settlements.AddRange(settlements);
             ResetResultDisplay();
@@ -125,11 +129,16 @@ namespace InTheArena.UI
                     EnableCompletionInput();
                     break;
                 case StageResultPanelMode.Saving:
+                    SetTitle("SAVING RESULT", Color.white);
                     if (m_ErrorText != null) m_ErrorText.text = "Saving...";
                     DisableCompletionInput();
                     break;
                 case StageResultPanelMode.SaveFailed:
-                    if (m_ErrorText != null) m_ErrorText.text = $"Save failed.\n{errorStr}";
+                    SetTitle("SAVE FAILED", new Color(1f, 0.75f, 0.35f));
+                    if (m_ErrorText != null)
+                    {
+                        m_ErrorText.text = "Could not save your result.\nRetry, or give up this reward and return.";
+                    }
                     if (m_GiveUpButtonText != null) m_GiveUpButtonText.text = "Give up";
                     DisableCompletionInput();
                     EnableInput();

@@ -115,7 +115,7 @@ public class SaveManager : Manager_Base
         {
             m_State = null;
             Availability = SaveAvailability.Corrupted;
-            Debug.LogError("[SaveManager] ?몄씠釉??곗씠?곌? ?먯긽?섏뿀?듬땲??");
+            Debug.LogError("[SaveManager] 세이브 데이터가 손상되었습니다.");
             return;
         }
 
@@ -123,7 +123,7 @@ public class SaveManager : Manager_Base
         {
             m_State = null;
             Availability = SaveAvailability.IoFailure;
-            Debug.LogError("[SaveManager] ?몄씠釉??곗씠??濡쒕뱶 以?IO ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.");
+            Debug.LogError("[SaveManager] 세이브 데이터 로드 중 IO 오류가 발생했습니다.");
             return;
         }
 

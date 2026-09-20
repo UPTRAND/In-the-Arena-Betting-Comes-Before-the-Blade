@@ -17,6 +17,7 @@ namespace InTheArena.Unit
         private static readonly UnitHandle[] Targets = new UnitHandle[Capacity];
         private static readonly int[] Slots = new int[Capacity];
 
+        /// <summary>공격 전달 방식이 선언한 사거리 유형에 맞춰 접근 슬롯을 예약합니다.</summary>
         public static Vector3 GetPosition(Unit owner, Unit target)
         {
             if (owner == null || target == null) return target != null ? target.GroundPosition : default;
@@ -41,7 +42,7 @@ namespace InTheArena.Unit
             int positionInRing = slot % SlotsPerRing;
             float angle = positionInRing * (Mathf.PI * 2f / SlotsPerRing) +
                           (ring & 1) * (Mathf.PI / SlotsPerRing);
-            bool ranged = owner.CurrentBasicAttackData?.Delivery is HomingProjectileAttackDelivery;
+            bool ranged = owner.CurrentBasicAttackData?.Delivery?.IsRanged == true;
             float baseRadius = ranged
                 ? Mathf.Max(GetContactDistance(owner, target), owner.CurrentAttackRange * 0.85f)
                 : GetContactDistance(owner, target);

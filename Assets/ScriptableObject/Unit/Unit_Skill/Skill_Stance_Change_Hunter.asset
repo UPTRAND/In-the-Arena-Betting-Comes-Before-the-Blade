@@ -21,7 +21,7 @@ MonoBehaviour:
   m_Cooldown: 0
   m_CastTime: 0
   m_FailureRetryDelay: 0.25
-  m_ExecutionMode: 0
+  m_ExecutionMode: 2
   m_Targeting:
     rid: 3381824171811274973
   m_Effects:

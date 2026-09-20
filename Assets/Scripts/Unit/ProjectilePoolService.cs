@@ -106,6 +106,15 @@ namespace InTheArena.Unit
             m_RuntimeData.Clear();
         }
 
+        /// <summary>논리 틱 사이의 투사체 위치를 렌더링에 반영합니다.</summary>
+        internal void Present(float interpolation)
+        {
+            for (int i = 0; i < m_Active.Count; i++)
+            {
+                m_Active[i]?.Present(interpolation);
+            }
+        }
+
         public void ClearStage()
         {
             ClearRound();

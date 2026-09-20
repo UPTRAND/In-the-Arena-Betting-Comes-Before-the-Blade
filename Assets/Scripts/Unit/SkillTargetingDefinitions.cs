@@ -25,6 +25,8 @@ namespace InTheArena.Unit
     [Serializable]
     public sealed class SingleUnitSkillTargeting : SkillTargetingDefinition
     {
+        [Tooltip("시전 완료 시 기존 대상이 유효하지 않으면 조건에 맞는 새 대상을 선택합니다.")]
+        [SerializeField] private bool m_ReacquireOnTargetLost;
         [SerializeField] private SkillTargetRelation m_Relation = SkillTargetRelation.Enemy;
         [SerializeField] private TargetPriorityType m_Priority = TargetPriorityType.Nearest;
         [SerializeField] private bool m_IncludeSelf = true;
@@ -45,34 +47,73 @@ namespace InTheArena.Unit
         public override bool Revalidate(Unit owner, SkillData data, SkillTargetSet targets)
         {
             Unit target = targets != null && targets.Count == 1 ? targets[0].Unit : null;
-            return IsCandidate(owner, target, data.Range);
+            if (IsCandidate(owner, target, data.Range))
+            {
+                return true;
+            }
+            if (!m_ReacquireOnTargetLost || targets == null)
+            {
+                return false;
+            }
+
+            targets.Clear();
+            Unit replacement = FindBest(owner, data.Range);
+            return replacement != null && targets.Add(replacement);
         }
 
+        /// <summary>양 팀의 후보를 관계 조건에 맞춰 비교하고 우선 대상 하나를 고릅니다.</summary>
         private Unit FindBest(Unit owner, float range)
         {
-            if (owner == null) return null;
-            if (m_Relation == SkillTargetRelation.Enemy)
-                return UnitRegistry.FindBestTarget(owner, m_Priority, range);
+            if (owner == null)
+            {
+                return null;
+            }
 
-            IReadOnlyList<Unit> candidates = owner.Team == 0 ? UnitRegistry.RedTeam : UnitRegistry.BlueTeam;
+            if (m_Relation == SkillTargetRelation.Enemy)
+            {
+                return UnitRegistry.FindBestTarget(owner, m_Priority, range);
+            }
+
             Unit best = null;
             float bestScore = float.MaxValue;
+            FindBestInTeam(owner, range, UnitRegistry.RedTeam, ref best, ref bestScore);
+            FindBestInTeam(owner, range, UnitRegistry.BlueTeam, ref best, ref bestScore);
+            return best;
+        }
+
+        /// <summary>팀 목록에서 관계·사거리 조건을 만족하는 대상을 기존 후보와 비교합니다.</summary>
+        private void FindBestInTeam(Unit owner, float range, IReadOnlyList<Unit> candidates,
+            ref Unit best, ref float bestScore)
+        {
             for (int i = 0; i < candidates.Count; i++)
             {
                 Unit candidate = candidates[i];
-                if (!IsCandidate(owner, candidate, range)) continue;
+                if (!IsCandidate(owner, candidate, range))
+                {
+                    continue;
+                }
 
                 Vector3 delta = candidate.GroundPosition - owner.GroundPosition;
                 delta.y = 0f;
                 float distanceSqr = delta.sqrMagnitude;
-                float score = m_Priority == TargetPriorityType.LowestHp
-                    ? candidate.CurrentHp / Mathf.Max(1f, candidate.MaxHp) * 100000f + distanceSqr
-                    : distanceSqr;
-                if (score >= bestScore) continue;
+                float score = distanceSqr;
+                if (m_Priority == TargetPriorityType.LowestHp)
+                {
+                    score = candidate.CurrentHp / Mathf.Max(1f, candidate.MaxHp) * 100000f + distanceSqr;
+                }
+                else if (m_Priority == TargetPriorityType.Random)
+                {
+                    score = UnityEngine.Random.value;
+                }
+
+                if (score >= bestScore)
+                {
+                    continue;
+                }
+
                 best = candidate;
                 bestScore = score;
             }
-            return best;
         }
 
         private bool IsCandidate(Unit owner, Unit candidate, float range)
@@ -186,29 +227,58 @@ namespace InTheArena.Unit
                 return false;
 
             result.SetGroundPosition(center);
-            IReadOnlyList<Unit> candidates = GetCandidates(owner);
+            CollectTargets(owner, center, UnitRegistry.RedTeam, result);
+            CollectTargets(owner, center, UnitRegistry.BlueTeam, result);
+            return result.Count > 0;
+        }
+
+        /// <summary>관계 조건에 맞는 범위 내 대상을 수집하며 Any는 양 팀 모두 검사합니다.</summary>
+        private void CollectTargets(Unit owner, Vector3 center, IReadOnlyList<Unit> candidates,
+            SkillTargetSet result)
+        {
             float radiusSqr = m_Radius * m_Radius;
             for (int i = 0; i < candidates.Count; i++)
             {
                 Unit candidate = candidates[i];
-                if (!SkillTargetingUtility.MatchesRelation(owner, candidate, m_Relation)) continue;
+                if (!SkillTargetingUtility.MatchesRelation(owner, candidate, m_Relation))
+                {
+                    continue;
+                }
+
                 Vector3 delta = candidate.GroundPosition - center;
                 delta.y = 0f;
-                if (delta.sqrMagnitude <= radiusSqr) result.Add(candidate);
+                if (delta.sqrMagnitude <= radiusSqr)
+                {
+                    result.Add(candidate);
+                }
             }
-            return result.Count > 0;
         }
 
+        /// <summary>시전 완료 시점의 위치로 범위 대상을 다시 계산합니다.</summary>
         public override bool Revalidate(Unit owner, SkillData data, SkillTargetSet targets)
         {
             if (owner == null || owner.IsDead || targets == null || !targets.HasGroundPosition)
+            {
                 return false;
+            }
+
+            Vector3 center = targets.GroundPosition;
+            if (m_CenterOnOwner)
+            {
+                center = owner.GroundPosition;
+            }
+
             if (!m_CenterOnOwner &&
-                !SkillTargetingUtility.IsInRange(owner, targets.GroundPosition, data.Range))
+                !SkillTargetingUtility.IsInRange(owner, center, data.Range))
+            {
                 return false;
-            for (int i = 0; i < targets.Count; i++)
-                if (targets[i].IsAlive) return true;
-            return false;
+            }
+
+            targets.Clear();
+            targets.SetGroundPosition(center);
+            CollectTargets(owner, center, UnitRegistry.RedTeam, targets);
+            CollectTargets(owner, center, UnitRegistry.BlueTeam, targets);
+            return targets.Count > 0;
         }
 
         private Vector3 ResolveCenter(Unit owner, SkillData data, in SkillUseRequest request)
@@ -221,12 +291,6 @@ namespace InTheArena.Unit
             return nearest != null ? nearest.GroundPosition : owner.GroundPosition;
         }
 
-        private IReadOnlyList<Unit> GetCandidates(Unit owner)
-        {
-            if (m_Relation == SkillTargetRelation.Enemy)
-                return owner.Team == 0 ? UnitRegistry.BlueTeam : UnitRegistry.RedTeam;
-            return owner.Team == 0 ? UnitRegistry.RedTeam : UnitRegistry.BlueTeam;
-        }
     }
 }
 #endif

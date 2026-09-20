@@ -81,7 +81,8 @@ namespace InTheArena.Unit
                 {
                     Source = new UnitHandle(context.Owner),
                     Target = target,
-                    Amount = amount + target.CurrentDefense,
+                    Amount = amount,
+                    IgnoreDefense = true,
                     IsCritical = false,
                     IsSkill = true,
                     IsReaction = context.IsReaction
@@ -133,7 +134,8 @@ namespace InTheArena.Unit
                 {
                     Source = new UnitHandle(context.Owner),
                     Target = target,
-                    Amount = m_Damage + target.CurrentDefense,
+                    Amount = m_Damage,
+                    IgnoreDefense = true,
                     IsCritical = false,
                     IsSkill = true,
                     IsReaction = context.IsReaction
@@ -205,15 +207,9 @@ namespace InTheArena.Unit
                 : context.Owner.GroundPosition;
             Vector3 visualImpactPosition = ResolveVisualImpactPosition(context.Targets, damageCenter);
 
-            GameObject anvilObject = UnityEngine.Object.Instantiate(
-                m_AnvilPrefab,
-                visualImpactPosition + Vector3.up * Mathf.Max(0.1f, m_SpawnHeight),
-                Quaternion.identity);
-            AnvilDrop anvilDrop = anvilObject.GetComponent<AnvilDrop>();
-            if (anvilDrop == null)
+            if (!AnvilDrop.TryRent(m_AnvilPrefab, visualImpactPosition, out AnvilDrop anvilDrop))
             {
-                UnityEngine.Object.Destroy(anvilObject);
-                return SkillExecutionResult.NoEffect;
+                return SkillExecutionResult.PoolExhausted;
             }
 
             anvilDrop.Initialize(
@@ -269,6 +265,7 @@ namespace InTheArena.Unit
         [SerializeField, Min(0f)] private float m_HealVfxScale = 1f;
         [SerializeField, Min(0f)] private float m_HealVfxDuration;
 
+        /// <summary>실제 회복량이 있는 대상에게만 연출을 요청하고 성공을 반환합니다.</summary>
         public override SkillExecutionResult Apply(in SkillEffectContext context)
         {
             bool applied = false;
@@ -287,6 +284,11 @@ namespace InTheArena.Unit
                     IsReaction = context.IsReaction
                 };
                 float actualHeal = target.Heal(in heal);
+                if (actualHeal <= 0f)
+                {
+                    continue;
+                }
+
                 SkillVfxUtility.TryRequest(
                     m_HealVfxPrefab,
                     target == context.Owner ? SkillVfxSpawnPosition.CasterCastAnchor : SkillVfxSpawnPosition.TargetHitAnchor,
@@ -356,7 +358,7 @@ namespace InTheArena.Unit
                 Vector3 direction = target.GroundPosition - context.Owner.GroundPosition;
                 direction.y = 0f;
                 if (direction.sqrMagnitude <= 0.0001f) continue;
-                target.MoveTo(target.GroundPosition + direction.normalized * m_Distance);
+                target.ApplyForcedMovement(target.GroundPosition + direction.normalized * m_Distance);
                 applied = true;
             }
             return applied ? SkillExecutionResult.Success : SkillExecutionResult.NoEffect;
@@ -371,8 +373,12 @@ namespace InTheArena.Unit
         public readonly UnitHandle Target;
         public readonly float Scale;
         public readonly float Duration;
+        public readonly bool FollowTarget;
+        public readonly bool StopOnTargetDeath;
 
-        public SkillVfxRequest(GameObject prefab, Vector3 position, Unit source, Unit target, float scale, float duration)
+        /// <summary>생성 위치와 독립적으로 추적·대상 사망 시 종료 여부를 지정합니다.</summary>
+        public SkillVfxRequest(GameObject prefab, Vector3 position, Unit source, Unit target, float scale, float duration,
+            bool followTarget = true, bool stopOnTargetDeath = true)
         {
             Prefab = prefab;
             Position = position;
@@ -380,6 +386,8 @@ namespace InTheArena.Unit
             Target = new UnitHandle(target);
             Scale = Mathf.Max(0f, scale);
             Duration = Mathf.Max(0f, duration);
+            FollowTarget = followTarget;
+            StopOnTargetDeath = stopOnTargetDeath;
         }
     }
 
@@ -410,14 +418,16 @@ namespace InTheArena.Unit
             Unit target,
             Vector3 fallbackPosition,
             float scale = 1f,
-            float duration = 0f)
+            float duration = 0f, bool? followTarget = null, bool? stopOnTargetDeath = null)
         {
             if (prefab == null || !SkillVfxRequestBus.HasListener || owner == null)
                 return false;
 
             Unit requestTarget = ResolveRequestTarget(positionMode, owner, target);
             Vector3 position = ResolvePosition(positionMode, owner, targets, target, fallbackPosition) + offset;
-            var request = new SkillVfxRequest(prefab, position, owner, requestTarget, scale, duration);
+            bool defaultFollow = positionMode != SkillVfxSpawnPosition.GroundPosition;
+            var request = new SkillVfxRequest(prefab, position, owner, requestTarget, scale, duration,
+                followTarget ?? defaultFollow, stopOnTargetDeath ?? defaultFollow);
             SkillVfxRequestBus.Request(in request);
             return true;
         }
@@ -609,19 +619,17 @@ namespace InTheArena.Unit
                 return ApplyTo(in payload, primaryTarget, 1f);
 
             bool applied = false;
-            IReadOnlyList<Unit> enemies = payload.SourceTeam == 0
-                ? UnitRegistry.BlueTeam
-                : UnitRegistry.RedTeam;
-            float radiusSqr = m_ExplosionRadius * m_ExplosionRadius;
-            for (int i = 0; i < enemies.Count; i++)
+            using (UnityEngine.Pool.ListPool<UnitHandle>.Get(out var targets))
             {
-                Unit candidate = enemies[i];
-                if (candidate == null || candidate.IsDead) continue;
-                Vector3 delta = candidate.GroundPosition - impactPosition;
-                delta.y = 0f;
-                float distanceSqr = delta.sqrMagnitude;
-                if (distanceSqr > radiusSqr) continue;
-                applied |= ApplyTo(in payload, candidate, 1f);
+                UnitRegistry.CaptureEnemiesInRadius(payload.SourceTeam, impactPosition, m_ExplosionRadius, targets);
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    Unit candidate = targets[i].Unit;
+                    if (candidate != null && !candidate.IsDead)
+                    {
+                        applied |= ApplyTo(in payload, candidate, 1f);
+                    }
+                }
             }
             return applied;
         }

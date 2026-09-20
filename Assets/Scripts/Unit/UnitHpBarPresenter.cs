@@ -9,7 +9,7 @@ namespace InTheArena.Unit
     /// </summary>
     public sealed class UnitHpBarPresenter : MonoBehaviour
     {
-        private const string PrefabPath = "Assets/Prefabs/UI/World/UI_UnitHPBar.prefab";
+        public const string ResourcePath = "UI/World/UI_UnitHPBar";
 
         private static UnitHpBarPresenter s_Instance;
         [SerializeField] private GameObject m_HpBarPrefab;
@@ -68,13 +68,7 @@ namespace InTheArena.Unit
                 return;
             }
 
-#if UNITY_EDITOR
-            m_HpBarPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-#endif
-            if (m_HpBarPrefab == null)
-            {
-                m_HpBarPrefab = Resources.Load<GameObject>("UI/World/UI_UnitHPBar");
-            }
+            m_HpBarPrefab = Resources.Load<GameObject>(ResourcePath);
         }
 
         /// <summary>

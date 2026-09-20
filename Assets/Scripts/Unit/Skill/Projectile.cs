@@ -84,6 +84,9 @@ namespace InTheArena.Unit
         private ProjectileSimulationState m_State;
         private Transform m_CameraTransform;
 
+        private Vector3 m_LogicalPosition;
+        private Vector3 m_PreviousPosition;
+
         private void Awake()
         {
             if (m_Animator == null) m_Animator = GetComponentInChildren<Animator>(true);
@@ -94,6 +97,8 @@ namespace InTheArena.Unit
             in ProjectileImpactPayload payload,
             ProjectileData data)
         {
+            m_LogicalPosition = transform.position;
+            m_PreviousPosition = m_LogicalPosition;
             m_Target = target;
             m_Payload = payload;
             m_Speed = data != null ? data.Speed : 20f;
@@ -125,6 +130,8 @@ namespace InTheArena.Unit
             float speed,
             float lifetime)
         {
+            m_LogicalPosition = transform.position;
+            m_PreviousPosition = m_LogicalPosition;
             m_Target = target;
             m_Payload = payload;
             m_Speed = Mathf.Max(0.1f, speed);
@@ -144,6 +151,7 @@ namespace InTheArena.Unit
 
         internal bool SimulationFrame(float deltaTime, ProjectileData data)
         {
+            m_PreviousPosition = m_LogicalPosition;
             if (m_State == ProjectileSimulationState.ImpactPresentation)
             {
                 m_ImpactPresentationRemaining -= deltaTime;
@@ -159,20 +167,22 @@ namespace InTheArena.Unit
             if (m_RemainingLifetime <= 0f) return false;
 
             Vector3 destination = target.HitPosition;
-            Vector3 offset = destination - transform.position;
+            Vector3 offset = destination - m_LogicalPosition;
             float distanceSqr = offset.sqrMagnitude;
             float step = m_Speed * deltaTime;
             float arrivalDistance = Mathf.Max(m_HitDistance, step);
             if (distanceSqr <= arrivalDistance * arrivalDistance)
             {
                 transform.position = destination;
+                m_LogicalPosition = destination;
+                m_PreviousPosition = destination;
                 m_Payload.Apply(target, destination);
                 return BeginImpactPresentation(data);
             }
 
             float distance = Mathf.Sqrt(distanceSqr);
             Vector3 direction = offset / distance;
-            transform.position += direction * step;
+            m_LogicalPosition += direction * step;
             ApplyOrientation(direction);
             return true;
         }
@@ -235,6 +245,8 @@ namespace InTheArena.Unit
 
         public void OnPoolRent(in PoolSpawnContext context)
         {
+            m_LogicalPosition = context.Position;
+            m_PreviousPosition = context.Position;
             if (m_Animator == null) m_Animator = GetComponentInChildren<Animator>(true);
         }
 
@@ -250,6 +262,12 @@ namespace InTheArena.Unit
             m_OrientationMode = ProjectileOrientationMode.Fixed;
             m_State = ProjectileSimulationState.Inactive;
             m_CameraTransform = null;
+        }
+
+        /// <summary>충돌 판정 위치와 분리하여 렌더 프레임마다 비행 위치를 보간합니다.</summary>
+        internal void Present(float interpolation)
+        {
+            transform.position = Vector3.Lerp(m_PreviousPosition, m_LogicalPosition, Mathf.Clamp01(interpolation));
         }
     }
 }

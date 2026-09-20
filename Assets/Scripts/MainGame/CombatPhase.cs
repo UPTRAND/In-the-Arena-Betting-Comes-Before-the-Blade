@@ -111,6 +111,7 @@ namespace InTheArena.MainGame
 
         private void InitializeCombat()
         {
+            BattleSimulation.PrepareBattle();
             IsPhaseCompleted = false;
             m_IsCombatEnded = false;
             m_RemainingCombatTime = m_CombatTimeout;
@@ -315,6 +316,7 @@ namespace InTheArena.MainGame
 
         private void StartUnitAI()
         {
+            BattleSimulation.BeginBattle();
             // 모든 유닛이 배치되고 화면이 밝아진 뒤 동시에 AI 전투를 시작한다.
             foreach (var unit in Context.TeamAUnits)
             {
@@ -332,6 +334,7 @@ namespace InTheArena.MainGame
 
         private async Awaitable RunCombatLoopAsync(CancellationToken token)
         {
+            float previousBattleTime = BattleSimulation.ElapsedBattleTime;
             Debug.Log($"[CombatPhase] 전투 시작 - 제한 시간: {m_CombatTimeout:0.##}초");
 
             while (!m_IsCombatEnded && !token.IsCancellationRequested)
@@ -352,9 +355,10 @@ namespace InTheArena.MainGame
                 await Awaitable.NextFrameAsync();
                 if (token.IsCancellationRequested) break;
 
-                // Unit.Update에서 각 유닛의 런타임 AI가 행동한다.
-                // Time.deltaTime은 timeScale이 반영된 전투 시간이다.
-                m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - Time.deltaTime);
+                // 유닛·투사체와 동일하게 실제 처리된 전투 시간만 차감합니다.
+                float currentBattleTime = BattleSimulation.ElapsedBattleTime;
+                m_RemainingCombatTime = Mathf.Max(0f, m_RemainingCombatTime - (currentBattleTime - previousBattleTime));
+                previousBattleTime = currentBattleTime;
             }
         }
 
@@ -468,6 +472,7 @@ namespace InTheArena.MainGame
 
         private void FreezeCombatOutcome(Team winner)
         {
+            BattleSimulation.FreezeBattle();
             m_IsCombatEnded = true;
             Context.CombatWinner = winner;
             Context.IsRoundCompleted = true;
@@ -694,6 +699,7 @@ namespace InTheArena.MainGame
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
+            BattleSimulation.FreezeBattle();
             EndItemCastingSlowMotion();
             Time.timeScale = 1f;
             m_IsFinalEliminationPlaying = false;

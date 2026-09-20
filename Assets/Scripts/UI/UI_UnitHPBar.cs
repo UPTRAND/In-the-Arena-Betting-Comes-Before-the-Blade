@@ -28,6 +28,9 @@ namespace InTheArena.UI
         private UnityEngine.Camera m_MainCamera;
         private RectTransform m_RectTransform;
 
+        private float m_LastHp = float.NaN;
+        private float m_LastMaxHp = float.NaN;
+
         protected override void Awake()
         {
             base.Awake();
@@ -146,6 +149,12 @@ namespace InTheArena.UI
 
             float currentHp = m_TargetUnit.CurrentHp;
             float maxHp = m_TargetUnit.MaxHp;
+            if (currentHp == m_LastHp && maxHp == m_LastMaxHp)
+            {
+                return;
+            }
+            m_LastHp = currentHp;
+            m_LastMaxHp = maxHp;
             float ratio = 0f;
 
             if (maxHp > 0f)

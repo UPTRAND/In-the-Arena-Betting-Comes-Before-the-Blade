@@ -17,6 +17,10 @@ namespace InTheArena.MainGame.Editor
         [MenuItem("Tools/In The Arena/Build Stage Intro UI")]
         public static void Build()
         {
+            if (!EditorUtility.DisplayDialog("인트로 UI 재생성", "UI_BettingPhase 프리팹의 인트로 영역을 갱신합니다.", "갱신", "취소"))
+            {
+                return;
+            }
             GameObject prefabRoot = PrefabUtility.LoadPrefabContents(BettingPrefabPath);
             try
             {

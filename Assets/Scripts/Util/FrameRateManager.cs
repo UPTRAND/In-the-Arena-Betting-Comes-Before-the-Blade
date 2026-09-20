@@ -21,7 +21,8 @@ public static class FrameRateManager
             Apply();
     }
 
-    private static void Apply()
+    /// <summary>프로젝트의 프레임 속도 정책을 한 곳에서 적용합니다.</summary>
+    public static void Apply()
     {
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = TargetFrameRate;

@@ -779,10 +779,10 @@ GameObject:
   m_Component:
   - component: {fileID: 334894533}
   - component: {fileID: 334894532}
-  - component: {fileID: 334894531}
   - component: {fileID: 334894530}
   - component: {fileID: 334894535}
   - component: {fileID: 334894534}
+  - component: {fileID: 334894536}
   m_Layer: 5
   m_Name: '[UI] HUD'
   m_TagString: Untagged
@@ -807,29 +807,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &334894531
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 334894529}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
-  m_ScreenMatchMode: 1
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!223 &334894532
 Canvas:
   m_ObjectHideFlags: 0
@@ -899,6 +876,30 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &334894536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 334894529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812b0cc75e602ff4dbc690771ecd897c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ResponsiveCanvas
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+  m_ApplySafeAreaToChildren: 1
 --- !u!1 &337048254
 GameObject:
   m_ObjectHideFlags: 0
@@ -909,10 +910,10 @@ GameObject:
   m_Component:
   - component: {fileID: 337048258}
   - component: {fileID: 337048257}
-  - component: {fileID: 337048256}
   - component: {fileID: 337048255}
   - component: {fileID: 337048260}
   - component: {fileID: 337048259}
+  - component: {fileID: 337048261}
   m_Layer: 5
   m_Name: '[UI] Panels'
   m_TagString: Untagged
@@ -937,29 +938,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &337048256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 337048254}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
-  m_ScreenMatchMode: 1
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!223 &337048257
 Canvas:
   m_ObjectHideFlags: 0
@@ -1032,6 +1010,30 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &337048261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 337048254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812b0cc75e602ff4dbc690771ecd897c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ResponsiveCanvas
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+  m_ApplySafeAreaToChildren: 1
 --- !u!114 &356021157 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2128170648018247184, guid: bc1ea841b2db555498f2003f5fc09bb1, type: 3}
@@ -1064,10 +1066,10 @@ GameObject:
   m_Component:
   - component: {fileID: 373966582}
   - component: {fileID: 373966581}
-  - component: {fileID: 373966580}
   - component: {fileID: 373966579}
   - component: {fileID: 373966584}
   - component: {fileID: 373966583}
+  - component: {fileID: 373966585}
   m_Layer: 5
   m_Name: '[UI] World'
   m_TagString: Untagged
@@ -1092,29 +1094,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &373966580
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 373966578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
-  m_ScreenMatchMode: 1
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!223 &373966581
 Canvas:
   m_ObjectHideFlags: 0
@@ -1183,6 +1162,30 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &373966585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 373966578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812b0cc75e602ff4dbc690771ecd897c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ResponsiveCanvas
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+  m_ApplySafeAreaToChildren: 0
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1458,10 +1461,10 @@ GameObject:
   m_Component:
   - component: {fileID: 644528781}
   - component: {fileID: 644528780}
-  - component: {fileID: 644528779}
   - component: {fileID: 644528778}
   - component: {fileID: 644528783}
   - component: {fileID: 644528782}
+  - component: {fileID: 644528784}
   m_Layer: 5
   m_Name: '[UI] Ground World'
   m_TagString: Untagged
@@ -1486,29 +1489,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &644528779
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 644528777}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
-  m_ScreenMatchMode: 1
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!223 &644528780
 Canvas:
   m_ObjectHideFlags: 0
@@ -1577,6 +1557,30 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &644528784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 644528777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812b0cc75e602ff4dbc690771ecd897c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ResponsiveCanvas
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+  m_ApplySafeAreaToChildren: 0
 --- !u!114 &723889612 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 895163356582782728, guid: bc1ea841b2db555498f2003f5fc09bb1, type: 3}
@@ -1784,6 +1788,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 334894533}
     m_Modifications:
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: -1220
+      objectReference: {fileID: 0}
     - target: {fileID: 940694284857212455, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -200
@@ -2023,6 +2047,18 @@ PrefabInstance:
     - target: {fileID: 7280113884271679509, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
       propertyPath: m_AnchorMin.x
       value: 0.27999997
+      objectReference: {fileID: 0}
+    - target: {fileID: 7901130791812662029, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7901130791812662029, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 304.53
+      objectReference: {fileID: 0}
+    - target: {fileID: 7901130791812662029, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 884.71
       objectReference: {fileID: 0}
     - target: {fileID: 7904567428565136093, guid: 72d4c22f384f96d48bf57c1c12eec41f, type: 3}
       propertyPath: m_AnchorMax.y
@@ -3781,6 +3817,7 @@ MonoBehaviour:
   m_NewMultiplierText: {fileID: 1171175767}
   m_BettingUi: {fileID: 1171175822}
   m_BettingContentCanvasGroup: {fileID: 1107224097}
+  m_StageIntroUi: {fileID: 0}
   m_NowColInfoText: {fileID: 1171175821}
   m_NowColImage: {fileID: 0}
   m_SliderHandlePointerTrigger: {fileID: 1171175823}
@@ -3924,10 +3961,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1716312340}
   - component: {fileID: 1716312339}
-  - component: {fileID: 1716312338}
   - component: {fileID: 1716312337}
   - component: {fileID: 1716312342}
   - component: {fileID: 1716312341}
+  - component: {fileID: 1716312343}
   m_Layer: 5
   m_Name: '[UI] DynamicHUD'
   m_TagString: Untagged
@@ -3952,29 +3989,6 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &1716312338
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1716312336}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
-  m_ScreenMatchMode: 1
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!223 &1716312339
 Canvas:
   m_ObjectHideFlags: 0
@@ -4043,6 +4057,30 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &1716312343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1716312336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 812b0cc75e602ff4dbc690771ecd897c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ResponsiveCanvas
+  m_UiScaleMode: 1
+  m_ReferencePixelsPerUnit: 100
+  m_ScaleFactor: 1
+  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ScreenMatchMode: 1
+  m_MatchWidthOrHeight: 0
+  m_PhysicalUnit: 3
+  m_FallbackScreenDPI: 96
+  m_DefaultSpriteDPI: 96
+  m_DynamicPixelsPerUnit: 1
+  m_PresetInfoIsWorld: 0
+  m_ApplySafeAreaToChildren: 0
 --- !u!1 &1864431922
 GameObject:
   m_ObjectHideFlags: 0

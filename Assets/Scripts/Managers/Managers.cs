@@ -13,10 +13,6 @@ public class Managers : MonoBehaviour
     [Header("Registered Managers")]
     [SerializeField] private List<Manager_Base> _allManagers = new List<Manager_Base>();
 
-    [Header("Application Settings")]
-    [SerializeField] private int _targetFrameRate = 60;
-    [SerializeField] private int _vSyncCount = 0;
-
     private CancellationTokenSource _startupCts;
     private bool _released;
     public bool IsInitialized { get; private set; }
@@ -82,11 +78,7 @@ public class Managers : MonoBehaviour
     {
         Application.runInBackground = true;
 
-        if (QualitySettings.vSyncCount != _vSyncCount)
-            QualitySettings.vSyncCount = _vSyncCount;
-
-        if (Application.targetFrameRate != _targetFrameRate)
-            Application.targetFrameRate = _targetFrameRate;
+        FrameRateManager.Apply();
     }
 
     private async Awaitable InitializeManagersAsync(CancellationToken token)

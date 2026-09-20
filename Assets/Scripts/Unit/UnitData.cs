@@ -149,10 +149,10 @@ namespace InTheArena.Unit
             }
 
             if (m_AttackType == UnitAttackType.Ranged &&
-                !(m_BasicAttackData?.Delivery is HomingProjectileAttackDelivery))
+                m_BasicAttackData?.Delivery?.IsRanged != true)
             {
                 Debug.LogError(
-                    $"[UnitData] {name}: 원거리 유닛은 HomingProjectileAttackDelivery가 필요합니다.",
+                    $"[UnitData] {name}: 원거리 유닛은 IsRanged를 제공하는 공격 전달 방식이 필요합니다.",
                     this);
                 isValid = false;
             }

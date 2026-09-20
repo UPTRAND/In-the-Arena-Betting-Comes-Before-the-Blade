@@ -80,6 +80,7 @@ namespace InTheArena.UI
             return m_StageDatas.Find(stage => stage != null && stage.StageNum == stageNumber);
         }
 
+        /// <summary>현재 스테이지 배경을 원본 비율을 유지하며 화면 전체에 채웁니다.</summary>
         private void RefreshBackground()
         {
             if (m_BackgroundImage != null && m_Target != null && m_Target.BackgroundSprite != null)
@@ -87,6 +88,13 @@ namespace InTheArena.UI
                 m_BackgroundImage.gameObject.SetActive(true);
                 m_BackgroundImage.sprite = m_Target.BackgroundSprite;
                 m_BackgroundImage.preserveAspect = true;
+
+                AspectRatioFitter fitter = m_BackgroundImage.GetComponent<AspectRatioFitter>();
+                if (fitter != null)
+                {
+                    fitter.aspectRatio = m_Target.BackgroundSprite.rect.width /
+                        Mathf.Max(1f, m_Target.BackgroundSprite.rect.height);
+                }
             }
         }
 

@@ -24,6 +24,7 @@ public sealed class ObjectPoolingFactory<T> : IPoolOwner where T : Component
     public ObjectPoolingFactory(Transform root) => m_Root = root;
     public int RegisteredPoolCount => m_Buckets.Count;
 
+    /// <summary>프리팹별 풀을 등록하고 이름 조회의 모호성을 검사한 뒤 예열합니다.</summary>
     public bool Register(GameObject prefab, PoolPolicy policy)
     {
         if (prefab == null || !prefab.TryGetComponent<T>(out _))
@@ -48,9 +49,37 @@ public sealed class ObjectPoolingFactory<T> : IPoolOwner where T : Component
         root.SetParent(m_Root, false);
         var bucket = new Bucket { Policy = normalized, Root = root };
         m_Buckets.Add(key, bucket);
-        if (!m_LegacyKeys.ContainsKey(prefab.name)) m_LegacyKeys.Add(prefab.name, key);
-        else m_LegacyKeys.Remove(prefab.name);
+        RefreshLegacyKey(prefab.name);
         return Prewarm(key, normalized.InitialCapacity);
+    }
+
+    /// <summary>같은 이름의 프리팹이 여러 개라면 문자열 조회를 허용하지 않습니다.</summary>
+    private void RefreshLegacyKey(string name)
+    {
+        m_LegacyKeys.Remove(name);
+
+        PoolKey match = default;
+        bool found = false;
+        foreach (PoolKey key in m_Buckets.Keys)
+        {
+            if (key.Prefab == null || key.Prefab.name != name)
+            {
+                continue;
+            }
+
+            if (found)
+            {
+                return;
+            }
+
+            match = key;
+            found = true;
+        }
+
+        if (found)
+        {
+            m_LegacyKeys.Add(name, match);
+        }
     }
 
     public bool IsRegistered(GameObject prefab)
@@ -83,9 +112,22 @@ public sealed class ObjectPoolingFactory<T> : IPoolOwner where T : Component
     {
         instance = null;
         if (!m_Buckets.TryGetValue(key, out Bucket bucket)) return false;
-        PruneDestroyed(bucket);
-        while (bucket.Available.Count > 0 && instance == null) instance = bucket.Available.Pop();
-        if (instance == null && bucket.All.Count < bucket.Policy.MaxCapacity) instance = Create(key, bucket);
+        // 정상 대여는 스택 pop만 수행하고, 용량 경계에서만 파괴된 항목을 정리합니다.
+        while (bucket.Available.Count > 0 && instance == null)
+        {
+            instance = bucket.Available.Pop();
+        }
+        if (instance == null)
+        {
+            if (bucket.All.Count >= bucket.Policy.MaxCapacity)
+            {
+                PruneDestroyed(bucket);
+            }
+            if (bucket.All.Count < bucket.Policy.MaxCapacity)
+            {
+                instance = Create(key, bucket);
+            }
+        }
         if (instance == null)
         {
             bucket.FailedRentCount++;
@@ -261,6 +303,10 @@ public sealed class ObjectPoolingFactory<T> : IPoolOwner where T : Component
         DestroyObject(bucket.Root != null ? bucket.Root.gameObject : null);
         m_Buckets.Remove(key);
         RemoveLegacyKey(key);
+        if (key.Prefab != null)
+        {
+            RefreshLegacyKey(key.Prefab.name);
+        }
     }
 
     private void RemoveLegacyKey(PoolKey key)

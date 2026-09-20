@@ -25,6 +25,12 @@ namespace InTheArena.Unit
     [Serializable]
     public abstract class AttackDeliveryDefinition
     {
+        /// <summary>AI가 원거리 접근 방식을 사용할지 전달 방식이 선언합니다.</summary>
+        public virtual bool IsRanged => false;
+
+        /// <summary>공격 모션의 발사 시점까지 전달을 지연할지 선언합니다.</summary>
+        public virtual bool UsesReleaseTiming => false;
+
         public abstract bool TryDeliver(
             Unit owner,
             Unit target,
@@ -54,6 +60,10 @@ namespace InTheArena.Unit
         [SerializeField] private ProjectileData m_ProjectileData;
 
         public ProjectileData ProjectileData => m_ProjectileData;
+
+        public override bool IsRanged => true;
+
+        public override bool UsesReleaseTiming => true;
 
 #if UNITY_EDITOR
         public void ConfigureForEditor(ProjectileData projectileData)

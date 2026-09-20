@@ -175,7 +175,7 @@ public sealed class BetSettlementServiceTests
         var session = new StageSession();
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
-        ticket.SetWager(50);
+        ticket.SetWager(100);
         ticket.SetSurvivingRow(SurvivingRowPrediction.BlueRow2);
 
         var context = new RoundContext();
@@ -203,7 +203,7 @@ public sealed class BetSettlementServiceTests
         var session = new StageSession();
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
-        ticket.SetWager(50);
+        ticket.SetWager(100);
         ticket.SetSurvivingRow(SurvivingRowPrediction.BlueRow2);
 
         var context = new RoundContext();
@@ -267,7 +267,7 @@ public sealed class BetSettlementServiceTests
         var session = new StageSession();
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
-        ticket.SetWager(50);
+        ticket.SetWager(100);
         ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
 
         var context = new RoundContext();
@@ -297,7 +297,7 @@ public sealed class BetSettlementServiceTests
         var session = new StageSession();
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
-        ticket.SetWager(50);
+        ticket.SetWager(100);
         ticket.SetFaction(FactionPrediction.Red);
         ticket.SetRemainingTime(RemainingTimePrediction.Seconds10To15);
         ticket.SetOddEven(OddEvenPrediction.Odd);
@@ -323,7 +323,26 @@ public sealed class BetSettlementServiceTests
 
         Assert.That(settlement.IsWin, Is.True);
         Assert.That(settlement.Multiplier, Is.EqualTo(16));
-        Assert.That(settlement.PayoutCall, Is.EqualTo(800));
+        Assert.That(settlement.PayoutCall, Is.EqualTo(1600));
+    }
+
+    /// <summary>모델이 UI와 같은 최소 금액과 베팅 단위를 적용합니다.</summary>
+    [TestCase(0, false)]
+    [TestCase(50, false)]
+    [TestCase(99, false)]
+    [TestCase(100, true)]
+    [TestCase(150, false)]
+    [TestCase(500, true)]
+    public void WagerValidation_UsesSharedAmountRule(int amount, bool valid)
+    {
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(amount);
+        ticket.SetFaction(FactionPrediction.Red);
+
+        Assert.That(ticket.Validate(m_StageData, context, 500, out _), Is.EqualTo(valid));
+        Assert.That(BettingRules.IsValidWager(amount), Is.EqualTo(valid));
     }
 
     private void SetField(string name, object value)

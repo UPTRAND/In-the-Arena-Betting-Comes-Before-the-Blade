@@ -23,6 +23,8 @@ namespace InTheArena.UI
         private const string PreviewPrefabPath = "UI/UI_FlyingRewardPreview";
         private static readonly List<GameObject> ActiveIcons = new List<GameObject>(16);
         private static readonly Dictionary<RectTransform, TargetPulse> ActiveTargetPulses = new Dictionary<RectTransform, TargetPulse>(4);
+        private static readonly Dictionary<GameObject, Sequence> ActiveSequences = new Dictionary<GameObject, Sequence>();
+
         private static Canvas s_Canvas;
         private static UI_FlyingRewardPreviewView s_PreviewPrefab;
         private static bool s_Initialized;
@@ -73,10 +75,14 @@ namespace InTheArena.UI
             {
                 GameObject icon = ActiveIcons[i];
                 if (icon == null) continue;
-                icon.transform.DOKill();
+                if (ActiveSequences.TryGetValue(icon, out Sequence sequence))
+                {
+                    sequence.Kill(false);
+                }
                 UnityEngine.Object.Destroy(icon);
             }
             ActiveIcons.Clear();
+            ActiveSequences.Clear();
 
             foreach (KeyValuePair<RectTransform, TargetPulse> pair in ActiveTargetPulses)
             {
@@ -155,6 +161,7 @@ namespace InTheArena.UI
                 verticalDirection * UnityEngine.Random.Range(ScatterVerticalMin, ScatterVerticalMax));
             Vector2 control = Vector2.Lerp(scatter, end, 0.45f) + UnityEngine.Random.insideUnitCircle * 45f;
             Sequence sequence = DOTween.Sequence().SetTarget(root).SetUpdate(true);
+            ActiveSequences[root] = sequence;
             sequence.Append(group.DOFade(1f, AppearDuration));
             sequence.Join(rect.DOAnchorPos(scatter, AppearDuration).SetEase(Ease.OutQuad));
             sequence.Join(rect.DOScale(1f, AppearDuration).SetEase(Ease.OutBack));
@@ -168,6 +175,7 @@ namespace InTheArena.UI
             sequence.OnComplete(() =>
             {
                 ActiveIcons.Remove(root);
+                ActiveSequences.Remove(root);
                 if (root != null) UnityEngine.Object.Destroy(root);
                 onArrived?.Invoke();
             });
@@ -192,6 +200,7 @@ namespace InTheArena.UI
             preview.SetReward(sprite, message);
             ActiveIcons.Add(root);
             Sequence sequence = DOTween.Sequence().SetTarget(root).SetUpdate(true);
+            ActiveSequences[root] = sequence;
             sequence.Append(group.DOFade(1f, AppearDuration));
             sequence.Join(rect.DOScale(1f, AppearDuration).SetEase(Ease.OutBack));
             sequence.AppendInterval(Mathf.Max(0f, disappearAt - AppearDuration * 2f));
@@ -199,6 +208,7 @@ namespace InTheArena.UI
             sequence.OnComplete(() =>
             {
                 ActiveIcons.Remove(root);
+                ActiveSequences.Remove(root);
                 if (root != null) UnityEngine.Object.Destroy(root);
             });
         }

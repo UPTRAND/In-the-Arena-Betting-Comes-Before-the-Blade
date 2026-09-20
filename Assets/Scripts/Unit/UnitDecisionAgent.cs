@@ -56,16 +56,22 @@ namespace InTheArena.Unit
             m_IsActive = true;
         }
 
+        /// <summary>적 탐색 주기를 유지하면서 독립적으로 사용 가능한 스킬도 판단합니다.</summary>
         public void UpdateAI(float deltaTime)
         {
-            if (!m_IsActive || m_Owner == null || m_Owner.IsDead) return;
+            if (!m_IsActive || m_Owner == null || m_Owner.IsDead)
+            {
+                return;
+            }
             if (m_InitialDelayRemaining > 0f)
             {
                 m_InitialDelayRemaining = Mathf.Max(0f, m_InitialDelayRemaining - deltaTime);
                 return;
             }
             if (m_SearchRetryRemaining > 0f)
+            {
                 m_SearchRetryRemaining = Mathf.Max(0f, m_SearchRetryRemaining - deltaTime);
+            }
 
             Unit target = CurrentTarget;
             if (target == null || target.IsDead || target.Team == m_Owner.Team ||
@@ -74,7 +80,8 @@ namespace InTheArena.Unit
                 CurrentState = AIState.SearchTarget;
                 if (m_SearchRetryRemaining > 0f)
                 {
-                    m_Owner.StopMovement();
+                    UnitIntent waitingIntent = DecisionSystem.Decide(m_Owner, null, m_AttackRangeRatio);
+                    Execute(in waitingIntent);
                     return;
                 }
                 target = UnitRegistry.FindBestTarget(
@@ -82,7 +89,11 @@ namespace InTheArena.Unit
                     m_TargetPriority,
                     m_MaxSearchDistance);
                 m_Target = new UnitHandle(target);
-                m_SearchRetryRemaining = target == null ? m_SearchInterval : 0f;
+                m_SearchRetryRemaining = 0f;
+                if (target == null)
+                {
+                    m_SearchRetryRemaining = m_SearchInterval;
+                }
             }
 
             UnitIntent intent = DecisionSystem.Decide(m_Owner, target, m_AttackRangeRatio);

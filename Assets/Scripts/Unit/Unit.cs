@@ -90,6 +90,31 @@ namespace InTheArena.Unit
         private UnitAnimationPresenter m_AnimationPresenter;
 
         private readonly List<StatusEffectRuntime> m_ActiveDataEffects = new List<StatusEffectRuntime>(8);
+
+        private bool m_IsClearingStatusEffects;
+
+        private RuntimeAnimatorController m_CachedAttackController;
+        private AnimationClip m_CachedAttackClip;
+        private AnimationClip m_CachedDaggerClip;
+
+        private Vector3 m_ForcedMoveTarget;
+        private float m_ForcedMoveRemaining;
+
+        // 풀에서 같은 객체가 재사용되어도 이전 순회의 효과로 처리하지 않습니다.
+        private readonly struct StatusEffectSnapshot
+        {
+            public readonly StatusEffectRuntime Effect;
+            private readonly int m_Generation;
+
+            public bool IsCurrent => Effect.Generation == m_Generation && Effect.IsActive;
+
+            /// <summary>현재 대여 세대를 기록합니다.</summary>
+            public StatusEffectSnapshot(StatusEffectRuntime effect)
+            {
+                Effect = effect;
+                m_Generation = effect.Generation;
+            }
+        }
         private readonly List<SkillRuntime> m_RuntimeSkills = new List<SkillRuntime>(8);
         private readonly SkillTargetSet m_CastingTargets = new SkillTargetSet();
         private SkillRuntime m_RuntimeSkill;
@@ -143,6 +168,7 @@ namespace InTheArena.Unit
             m_AttackCooldown);
         internal bool IsDeathPresentationHeld => m_HoldDeathPresentation;
         public bool CanAttack => m_IsInitialized && !IsDead &&
+                                 !BattleSimulation.IsBattleFrozen && m_ForcedMoveRemaining <= 0f &&
                                  m_ActionController.CanStartAction && m_AttackCooldown <= 0f;
         public SkillRuntime Skill => m_RuntimeSkill;
         public IReadOnlyList<SkillRuntime> Skills => m_RuntimeSkills;
@@ -181,9 +207,11 @@ namespace InTheArena.Unit
             UnregisterRuntime();
         }
 
+        /// <summary>레지스트리와 스킬 구독, 상태효과 및 체력 표시를 정리합니다.</summary>
         private void OnDestroy()
         {
             UnregisterRuntime();
+            ResetRuntimeSkills();
             ClearDataStatusEffects();
             if (HpBar != null)
             {
@@ -356,6 +384,18 @@ namespace InTheArena.Unit
 
             UpdateCasting(deltaTime);
             UpdateDataStatusEffects(deltaTime);
+            if (IsDead)
+            {
+                return;
+            }
+            if (m_ForcedMoveRemaining > 0f)
+            {
+                m_PreviousSimulationPosition = m_SimulationPosition;
+                float fraction = Mathf.Min(1f, deltaTime / m_ForcedMoveRemaining);
+                m_SimulationPosition = Vector3.Lerp(m_SimulationPosition, m_ForcedMoveTarget, fraction);
+                m_ForcedMoveRemaining = Mathf.Max(0f, m_ForcedMoveRemaining - deltaTime);
+                return;
+            }
             m_RuntimeAI?.UpdateAI(deltaTime);
             m_PreviousSimulationPosition = m_SimulationPosition;
             UpdateMovement(deltaTime);
@@ -430,6 +470,7 @@ namespace InTheArena.Unit
             return m_RedTeamSprites[frameIndex] != null ? m_RedTeamSprites[frameIndex] : source;
         }
 
+        /// <summary>기본 피해 정보를 구성하여 공통 피해 처리로 전달합니다.</summary>
         public float ApplyDamage(float damage, Unit attacker = null, bool isCritical = false, bool isSkillDamage = false)
         {
             var context = new DamageContext
@@ -444,20 +485,52 @@ namespace InTheArena.Unit
             return ApplyDamage(in context);
         }
 
+        /// <summary>방어·치명타 이후 보호막을 적용하고 실제 잃은 체력을 반환합니다.</summary>
         public float ApplyDamage(in DamageContext sourceContext)
         {
+            return ApplyDamageDetailed(in sourceContext).HpLost;
+        }
+
+        /// <summary>피해 요청의 실제 HP 감소·보호막 흡수·처치 여부를 함께 반환합니다.</summary>
+        public DamageResult ApplyDamageDetailed(in DamageContext sourceContext)
+        {
             DamageContext context = sourceContext;
-            if (IsDead || context.Target != this || context.Amount <= 0f) return 0f;
+            context.ShieldAbsorbed = 0f;
+            if (IsDead || BattleSimulation.IsBattleFrozen || context.Target != this || context.Amount <= 0f)
+            {
+                return default;
+            }
 
             float previousRatio = m_CurrentHp / Mathf.Max(1f, MaxHp);
-            for (int i = 0; i < m_ActiveDataEffects.Count && context.Amount > 0f; i++)
-                m_ActiveDataEffects[i].ModifyIncomingDamage(ref context);
+            if (!context.IgnoreDefense)
+            {
+                context.Amount = Mathf.Max(1f, context.Amount - m_CurrentStat.defense);
+            }
+            if (context.IsCritical)
+            {
+                context.Amount *= 1.5f;
+            }
+
+            using (UnityEngine.Pool.ListPool<StatusEffectSnapshot>.Get(out var effects))
+            {
+                CaptureStatusEffects(effects);
+                for (int i = 0; i < effects.Count && context.Amount > 0f; i++)
+                {
+                    if (effects[i].IsCurrent)
+                    {
+                        effects[i].Effect.ModifyIncomingDamage(ref context);
+                    }
+                }
+            }
 
             float finalDamage = 0f;
-            if (context.Amount > 0f)
+            if (IsDead)
             {
-                finalDamage = Mathf.Max(1f, context.Amount - m_CurrentStat.defense);
-                if (context.IsCritical) finalDamage *= 1.5f;
+                return new DamageResult(0f, context.ShieldAbsorbed, false);
+            }
+            if (!IsDead && context.Amount > 0f)
+            {
+                finalDamage = Mathf.Min(m_CurrentHp, context.Amount);
                 m_CurrentHp = Mathf.Max(0f, m_CurrentHp - finalDamage);
             }
 
@@ -474,7 +547,10 @@ namespace InTheArena.Unit
                 context.IsReaction);
             OnHpChanged?.Invoke(m_CurrentHp, MaxHp);
             PlayHitEffect();
-            if (Application.isPlaying) UnitHpBarPresenter.NotifyDamaged(this);
+            if (Application.isPlaying)
+            {
+                UnitHpBarPresenter.NotifyDamaged(this);
+            }
 
             float currentRatio = m_CurrentHp / Mathf.Max(1f, MaxHp);
             if (previousRatio > 0.25f && currentRatio <= 0.25f && m_CurrentHp > 0f)
@@ -506,9 +582,10 @@ namespace InTheArena.Unit
                         context.IsReaction);
                 }
             }
-            return finalDamage;
+            return new DamageResult(finalDamage, context.ShieldAbsorbed, finalDamage > 0f && IsDead);
         }
 
+        /// <summary>기본 회복 정보를 구성하여 공통 회복 처리로 전달합니다.</summary>
         public float Heal(float amount, Unit caster = null)
         {
             var context = new HealContext
@@ -522,9 +599,13 @@ namespace InTheArena.Unit
             return Heal(in context);
         }
 
+        /// <summary>진행 중인 전투에서 체력을 회복하고 실제 회복량을 알립니다.</summary>
         public float Heal(in HealContext context)
         {
-            if (IsDead || context.Target != this || context.Amount <= 0f) return 0f;
+            if (IsDead || BattleSimulation.IsBattleFrozen || context.Target != this || context.Amount <= 0f)
+            {
+                return 0f;
+            }
             float previous = m_CurrentHp;
             m_CurrentHp = Mathf.Min(MaxHp, m_CurrentHp + context.Amount);
             float actual = m_CurrentHp - previous;
@@ -579,7 +660,7 @@ namespace InTheArena.Unit
             m_AnimationPresenter?.PlayAttack(attackData);
             PlayClip(m_AttackSound);
 
-            if (attackData?.Delivery is HomingProjectileAttackDelivery)
+            if (attackData?.Delivery?.UsesReleaseTiming == true)
             {
                 float releaseDelay = ResolveProjectileAttackReleaseDelay(attackData, attackAnimationLock);
                 SchedulePendingProjectileAttack(attackData, target, releaseDelay);
@@ -663,19 +744,27 @@ namespace InTheArena.Unit
             return Mathf.Clamp(releaseDelay, 0f, fallbackLock);
         }
 
+        /// <summary>컨트롤러가 바뀔 때만 공격 클립 목록을 읽고 이후에는 캐시를 사용합니다.</summary>
         private AnimationClip FindPreferredAttackClip(BasicAttackData attackData)
         {
-            RuntimeAnimatorController controller = m_Animator != null ? m_Animator.runtimeAnimatorController : null;
-            if (controller == null) return null;
+            if (m_Animator == null || m_Animator.runtimeAnimatorController == null)
+            {
+                return null;
+            }
 
-            string preferredClipName = attackData?.Delivery is ImmediateAttackDelivery
-                ? "DaggerAttack"
-                : "Attack";
-            AnimationClip clip = FindLongestClip(controller, preferredClipName);
-            if (clip == null && !preferredClipName.Equals("Attack", StringComparison.OrdinalIgnoreCase))
-                clip = FindLongestClip(controller, "Attack");
+            RuntimeAnimatorController controller = m_Animator.runtimeAnimatorController;
+            if (m_CachedAttackController != controller)
+            {
+                m_CachedAttackController = controller;
+                m_CachedAttackClip = FindLongestClip(controller, "Attack");
+                m_CachedDaggerClip = FindLongestClip(controller, "DaggerAttack");
+            }
 
-            return clip;
+            if (attackData?.Delivery is ImmediateAttackDelivery && m_CachedDaggerClip != null)
+            {
+                return m_CachedDaggerClip;
+            }
+            return m_CachedAttackClip;
         }
 
         private static AnimationClip FindLongestClip(RuntimeAnimatorController controller, string clipName)
@@ -716,6 +805,9 @@ namespace InTheArena.Unit
                 isReaction);
         }
 
+        /// <summary>개발 빌드에서만 인수 평가와 상세 전투 로그를 수행합니다.</summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         internal void LogCombatAction(string actionName, Unit target, float amount, string resultType)
         {
             string sourceLabel = BuildCombatLogLabel();
@@ -725,6 +817,8 @@ namespace InTheArena.Unit
                 this);
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         internal void LogDefenseReduction(
             string actionName,
             Unit target,
@@ -741,6 +835,8 @@ namespace InTheArena.Unit
                 this);
         }
 
+        [System.Diagnostics.Conditional("UNITY_EDITOR")]
+        [System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         internal void LogHunterModeChange(string modeName)
         {
             string teamName = m_Team == 0 ? "Red" : "Blue";
@@ -766,15 +862,50 @@ namespace InTheArena.Unit
         public bool TryUseSkill(Vector3 groundPosition)
             => TryUseSkill(new SkillUseRequest(groundPosition));
 
-        public bool TryUseSkill(in SkillUseRequest request)
+        /// <summary>사거리와 개별 조건을 만족하는 액티브 스킬이 있는지 부작용 없이 검사합니다.</summary>
+        public bool CanUseSkill(in SkillUseRequest request)
         {
-            if (m_IsSilenced || IsDead || !m_ActionController.CanStartAction) return false;
+            if (m_IsSilenced || IsDead || m_ForcedMoveRemaining > 0f || !m_ActionController.CanStartAction)
+            {
+                return false;
+            }
 
             for (int i = 0; i < m_RuntimeSkills.Count; i++)
             {
                 SkillRuntime skill = m_RuntimeSkills[i];
-                if (skill == null || skill.Data.SkillType != SkillType.Active || !skill.CanUse) continue;
-                if (!skill.TryResolve(request, m_CastingTargets)) continue;
+                if (skill != null && skill.Data.SkillType == SkillType.Active &&
+                    skill.TryResolve(request, m_CastingTargets))
+                {
+                    m_CastingTargets.Clear();
+                    return true;
+                }
+            }
+
+            m_CastingTargets.Clear();
+            return false;
+        }
+
+        /// <summary>개별 타기팅과 조건을 만족하는 첫 액티브 스킬의 시전을 시작합니다.</summary>
+        public bool TryUseSkill(in SkillUseRequest request)
+        {
+            if (m_IsSilenced || IsDead || m_ForcedMoveRemaining > 0f || !m_ActionController.CanStartAction)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < m_RuntimeSkills.Count; i++)
+            {
+                SkillRuntime skill = m_RuntimeSkills[i];
+                if (skill == null || skill.Data.SkillType != SkillType.Active || !skill.CanUse)
+                {
+                    continue;
+                }
+
+                if (!skill.TryResolve(request, m_CastingTargets))
+                {
+                    continue;
+                }
+
                 BeginCast(skill);
                 return true;
             }
@@ -787,12 +918,21 @@ namespace InTheArena.Unit
         public bool UseSkill(SkillRuntime skill, Vector3 position)
             => UseSkill(skill, new SkillUseRequest(position));
 
+        /// <summary>이 유닛이 소유한 액티브 스킬만 명시적으로 시전합니다.</summary>
         private bool UseSkill(SkillRuntime skill, in SkillUseRequest request)
         {
-            if (skill == null || !skill.CanUse || m_IsSilenced || IsDead ||
+            if (skill == null || skill.Owner != this || skill.Data.SkillType != SkillType.Active ||
+                !skill.CanUse || m_IsSilenced || IsDead || m_ForcedMoveRemaining > 0f ||
                 !m_ActionController.CanStartAction)
+            {
                 return false;
-            if (!skill.TryResolve(request, m_CastingTargets)) return false;
+            }
+
+            if (!skill.TryResolve(request, m_CastingTargets))
+            {
+                return false;
+            }
+
             BeginCast(skill);
             return true;
         }
@@ -850,12 +990,18 @@ namespace InTheArena.Unit
 
         public StatusEffectRuntime ApplyStatusEffect(StatusEffectData data, Unit caster = null, float durationOverride = -1f)
         {
-            if (data == null || IsDead) return null;
+            if (data == null || IsDead || m_IsClearingStatusEffects || BattleSimulation.IsBattleFrozen)
+            {
+                return null;
+            }
 
             for (int i = 0; i < m_ActiveDataEffects.Count; i++)
             {
                 StatusEffectRuntime existing = m_ActiveDataEffects[i];
-                if (existing.Data != data) continue;
+                if (existing.Data != data || !existing.IsActive)
+                {
+                    continue;
+                }
                 existing.Refresh(durationOverride);
                 RefreshControlStates();
                 return existing;
@@ -866,6 +1012,10 @@ namespace InTheArena.Unit
             m_ActiveDataEffects.Add(runtime);
             runtime.Apply();
             RefreshControlStates();
+            if (runtime.Owner != this || !runtime.IsActive)
+            {
+                return null;
+            }
             OnStatusDataApplied?.Invoke(runtime);
             return runtime;
         }
@@ -886,7 +1036,10 @@ namespace InTheArena.Unit
         {
             if (data == null) return null;
             for (int i = 0; i < m_ActiveDataEffects.Count; i++)
-                if (m_ActiveDataEffects[i].Data == data) return m_ActiveDataEffects[i];
+                if (m_ActiveDataEffects[i].Data == data && m_ActiveDataEffects[i].IsActive)
+                {
+                    return m_ActiveDataEffects[i];
+                }
             return null;
         }
 
@@ -930,7 +1083,7 @@ namespace InTheArena.Unit
             Vector3 targetPosition,
             float stopDistance = 0f)
         {
-            if (IsDead || IsStunned)
+            if (IsDead || IsStunned || m_ForcedMoveRemaining > 0f)
             {
                 return;
             }
@@ -1017,45 +1170,106 @@ namespace InTheArena.Unit
             }
         }
 
+        /// <summary>상태효과를 갱신하며 도중 사망이나 콜백으로 제거된 효과를 중복 반환하지 않습니다.</summary>
         private void UpdateDataStatusEffects(float deltaTime)
         {
-            bool removed = false;
+            using (UnityEngine.Pool.ListPool<StatusEffectSnapshot>.Get(out var effects))
+            {
+                CaptureStatusEffects(effects);
+                for (int i = effects.Count - 1; i >= 0; i--)
+                {
+                    StatusEffectSnapshot entry = effects[i];
+                    if (!entry.IsCurrent)
+                    {
+                        continue;
+                    }
+
+                    bool keep = entry.Effect.Tick(deltaTime);
+                    if (!keep && entry.Effect.Owner == this)
+                    {
+                        RemoveStatusEffect(entry.Effect, true);
+                    }
+                }
+            }
+
+            // 소진된 영구 보호막도 목록에서 정리합니다.
             for (int i = m_ActiveDataEffects.Count - 1; i >= 0; i--)
             {
-                StatusEffectRuntime effect = m_ActiveDataEffects[i];
-                if (effect.Tick(deltaTime)) continue;
-
-                m_ActiveDataEffects.RemoveAt(i);
-                OnStatusDataRemoved?.Invoke(effect, true);
-                effect.Release(true);
-                StatusEffectRuntimePool.Return(effect);
-                removed = true;
+                if (i < m_ActiveDataEffects.Count && !m_ActiveDataEffects[i].IsActive)
+                {
+                    RemoveStatusEffect(m_ActiveDataEffects[i], true);
+                }
             }
-            if (removed) RefreshControlStates();
         }
 
+        /// <summary>공격·시전을 중단하고 AI 목적지보다 우선하는 강제 이동을 시작합니다.</summary>
+        public bool ApplyForcedMovement(Vector3 destination, float duration = 0.2f)
+        {
+            if (IsDead || BattleSimulation.IsBattleFrozen)
+            {
+                return false;
+            }
+
+            CancelCast();
+            ClearPendingProjectileAttack();
+            m_ActionController.Reset();
+            RefreshControlStates();
+            destination.y = m_SimulationPosition.y;
+            m_ForcedMoveTarget = ClampToBattlefield(destination);
+            m_ForcedMoveRemaining = Mathf.Max(0.01f, duration);
+            return true;
+        }
+
+        /// <summary>재진입 콜백과 분리된 목록에 현재 효과의 대여 세대를 기록합니다.</summary>
+        private void CaptureStatusEffects(List<StatusEffectSnapshot> output)
+        {
+            for (int i = 0; i < m_ActiveDataEffects.Count; i++)
+            {
+                output.Add(new StatusEffectSnapshot(m_ActiveDataEffects[i]));
+            }
+        }
+
+        /// <summary>목록에서 먼저 분리한 뒤 해제하여 제거 콜백의 재진입을 안전하게 처리합니다.</summary>
         private void ClearDataStatusEffects()
         {
-            for (int i = m_ActiveDataEffects.Count - 1; i >= 0; i--)
+            m_ForcedMoveRemaining = 0f;
+            if (m_IsClearingStatusEffects)
             {
-                StatusEffectRuntime effect = m_ActiveDataEffects[i];
-                effect.Release(false);
-                StatusEffectRuntimePool.Return(effect);
+                return;
             }
-            m_ActiveDataEffects.Clear();
-            RefreshControlStates();
+
+            m_IsClearingStatusEffects = true;
+            try
+            {
+                while (m_ActiveDataEffects.Count > 0)
+                {
+                    int i = m_ActiveDataEffects.Count - 1;
+                    StatusEffectRuntime effect = m_ActiveDataEffects[i];
+                    m_ActiveDataEffects.RemoveAt(i);
+                    effect.Release(false);
+                    StatusEffectRuntimePool.Return(effect);
+                }
+            }
+            finally
+            {
+                m_IsClearingStatusEffects = false;
+                RefreshControlStates();
+            }
         }
 
+        /// <summary>현재 무기를 기본값으로 적용한 뒤 버프와 디버프를 합성합니다.</summary>
         private void RecalculateStats()
         {
             float hpRatio = MaxHp > 0f ? m_CurrentHp / MaxHp : 1f;
-            m_CurrentStat = m_BaseStat + m_StatModifierBuffSum - m_StatModifierDebuffSum;
+            UnitStat effectiveBase = m_BaseStat;
             if (m_HasWeaponStatOverride)
             {
-                m_CurrentStat.attackPower = m_WeaponStatOverride.attackPower;
-                m_CurrentStat.attackSpeed = m_WeaponStatOverride.attackSpeed;
-                m_CurrentStat.attackRange = m_WeaponStatOverride.attackRange;
+                effectiveBase.attackPower = m_WeaponStatOverride.attackPower;
+                effectiveBase.attackSpeed = m_WeaponStatOverride.attackSpeed;
+                effectiveBase.attackRange = m_WeaponStatOverride.attackRange;
             }
+
+            m_CurrentStat = effectiveBase + m_StatModifierBuffSum - m_StatModifierDebuffSum;
             m_CurrentStat.maxHp = Mathf.Max(1f, m_CurrentStat.maxHp);
             m_CurrentStat.attackPower = Mathf.Max(0f, m_CurrentStat.attackPower);
             m_CurrentStat.defense = Mathf.Max(0f, m_CurrentStat.defense);
@@ -1119,16 +1333,22 @@ namespace InTheArena.Unit
                 false,
                 false);
 
+        /// <summary>진행 중인 행동을 중단하고 종료 알림을 즉시 전달합니다.</summary>
         public void NotifyBattleEnded()
-            => EnqueueSkillEvent(
-                SkillTriggerType.OnBattleEnd,
-                this,
-                this,
-                this,
-                0f,
-                false,
-                false,
-                false);
+        {
+            CancelCast();
+            ClearPendingProjectileAttack();
+            StopMovement();
+            m_ForcedMoveRemaining = 0f;
+            var context = new SkillTriggerContext
+            {
+                Trigger = SkillTriggerType.OnBattleEnd,
+                Receiver = new UnitHandle(this),
+                Source = new UnitHandle(this),
+                Target = new UnitHandle(this)
+            };
+            DispatchSkillTrigger(in context);
+        }
 
         private static void EnqueueSkillEvent(
             SkillTriggerType trigger,

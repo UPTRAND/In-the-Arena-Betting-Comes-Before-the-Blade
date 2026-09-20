@@ -1,5 +1,8 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using System.Reflection;
+using InTheArena.UI;
+using TMPro;
 using InTheArena.MainGame;
 using NUnit.Framework;
 using UnityEditor;
@@ -73,7 +76,6 @@ public sealed class RoundContextSpecialBetTests
     }
 
     [TestCase("Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab", "WinningTeam_Group", "GameEndTime_Group", "OddEven_Group", "FirstAnnihilated_Group", "SurvivingSlots_Group")]
-    [TestCase("Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab", "WinningTeam_History", "GameEndTime_History", "OddEven_History", "FirstAnnihilated_History", "SurvivingSlots_History")]
     public void BettingGroupContainsAllPossibleEntries(string path, params string[] entryNames)
     {
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -87,6 +89,39 @@ public sealed class RoundContextSpecialBetTests
             Transform entry = FindByName(bettingGroup, entryName);
             Assert.That(entry, Is.Not.Null, $"{entryName} is missing from {path}");
             Assert.That(entry.parent, Is.SameAs(bettingGroup));
+        }
+    }
+
+    /// <summary>HUD의 실제 직렬화 참조와 확정 배팅 표시를 검사합니다.</summary>
+    [Test]
+    public void BattleHistory_BindsEveryCategoryAndDisplaysTicket()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab");
+        GameObject instance = Object.Instantiate(prefab);
+        try
+        {
+            UI_BattlePhaseHUD hud = instance.GetComponent<UI_BattlePhaseHUD>();
+            var serialized = new SerializedObject(hud);
+            string[] categories = { "WinningTeam", "GameEndTime", "OddEven", "FirstAnnihilated", "SurvivingSlots" };
+            foreach (string category in categories)
+            {
+                Assert.That(serialized.FindProperty("m_" + category + "HistoryRoot").objectReferenceValue, Is.Not.Null, category);
+                Assert.That(serialized.FindProperty("m_" + category + "HistoryText").objectReferenceValue, Is.Not.Null, category);
+            }
+
+            var context = new RoundContext();
+            context.InitializeStage(m_StageData);
+            context.SetRoundData(m_StageData, 6);
+            context.BetTicket = new RoundBetTicket();
+            context.BetTicket.SetFaction(FactionPrediction.Blue);
+            typeof(UI_BattlePhaseHUD).GetField("m_RoundContext", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(hud, context);
+            typeof(UI_BattlePhaseHUD).GetMethod("RefreshBetHistory", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(hud, null);
+            TMP_Text value = (TMP_Text)serialized.FindProperty("m_WinningTeamHistoryText").objectReferenceValue;
+            Assert.That(value.text, Is.EqualTo("Blue"));
+        }
+        finally
+        {
+            Object.DestroyImmediate(instance);
         }
     }
 

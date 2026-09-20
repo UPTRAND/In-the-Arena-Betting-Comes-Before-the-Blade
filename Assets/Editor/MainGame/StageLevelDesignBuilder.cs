@@ -15,13 +15,26 @@ namespace InTheArena.MainGame.Editor
         private const string LobbyStagePanelPrefab = "Assets/Prefabs/UI/Panel/UI_LobbyStagePanel.prefab";
 
         [MenuItem(MenuPath)]
+        /// <summary>변경 범위를 확인한 뒤 생성 규칙으로 레벨 에셋을 갱신합니다.</summary>
         public static void Rebuild()
         {
+            if (!EditorUtility.DisplayDialog("레벨 재생성", "LevelDesign의 15개 스테이지와 생성 라운드, 로비 목록을 덮어씁니다. 사용자 라운드 폴더는 삭제하지 않습니다.", "재생성", "취소"))
+            {
+                return;
+            }
+            // 필수 입력이 없으면 운영 에셋을 수정하기 전에 중단합니다.
+            UnitLookup units = LoadUnits();
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(LobbyStagePanelPrefab) == null)
+            {
+                throw new MissingReferenceException("로비 스테이지 패널 프리팹이 없습니다.");
+            }
+            GetRegionSpec(1);
+            GetRegionSpec(6);
+            GetRegionSpec(11);
             EnsureDirectory(StageRoot);
             EnsureDirectory(RoundRoot);
-            DeleteLegacyDifficultyRoundFolders();
+            // 사용자 제작 라운드 폴더는 자동 삭제하지 않습니다.
 
-            UnitLookup units = LoadUnits();
             var stages = new List<StageData>(15);
 
             for (int stageNumber = 1; stageNumber <= 15; stageNumber++)
@@ -62,8 +75,7 @@ namespace InTheArena.MainGame.Editor
             string[] guids = AssetDatabase.FindAssets($"{assetName} t:UnitData");
             if (guids.Length == 0)
             {
-                Debug.LogError($"[StageLevelDesignBuilder] UnitData asset not found: {assetName}");
-                return null;
+                throw new MissingReferenceException("UnitData asset not found: " + assetName);
             }
 
             return AssetDatabase.LoadAssetAtPath<UnitData>(AssetDatabase.GUIDToAssetPath(guids[0]));
@@ -337,21 +349,6 @@ namespace InTheArena.MainGame.Editor
             }
         }
 
-        private static void DeleteLegacyDifficultyRoundFolders()
-        {
-            for (int stageNumber = 1; stageNumber <= 15; stageNumber++)
-            {
-                foreach (string folder in new[] { "Easy", "Normal", "Hard" })
-                {
-                    string path = $"{RoundRoot}/Stage{stageNumber:00}/{folder}";
-                    if (AssetDatabase.IsValidFolder(path))
-                    {
-                        AssetDatabase.DeleteAsset(path);
-                    }
-                }
-            }
-        }
-
         private static StageRegionSpec GetRegionSpec(int stageNumber)
         {
             if (stageNumber <= 5)
@@ -421,7 +418,7 @@ namespace InTheArena.MainGame.Editor
             Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             if (sprite == null)
             {
-                Debug.LogError($"[StageLevelDesignBuilder] Background sprite not found: {path}");
+                throw new MissingReferenceException("Background sprite not found: " + path);
             }
 
             return sprite;

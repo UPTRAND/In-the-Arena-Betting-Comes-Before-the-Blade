@@ -11,8 +11,18 @@ public static class PoolSystemMigration
     private const string CatalogPath = "Assets/Resources/PoolCatalog.asset";
 
     [MenuItem("Tools/In The Arena/Pooling/Migrate Pool System")]
+    /// <summary>변경 범위를 확인한 뒤 풀 참조와 프리팹 구성을 갱신합니다.</summary>
     public static void Migrate()
     {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() ||
+            !EditorUtility.DisplayDialog("풀 마이그레이션", "유닛·투사체 프리팹에 PoolMember를 추가하고 Title 씬의 PoolManager 연결을 저장합니다.", "적용", "취소"))
+        {
+            return;
+        }
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(TitleScenePath) == null)
+        {
+            throw new MissingReferenceException("Title 씬이 없습니다.");
+        }
         PoolCatalog catalog = EnsureCatalog();
         MigratePrefabs();
         RegisterPoolManager(catalog);
@@ -74,54 +84,58 @@ public static class PoolSystemMigration
         }
     }
 
+    /// <summary>Title 씬을 갱신하고 예외 시에도 기존 다중 씬 구성을 복원합니다.</summary>
     private static void RegisterPoolManager(PoolCatalog catalog)
     {
-        string previousScene = SceneManager.GetActiveScene().path;
-        Scene title = previousScene == TitleScenePath
-            ? SceneManager.GetActiveScene()
-            : EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
-
-        Managers managers = Object.FindAnyObjectByType<Managers>();
-        if (managers == null)
-            throw new MissingReferenceException("Title 씬에서 Managers를 찾을 수 없습니다.");
-
-        PoolManager poolManager = managers.GetComponentInChildren<PoolManager>(true);
-        if (poolManager == null)
+        SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+        try
         {
-            var child = new GameObject("PoolManager");
-            child.transform.SetParent(managers.transform, false);
-            poolManager = child.AddComponent<PoolManager>();
-        }
+            Scene title = EditorSceneManager.OpenScene(TitleScenePath, OpenSceneMode.Single);
 
-        var poolSerialized = new SerializedObject(poolManager);
-        poolSerialized.FindProperty("m_Catalog").objectReferenceValue = catalog;
-        poolSerialized.ApplyModifiedPropertiesWithoutUndo();
+            Managers managers = Object.FindAnyObjectByType<Managers>();
+            if (managers == null)
+                throw new MissingReferenceException("Title 씬에서 Managers를 찾을 수 없습니다.");
 
-        var managersSerialized = new SerializedObject(managers);
-        SerializedProperty list = managersSerialized.FindProperty("_allManagers");
-        bool registered = false;
-        for (int i = 0; i < list.arraySize; i++)
-        {
-            if (list.GetArrayElementAtIndex(i).objectReferenceValue == poolManager)
+            PoolManager poolManager = managers.GetComponentInChildren<PoolManager>(true);
+            if (poolManager == null)
             {
-                registered = true;
-                break;
+                var child = new GameObject("PoolManager");
+                child.transform.SetParent(managers.transform, false);
+                poolManager = child.AddComponent<PoolManager>();
             }
-        }
-        if (!registered)
-        {
-            int index = list.arraySize;
-            list.InsertArrayElementAtIndex(index);
-            list.GetArrayElementAtIndex(index).objectReferenceValue = poolManager;
-            managersSerialized.ApplyModifiedPropertiesWithoutUndo();
-        }
 
-        EditorUtility.SetDirty(poolManager);
-        EditorUtility.SetDirty(managers);
-        EditorSceneManager.MarkSceneDirty(title);
-        EditorSceneManager.SaveScene(title);
-        if (!string.IsNullOrEmpty(previousScene) && previousScene != TitleScenePath)
-            EditorSceneManager.OpenScene(previousScene, OpenSceneMode.Single);
+            var poolSerialized = new SerializedObject(poolManager);
+            poolSerialized.FindProperty("m_Catalog").objectReferenceValue = catalog;
+            poolSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var managersSerialized = new SerializedObject(managers);
+            SerializedProperty list = managersSerialized.FindProperty("_allManagers");
+            bool registered = false;
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == poolManager)
+                {
+                    registered = true;
+                    break;
+                }
+            }
+            if (!registered)
+            {
+                int index = list.arraySize;
+                list.InsertArrayElementAtIndex(index);
+                list.GetArrayElementAtIndex(index).objectReferenceValue = poolManager;
+                managersSerialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            EditorUtility.SetDirty(poolManager);
+            EditorUtility.SetDirty(managers);
+            EditorSceneManager.MarkSceneDirty(title);
+            EditorSceneManager.SaveScene(title);
+        }
+        finally
+        {
+            EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+        }
     }
 }
 #endif

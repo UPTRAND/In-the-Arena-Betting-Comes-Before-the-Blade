@@ -20,51 +20,137 @@ namespace InTheArena.MainGame.Editor
         private const string NewBettingPrefabPath = "Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab";
         private const string ResultPrefabPath = "Assets/Prefabs/UI/Panel/UI_StageResultPanel.prefab";
 
-        [MenuItem("Tools/In The Arena/Rebuild Stage Betting UI")]
-        public static void Rebuild()
+        /// <summary>기존 결과 프리팹의 디자인을 유지하며 저장 복구 버튼을 연결합니다.</summary>
+        [MenuItem("Tools/In The Arena/Install Result Save Recovery Controls")]
+        public static void InstallSaveRecoveryControls()
         {
-            BuildBettingPrefab();
-            GameObject resultPrefab = BuildStageResultPrefab();
-            BindScene("Assets/Scenes/MainGame.unity", resultPrefab);
-            BindScene("Assets/Scenes/Debug.unity", resultPrefab);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-            Debug.Log("[StageBettingUiBuilder] Stage/Betting UI 생성 및 씬 연결 완료");
+            GameObject root = PrefabUtility.LoadPrefabContents(ResultPrefabPath);
+            try
+            {
+                AddSaveRecoveryControls(root.GetComponent<UI_StageResultPanel>());
+                PrefabUtility.SaveAsPrefabAsset(root, ResultPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
-        [MenuItem("Tools/In The Arena/Install New MainGame Betting UI")]
-        public static void InstallNewMainGameBettingUi()
+        /// <summary>레이아웃 그룹과 기존 버튼 스타일을 재사용해 상태별 조작 요소를 추가합니다.</summary>
+        public static void AddSaveRecoveryControls(UI_StageResultPanel panel)
         {
-            BuildNewBettingPrefab();
-            UnityEngine.SceneManagement.Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/MainGame.unity", OpenSceneMode.Single);
-            BettingPhase phase = Object.FindAnyObjectByType<BettingPhase>(FindObjectsInactive.Include);
-            GameObject oldUi = GameObject.Find("BettingPhaseUI");
-            GameObject newUi = GameObject.Find("UI_BettingPhase");
-            if (phase == null || (oldUi == null && newUi == null))
+            var serialized = new SerializedObject(panel);
+            Button template = serialized.FindProperty("m_ReturnToLobbyButton").objectReferenceValue as Button;
+            if (template == null || serialized.FindProperty("m_RetryButton").objectReferenceValue != null)
             {
-                Debug.LogError("[StageBettingUiBuilder] MainGame betting phase or legacy UI was not found.");
                 return;
             }
 
-            if (oldUi != null)
-            {
-                Transform parent = oldUi.transform.parent;
-                int siblingIndex = oldUi.transform.GetSiblingIndex();
-                bool active = oldUi.activeSelf;
-                newUi = (GameObject)PrefabUtility.InstantiatePrefab(
-                    AssetDatabase.LoadAssetAtPath<GameObject>(NewBettingPrefabPath), parent);
-                newUi.name = "UI_BettingPhase";
-                newUi.transform.SetSiblingIndex(siblingIndex);
-                newUi.SetActive(active);
-                Object.DestroyImmediate(oldUi);
-            }
+            Transform parent = template.transform.parent;
+            TMP_Text sourceText = template.GetComponentInChildren<TMP_Text>(true);
+            GameObject errorRoot = new GameObject("SaveStatusText", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
+            errorRoot.transform.SetParent(parent, false);
+            TMP_Text error = errorRoot.GetComponent<TMP_Text>();
+            error.font = sourceText.font;
+            error.fontSize = 36f;
+            error.alignment = TextAlignmentOptions.Center;
+            error.raycastTarget = false;
+            errorRoot.GetComponent<LayoutElement>().preferredHeight = 150f;
 
-            EnsureNewControls(newUi.transform);
-            BindNewBettingPhase(phase, newUi.transform);
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-            AssetDatabase.SaveAssets();
-            Debug.Log("[StageBettingUiBuilder] New MainGame betting UI installed.");
+            Button retry = Object.Instantiate(template, parent);
+            retry.name = "RetrySaveButton";
+            retry.onClick = new Button.ButtonClickedEvent();
+            retry.GetComponentInChildren<TMP_Text>(true).text = "RETRY SAVE";
+
+            Button giveUp = Object.Instantiate(template, parent);
+            giveUp.name = "GiveUpSaveButton";
+            giveUp.onClick = new Button.ButtonClickedEvent();
+            TMP_Text giveUpText = giveUp.GetComponentInChildren<TMP_Text>(true);
+            giveUpText.text = "GIVE UP";
+
+            serialized.FindProperty("m_ErrorText").objectReferenceValue = error;
+            serialized.FindProperty("m_RetryButton").objectReferenceValue = retry;
+            serialized.FindProperty("m_GiveUpButton").objectReferenceValue = giveUp;
+            serialized.FindProperty("m_GiveUpButtonText").objectReferenceValue = giveUpText;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            errorRoot.SetActive(false);
+            retry.gameObject.SetActive(false);
+            giveUp.gameObject.SetActive(false);
+        }
+
+        [MenuItem("Tools/In The Arena/Rebuild Stage Betting UI")]
+        /// <summary>편집 중인 씬과 변경 범위를 확인한 뒤 UI 에셋을 갱신합니다.</summary>
+        public static void Rebuild()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() ||
+                !EditorUtility.DisplayDialog("UI 재생성", "배팅/결과 프리팹과 MainGame/Debug 씬의 UI 연결을 갱신합니다. 기존 수동 편집을 확인하십시오.", "갱신", "취소"))
+            {
+                return;
+            }
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                BuildBettingPrefab();
+                GameObject resultPrefab = BuildStageResultPrefab();
+                BindScene("Assets/Scenes/MainGame.unity", resultPrefab);
+                BindScene("Assets/Scenes/Debug.unity", resultPrefab);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                Debug.Log("[StageBettingUiBuilder] Stage/Betting UI 생성 및 씬 연결 완료");
+            }
+            finally
+            {
+                EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
+        }
+
+        [MenuItem("Tools/In The Arena/Install New MainGame Betting UI")]
+        /// <summary>편집 중인 씬과 변경 범위를 확인한 뒤 UI 에셋을 갱신합니다.</summary>
+        public static void InstallNewMainGameBettingUi()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() ||
+                !EditorUtility.DisplayDialog("UI 재생성", "배팅/결과 프리팹과 MainGame/Debug 씬의 UI 연결을 갱신합니다. 기존 수동 편집을 확인하십시오.", "갱신", "취소"))
+            {
+                return;
+            }
+            SceneSetup[] previousSetup = EditorSceneManager.GetSceneManagerSetup();
+            try
+            {
+                BuildNewBettingPrefab();
+                UnityEngine.SceneManagement.Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/MainGame.unity", OpenSceneMode.Single);
+                BettingPhase phase = Object.FindAnyObjectByType<BettingPhase>(FindObjectsInactive.Include);
+                GameObject oldUi = GameObject.Find("BettingPhaseUI");
+                GameObject newUi = GameObject.Find("UI_BettingPhase");
+                if (phase == null || (oldUi == null && newUi == null))
+                {
+                    Debug.LogError("[StageBettingUiBuilder] MainGame betting phase or legacy UI was not found.");
+                    return;
+                }
+
+                if (oldUi != null)
+                {
+                    Transform parent = oldUi.transform.parent;
+                    int siblingIndex = oldUi.transform.GetSiblingIndex();
+                    bool active = oldUi.activeSelf;
+                    newUi = (GameObject)PrefabUtility.InstantiatePrefab(
+                        AssetDatabase.LoadAssetAtPath<GameObject>(NewBettingPrefabPath), parent);
+                    newUi.name = "UI_BettingPhase";
+                    newUi.transform.SetSiblingIndex(siblingIndex);
+                    newUi.SetActive(active);
+                    Object.DestroyImmediate(oldUi);
+                }
+
+                EnsureNewControls(newUi.transform);
+                BindNewBettingPhase(phase, newUi.transform);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                AssetDatabase.SaveAssets();
+                Debug.Log("[StageBettingUiBuilder] New MainGame betting UI installed.");
+            }
+            finally
+            {
+                EditorSceneManager.RestoreSceneManagerSetup(previousSetup);
+            }
         }
 
         private static void BuildNewBettingPrefab()

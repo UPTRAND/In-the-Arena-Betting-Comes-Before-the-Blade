@@ -53,6 +53,12 @@ namespace InTheArena.MainGame
         {
             bool isValid = true;
 
+            if (!BettingRules.IsValidWager(m_InitialCall))
+            {
+                Debug.LogError($"[StageData] {name}: 시작 Call은 {BettingRules.WagerStepCall} 이상이며 해당 단위에 맞아야 합니다.");
+                isValid = false;
+            }
+
             if (string.IsNullOrEmpty(m_StageName))
             {
                 Debug.LogError($"[StageData] {name}: \uC2A4\uD14C\uC774\uC9C0 \uC774\uB984\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");

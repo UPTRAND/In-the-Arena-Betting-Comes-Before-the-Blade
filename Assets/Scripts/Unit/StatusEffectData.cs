@@ -55,7 +55,15 @@ namespace InTheArena.Unit
     {
         private bool m_IsApplied;
 
+        private int m_CallbackDepth;
+        private bool m_IsRemoved;
+        private bool m_ReleasePending;
+        private bool m_ReturnPending;
+        private bool m_IsInPool;
+        private bool m_Expired;
+
         public StatusEffectData Data { get; private set; }
+        public int Generation { get; private set; }
         public Unit Owner { get; private set; }
         public UnitHandle Caster { get; private set; }
         public float RemainingTime { get; set; }
@@ -63,61 +71,219 @@ namespace InTheArena.Unit
         public float FloatState { get; set; }
         public int IntState { get; set; }
         public int Stacks { get; set; }
-        public bool IsPermanent => Data != null && Data.Duration <= 0f;
-        public bool GrantsStun => Data?.Behavior?.GrantsStun == true;
-        public bool GrantsSilence => Data?.Behavior?.GrantsSilence == true;
+        public bool IsPermanent { get; private set; }
+        public bool IsActive => Data != null && !m_IsRemoved && !m_Expired;
+        public bool GrantsStun => IsActive && Data?.Behavior?.GrantsStun == true;
+        public bool GrantsSilence => IsActive && Data?.Behavior?.GrantsSilence == true;
 
+        /// <summary>원본 또는 덮어쓴 지속 시간으로 이번 적용의 수명을 확정합니다.</summary>
         public void Initialize(StatusEffectData data, Unit owner, Unit caster, float duration)
         {
+            Generation++;
             Data = data;
             Owner = owner;
             Caster = new UnitHandle(caster);
-            RemainingTime = duration > 0f ? duration : data.Duration;
+            SetDuration(duration);
             CustomTimer = 0f;
             FloatState = 0f;
             IntState = 0;
             Stacks = 1;
             m_IsApplied = false;
+            m_CallbackDepth = 0;
+            m_IsRemoved = false;
+            m_ReleasePending = false;
+            m_ReturnPending = false;
+            m_IsInPool = false;
+            m_Expired = false;
         }
 
+        /// <summary>적용 콜백이 끝나기 전에는 런타임을 초기화하거나 풀로 반환하지 않습니다.</summary>
         public void Apply()
         {
-            if (m_IsApplied || Data == null) return;
+            if (m_IsApplied || !IsActive)
+            {
+                return;
+            }
+
             m_IsApplied = true;
-            Data.Behavior?.OnApply(this);
+            m_CallbackDepth++;
+            try
+            {
+                Data.Behavior?.OnApply(this);
+            }
+            finally
+            {
+                EndCallback();
+            }
         }
 
+        /// <summary>유효한 효과만 갱신하고 콜백 도중 제거되면 즉시 종료로 판정합니다.</summary>
         public bool Tick(float deltaTime)
         {
-            if (Data == null) return false;
+            if (!IsActive)
+            {
+                return false;
+            }
+
             if (!IsPermanent)
             {
                 RemainingTime -= deltaTime;
-                if (RemainingTime <= 0f) return false;
+                if (RemainingTime <= 0f)
+                {
+                    return false;
+                }
             }
-            Data.Behavior?.OnTick(this, deltaTime);
-            return IsPermanent || RemainingTime > 0f;
+
+            m_CallbackDepth++;
+            try
+            {
+                Data.Behavior?.OnTick(this, deltaTime);
+                return IsActive && (IsPermanent || RemainingTime > 0f);
+            }
+            finally
+            {
+                EndCallback();
+            }
         }
 
+        /// <summary>중첩 정책을 적용하고 갱신 콜백의 수명을 보호합니다.</summary>
         public void Refresh(float duration)
         {
-            if (Data == null) return;
+            if (!IsActive)
+            {
+                return;
+            }
+
             int previousStacks = Stacks;
             if (Data.StackType == StackType.Intensity || Data.StackType == StackType.Both)
+            {
                 Stacks = Mathf.Min(Data.MaxStacks, Stacks + 1);
+            }
+
             if (Data.StackType == StackType.Duration || Data.StackType == StackType.Both ||
                 Data.StackType == StackType.None)
-                RemainingTime = duration > 0f ? duration : Data.Duration;
-            if (Stacks != previousStacks)
-                Data.Behavior?.OnStacksChanged(this, previousStacks, Stacks);
+            {
+                SetDuration(duration);
+            }
+
+            m_CallbackDepth++;
+            try
+            {
+                if (Stacks != previousStacks)
+                {
+                    Data.Behavior?.OnStacksChanged(this, previousStacks, Stacks);
+                }
+            }
+            finally
+            {
+                EndCallback();
+            }
         }
 
+        /// <summary>피해 변경 도중 소진·사망 콜백이 발생해도 현재 효과를 보존합니다.</summary>
         public void ModifyIncomingDamage(ref DamageContext context)
-            => Data?.Behavior?.ModifyIncomingDamage(this, ref context);
+        {
+            if (!IsActive)
+            {
+                return;
+            }
 
+            m_CallbackDepth++;
+            try
+            {
+                Data.Behavior?.ModifyIncomingDamage(this, ref context);
+            }
+            finally
+            {
+                EndCallback();
+            }
+        }
+
+        /// <summary>영구 효과도 보호막 소진 등 명시적 종료를 요청할 수 있습니다.</summary>
+        public void Expire()
+        {
+            m_Expired = true;
+            RemainingTime = 0f;
+        }
+
+        /// <summary>제거를 즉시 표시하고 실행 중인 콜백이 끝난 뒤 실제 해제를 진행합니다.</summary>
         public void Release(bool expired)
         {
-            if (m_IsApplied) Data?.Behavior?.OnRemove(this, expired);
+            if (m_IsRemoved)
+            {
+                return;
+            }
+
+            m_IsRemoved = true;
+            m_Expired = expired;
+            m_ReleasePending = true;
+            FlushRelease();
+        }
+
+        /// <summary>풀 반환 요청을 보관하고 콜백과 해제가 모두 끝난 경우에만 반환합니다.</summary>
+        internal void RequestPoolReturn()
+        {
+            m_ReturnPending = true;
+            FlushRelease();
+        }
+
+        /// <summary>지속 시간 0은 영구, 음수는 원본 데이터 사용으로 해석합니다.</summary>
+        private void SetDuration(float duration)
+        {
+            RemainingTime = duration;
+            if (duration < 0f)
+            {
+                RemainingTime = Data.Duration;
+            }
+
+            IsPermanent = RemainingTime <= 0f;
+        }
+
+        /// <summary>가장 바깥 콜백 종료 시 예약된 해제와 반환을 처리합니다.</summary>
+        private void EndCallback()
+        {
+            m_CallbackDepth--;
+            FlushRelease();
+        }
+
+        /// <summary>제거 콜백을 한 번 호출하고 상태 초기화 후 풀에 중복 없이 반환합니다.</summary>
+        private void FlushRelease()
+        {
+            if (m_CallbackDepth > 0)
+            {
+                return;
+            }
+
+            if (m_ReleasePending)
+            {
+                m_ReleasePending = false;
+                m_CallbackDepth++;
+                try
+                {
+                    if (m_IsApplied)
+                    {
+                        m_IsApplied = false;
+                        Data?.Behavior?.OnRemove(this, m_Expired);
+                    }
+                }
+                finally
+                {
+                    m_CallbackDepth--;
+                    ClearState();
+                }
+            }
+
+            if (m_ReturnPending && Data == null && !m_IsInPool)
+            {
+                m_ReturnPending = false;
+                m_IsInPool = true;
+                StatusEffectRuntimePool.ReturnReleased(this);
+            }
+        }
+
+        /// <summary>더 이상 콜백에서 사용하지 않는 실행 상태를 비웁니다.</summary>
+        private void ClearState()
+        {
             Data = null;
             Owner = null;
             Caster = default;
@@ -127,6 +293,7 @@ namespace InTheArena.Unit
             IntState = 0;
             Stacks = 0;
             m_IsApplied = false;
+            IsPermanent = false;
         }
     }
 
@@ -144,7 +311,13 @@ namespace InTheArena.Unit
 
         public static void Return(StatusEffectRuntime runtime)
         {
-            if (runtime != null) Pool.Push(runtime);
+            runtime?.RequestPoolReturn();
+        }
+
+        /// <summary>런타임이 콜백 종료를 확인한 뒤 호출하는 실제 반환 경로입니다.</summary>
+        internal static void ReturnReleased(StatusEffectRuntime runtime)
+        {
+            Pool.Push(runtime);
         }
     }
 
@@ -266,8 +439,12 @@ namespace InTheArena.Unit
             float absorbed = Mathf.Min(runtime.FloatState, context.Amount);
             runtime.FloatState -= absorbed;
             context.Amount -= absorbed;
+            context.ShieldAbsorbed += absorbed;
             runtime.Owner?.OnShieldAbsorbCallback(absorbed);
-            if (runtime.FloatState <= 0f) runtime.RemainingTime = 0f;
+            if (runtime.FloatState <= 0f)
+            {
+                runtime.Expire();
+            }
         }
     }
 }

@@ -96,6 +96,7 @@ namespace InTheArena.Editor.Unit
             UnitType owner = CreateUnit(0);
             var healEffect = new HealSkillEffect();
             SetField(healEffect, "m_BaseHeal", 20f);
+            SetField(healEffect, "m_AttackPowerRatio", 0f);
             SkillData data = CreateSkill(
                 SkillType.Active,
                 new SelfSkillTargeting(),
@@ -119,6 +120,7 @@ namespace InTheArena.Editor.Unit
             SkillExecutionResult second = runtime.Execute(targets);
 
             Assert.That(second, Is.EqualTo(SkillExecutionResult.Success));
+            Assert.That(owner.CurrentHp, Is.EqualTo(owner.MaxHp * 0.5f + 20f));
             Assert.That(runtime.CurrentCooldown, Is.EqualTo(3f));
         }
 

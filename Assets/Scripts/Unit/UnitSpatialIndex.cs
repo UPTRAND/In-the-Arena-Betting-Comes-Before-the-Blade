@@ -211,6 +211,7 @@ namespace InTheArena.Unit
             }
         }
 
+        /// <summary>셀 안의 적을 검색하고 동일 거리에서는 안정적인 유닛 ID 순서로 선택합니다.</summary>
         private void VisitCell(
             Unit owner,
             Vector3 origin,
@@ -231,7 +232,8 @@ namespace InTheArena.Unit
                     offset.y = 0f;
                     float distanceSqr = offset.sqrMagnitude;
                     if (distanceSqr < bestDistanceSqr ||
-                        distanceSqr == bestDistanceSqr && candidate.InstanceId < best.InstanceId)
+                        (distanceSqr == bestDistanceSqr &&
+                         (best == null || candidate.InstanceId < best.InstanceId)))
                     {
                         bestDistanceSqr = distanceSqr;
                         best = candidate;

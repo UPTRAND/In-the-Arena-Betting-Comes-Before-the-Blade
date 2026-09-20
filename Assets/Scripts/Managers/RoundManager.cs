@@ -121,13 +121,18 @@ namespace InTheArena.MainGame
         /// </summary>
         public async Awaitable RunRoundAsync(int roundIndex, CancellationToken token)
         {
+            if (m_IsRoundRunning)
+            {
+                return;
+            }
+
             if (m_CurrentStageData == null)
             {
                 Debug.LogError("[RoundManager] 스테이지 데이터가 설정되지 않았습니다.");
                 return;
             }
 
-            if (roundIndex >= m_CurrentStageData.RoundDatas.Count)
+            if (roundIndex < 0 || roundIndex >= m_CurrentStageData.RoundDatas.Count)
             {
                 Debug.LogError($"[RoundManager] 라운드 인덱스 {roundIndex}가 범위를 벗어났습니다. (최대: {m_CurrentStageData.RoundDatas.Count - 1})");
                 return;
@@ -338,8 +343,10 @@ namespace InTheArena.MainGame
             }
         }
 
+        /// <summary>씬이 파괴될 때 진행 중인 라운드와 구매 요청을 함께 취소합니다.</summary>
         private void OnDestroy()
         {
+            m_RoundCts?.Cancel();
             DisposeItemPurchaseUseCoordinator();
             if (ReferenceEquals(_instance, this))
             {

@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -11,8 +12,8 @@ from reportlab.pdfgen import canvas
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "output" / "pdf" / "AI_활용_기술_문서_최종.pdf"
 IMG = ROOT / "output" / "docs" / "images"
-FONT = r"C:\Windows\Fonts\malgun.ttf"
-BOLD = r"C:\Windows\Fonts\malgunbd.ttf"
+FONT = os.environ.get("ITA_KOREAN_FONT", r"C:\Windows\Fonts\malgun.ttf")
+BOLD = os.environ.get("ITA_KOREAN_BOLD_FONT", r"C:\Windows\Fonts\malgunbd.ttf")
 W, H = A4
 M = 46
 
@@ -28,6 +29,10 @@ GREEN = colors.HexColor("#58A56A")
 
 
 def register_fonts():
+    # 비 Windows 환경에서는 설치된 한글 TTF 경로를 환경 변수로 지정합니다.
+    for font_path in (FONT, BOLD):
+        if not Path(font_path).is_file():
+            raise FileNotFoundError("ITA_KOREAN_FONT 및 ITA_KOREAN_BOLD_FONT에 한글 TTF 경로를 지정하세요: " + font_path)
     pdfmetrics.registerFont(TTFont("KR", FONT))
     pdfmetrics.registerFont(TTFont("KR-Bold", BOLD))
 
