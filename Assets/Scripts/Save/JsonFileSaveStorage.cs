@@ -395,11 +395,26 @@ namespace InTheArena.Save
 
         public static string ComputeChecksum(PlayerSaveEnvelope env)
         {
-            string payloadJson = env.schemaVersion < 3
-                ? JsonUtility.ToJson(LegacyChecksumPayload.From(env.payload))
-                : env.schemaVersion < 4
-                    ? JsonUtility.ToJson(PreChestChecksumPayload.From(env.payload))
-                    : JsonUtility.ToJson(env.payload);
+            string payloadJson;
+
+            // 각 스키마가 저장하던 필드만 직렬화하여 이전 세이브의 체크섬을 유지한다.
+            if (env.schemaVersion < 3)
+            {
+                payloadJson = JsonUtility.ToJson(LegacyChecksumPayload.From(env.payload));
+            }
+            else if (env.schemaVersion < 4)
+            {
+                payloadJson = JsonUtility.ToJson(PreChestChecksumPayload.From(env.payload));
+            }
+            else if (env.schemaVersion < 5)
+            {
+                payloadJson = JsonUtility.ToJson(PreFreePassChecksumPayload.From(env.payload));
+            }
+            else
+            {
+                payloadJson = JsonUtility.ToJson(env.payload);
+            }
+
             string raw = $"{env.schemaVersion}_{env.revision}_{env.savedAtUtcTicks}_{payloadJson}";
 
             using (var sha256 = System.Security.Cryptography.SHA256.Create())
@@ -457,6 +472,40 @@ namespace InTheArena.Save
                     stars = payload.stars,
                     selectedStageDifficulty = payload.selectedStageDifficulty,
                     lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks
+                };
+            }
+        }
+
+        [Serializable]
+        private sealed class PreFreePassChecksumPayload
+        {
+            public int clearedStageNumber;
+            public int gold;
+            public int hearts;
+            public int stars;
+            public int selectedStageDifficulty;
+            public long lastHeartRecoveryUtcTicks;
+            public ItemCountPayload[] itemCounts;
+
+            /// <summary>
+            /// 스키마 4 체크섬에 포함되던 필드만 복사합니다.
+            /// </summary>
+            public static PreFreePassChecksumPayload From(PlayerSavePayload payload)
+            {
+                if (payload == null)
+                {
+                    return new PreFreePassChecksumPayload();
+                }
+
+                return new PreFreePassChecksumPayload
+                {
+                    clearedStageNumber = payload.clearedStageNumber,
+                    gold = payload.gold,
+                    hearts = payload.hearts,
+                    stars = payload.stars,
+                    selectedStageDifficulty = payload.selectedStageDifficulty,
+                    lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks,
+                    itemCounts = payload.itemCounts
                 };
             }
         }

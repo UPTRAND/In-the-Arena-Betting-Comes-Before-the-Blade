@@ -5,6 +5,8 @@ using InTheArena.MainGame; // For StageManager
 
 public class SaveDebugWindow : EditorWindow
 {
+    private const int DebugFreePassDurationSeconds = 30 * 60;
+
     private int m_InputNextStage = 1;
     private int m_InputStars = 0;
     private int m_InputHearts = SaveManager.MaxHearts;
@@ -59,6 +61,7 @@ public class SaveDebugWindow : EditorWindow
         EditorGUILayout.LabelField("Save Status", save.Availability.ToString());
         EditorGUILayout.LabelField("Gold", save.Gold.ToString());
         EditorGUILayout.LabelField("Tickets / Hearts", $"{save.Hearts}/{SaveManager.MaxHearts}");
+        EditorGUILayout.LabelField("Free Pass Remaining", FormatFreePassRemaining(save.GetRemainingFreePassTime()));
         EditorGUILayout.LabelField("Stars", save.Stars.ToString());
         EditorGUILayout.LabelField("Cleared", $"Stage {save.ClearedStageNumber}");
         EditorGUILayout.LabelField("Next Stage", $"Stage {save.ClearedStageNumber + 1}");
@@ -70,6 +73,18 @@ public class SaveDebugWindow : EditorWindow
         {
             AddGold5000(save);
         }
+
+        EditorGUILayout.Space();
+
+        // Free Pass
+        GUI.enabled = Application.isPlaying && save.Availability == SaveAvailability.Ready;
+
+        if (GUILayout.Button("Use Free Pass (30 Minutes)", GUILayout.Height(30)))
+        {
+            UseFreePass(save);
+        }
+
+        GUI.enabled = true;
 
         EditorGUILayout.Space();
 
@@ -116,6 +131,38 @@ public class SaveDebugWindow : EditorWindow
         }
 
         EditorGUILayout.EndHorizontal();
+    }
+
+    /// <summary>
+    /// 플레이 모드 테스트를 위해 아이템 수량을 소비하지 않고 30분 자유 이용권을 활성화합니다.
+    /// </summary>
+    private void UseFreePass(SaveManager save)
+    {
+        if (!save.DebugTryActivateFreePass(DebugFreePassDurationSeconds, out string error))
+        {
+            Debug.LogError($"[SaveDebug] Failed to activate Free Pass: {error}");
+            return;
+        }
+
+        Debug.Log("[SaveDebug] Successfully activated a 30 minute Free Pass.");
+    }
+
+    /// <summary>
+    /// 디버그 창에 자유 이용권 남은 시간을 시:분:초 형식으로 표시합니다.
+    /// </summary>
+    private static string FormatFreePassRemaining(System.TimeSpan remaining)
+    {
+        if (remaining <= System.TimeSpan.Zero)
+        {
+            return "Inactive";
+        }
+
+        long totalSeconds = (long)System.Math.Ceiling(remaining.TotalSeconds);
+        long hours = totalSeconds / 3600;
+        long minutes = totalSeconds % 3600 / 60;
+        long seconds = totalSeconds % 60;
+
+        return $"{hours:00}:{minutes:00}:{seconds:00}";
     }
 
     private void AddGold5000(SaveManager save)

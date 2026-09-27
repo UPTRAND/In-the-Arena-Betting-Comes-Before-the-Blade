@@ -11,6 +11,7 @@ namespace InTheArena.Save
         public int stars;
         public int selectedStageDifficulty;
         public long lastHeartRecoveryUtcTicks;
+        public long freePassExpirationUtcTicks;
         public ItemCountPayload[] itemCounts;
     }
 

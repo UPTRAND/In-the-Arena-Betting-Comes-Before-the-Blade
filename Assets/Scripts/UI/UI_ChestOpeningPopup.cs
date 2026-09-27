@@ -129,6 +129,7 @@ namespace InTheArena.UI
                 ItemType.Meteor => "메테오",
                 ItemType.Mercenary => "용병 고용",
                 ItemType.TimeExtension => "시간 연장",
+                ItemType.FreePass => "자유 이용권",
                 _ => "아이템"
             };
         }

@@ -49,6 +49,16 @@ public class SaveManager : Manager_Base
     public int ClearedStageNumber => m_State?.ClearedStageNumber ?? 0;
     public int GetItemCount(ItemType itemType) => m_State?.GetItemCount(itemType) ?? 0;
 
+    public long FreePassExpirationUtcTicks => m_State?.FreePassExpirationUtcTicks ?? 0;
+
+    public bool HasActiveFreePass
+    {
+        get
+        {
+            return GetRemainingFreePassTime() > TimeSpan.Zero;
+        }
+    }
+
     private bool m_IsSaving = false;
 
     private void Awake()
@@ -204,16 +214,82 @@ public class SaveManager : Manager_Base
         return TimeSpan.FromSeconds(Mathf.Clamp(HeartRecoverySeconds - (float)Math.Max(0, (m_Clock.UtcNow - last).TotalSeconds), 0, HeartRecoverySeconds));
     }
 
+    /// <summary>
+    /// 현재 UTC 시각을 기준으로 자유 이용권의 남은 시간을 반환합니다.
+    /// </summary>
+    public TimeSpan GetRemainingFreePassTime()
+    {
+        if (m_State == null || m_Clock == null || Availability != SaveAvailability.Ready)
+        {
+            return TimeSpan.Zero;
+        }
+
+        long expirationTicks = m_State.FreePassExpirationUtcTicks;
+        long nowTicks = m_Clock.UtcNow.Ticks;
+        long remainingTicks = expirationTicks - nowTicks;
+
+        if (remainingTicks <= 0)
+        {
+            return TimeSpan.Zero;
+        }
+
+        return TimeSpan.FromTicks(remainingTicks);
+    }
+
+    /// <summary>
+    /// 로비 아이템의 종류를 확인하고 해당 효과를 적용합니다.
+    /// </summary>
+    public bool TryUseLobbyItem(ItemData itemData, out string error)
+    {
+        error = null;
+
+        if (itemData == null || itemData.Category != ItemCategory.Lobby)
+        {
+            error = "A lobby item is required.";
+            return false;
+        }
+
+        if (itemData.ItemType == ItemType.FreePass)
+        {
+            return TryActivateFreePass(itemData.EffectDurationSeconds, true, out error);
+        }
+
+        error = "The lobby item type is not supported.";
+        return false;
+    }
+
+    /// <summary>
+    /// 스테이지 입장권을 소비합니다. 자유 이용권이 활성 상태이면 입장권 수량을 유지합니다.
+    /// </summary>
     public bool TrySpendHeart()
     {
         var refreshResult = RefreshHearts();
         if (refreshResult == HeartRefreshResult.Unavailable || refreshResult == HeartRefreshResult.SaveFailed)
+        {
             return false;
+        }
 
-        if (m_State == null || m_State.Hearts <= 0 || Availability != SaveAvailability.Ready) return false;
+        if (m_State == null || Availability != SaveAvailability.Ready)
+        {
+            return false;
+        }
+
+        if (HasActiveFreePass)
+        {
+            return true;
+        }
+
+        if (m_State.Hearts <= 0)
+        {
+            return false;
+        }
 
         var copy = m_State.DeepClone();
-        if (copy.Hearts == MaxHearts) copy.SetLastHeartRecoveryUtcTicks(m_Clock.UtcNow.Ticks);
+        if (copy.Hearts == MaxHearts)
+        {
+            copy.SetLastHeartRecoveryUtcTicks(m_Clock.UtcNow.Ticks);
+        }
+
         copy.SetHearts(copy.Hearts - 1);
 
         if (TrySave(copy, out _))
@@ -222,6 +298,59 @@ public class SaveManager : Manager_Base
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// 자유 이용권 만료 시각을 연장하고, 일반 사용인 경우 보유 아이템 한 개를 함께 소비합니다.
+    /// </summary>
+    private bool TryActivateFreePass(int durationSeconds, bool spendItem, out string error)
+    {
+        error = null;
+
+        if (m_IsReadOnly || m_State == null || m_Clock == null || Availability != SaveAvailability.Ready)
+        {
+            error = "Save data is unavailable.";
+            return false;
+        }
+
+        if (durationSeconds <= 0)
+        {
+            error = "Free pass duration must be greater than zero.";
+            return false;
+        }
+
+        if (spendItem && m_State.GetItemCount(ItemType.FreePass) <= 0)
+        {
+            error = "Free pass is unavailable.";
+            return false;
+        }
+
+        long durationTicks = TimeSpan.FromSeconds(durationSeconds).Ticks;
+        long nowTicks = m_Clock.UtcNow.Ticks;
+        long activationBaseTicks = Math.Max(nowTicks, m_State.FreePassExpirationUtcTicks);
+
+        if (activationBaseTicks > DateTime.MaxValue.Ticks - durationTicks)
+        {
+            error = "Free pass expiration exceeds the supported date range.";
+            return false;
+        }
+
+        PlayerProgressState copy = m_State.DeepClone();
+        copy.SetFreePassExpirationUtcTicks(activationBaseTicks + durationTicks);
+
+        if (spendItem)
+        {
+            int remainingCount = copy.GetItemCount(ItemType.FreePass) - 1;
+            copy.SetItemCount(ItemType.FreePass, remainingCount);
+        }
+
+        if (!TrySave(copy, out error))
+        {
+            return false;
+        }
+
+        m_State = copy;
+        return true;
     }
 
     public bool TryOpenChest(ItemType itemType, int amount, out string error)
@@ -350,6 +479,14 @@ public class SaveManager : Manager_Base
     public override void Release() { Save(); if (Instance == this) Instance = null; base.Release(); }
 
 #if UNITY_EDITOR
+    /// <summary>
+    /// 디버그 도구에서 아이템 수량을 소비하지 않고 자유 이용권을 활성화합니다.
+    /// </summary>
+    public bool DebugTryActivateFreePass(int durationSeconds, out string error)
+    {
+        return TryActivateFreePass(durationSeconds, false, out error);
+    }
+
     public bool DebugTryModifyState(Action<PlayerProgressState> modifier, out string error)
     {
         error = null;

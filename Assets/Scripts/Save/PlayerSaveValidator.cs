@@ -16,7 +16,7 @@ namespace InTheArena.Save
 
     public static class PlayerSaveValidator
     {
-        public const int CurrentSchemaVersion = 4;
+        public const int CurrentSchemaVersion = 5;
 
         public static bool ValidateAndNormalize(PlayerSaveEnvelope envelope, IClock clock)
         {
@@ -68,6 +68,24 @@ namespace InTheArena.Save
             else if (payload.lastHeartRecoveryUtcTicks <= 0)
             {
                 payload.lastHeartRecoveryUtcTicks = nowTicks;
+            }
+
+            // 자유 이용권은 스키마 5부터 지원한다. 이전 스키마에 임의로 들어간 값은 사용하지 않는다.
+            if (envelope.schemaVersion < 5)
+            {
+                payload.freePassExpirationUtcTicks = 0;
+            }
+            else
+            {
+                payload.freePassExpirationUtcTicks = Math.Clamp(
+                    payload.freePassExpirationUtcTicks,
+                    0,
+                    DateTime.MaxValue.Ticks);
+
+                if (payload.freePassExpirationUtcTicks <= nowTicks)
+                {
+                    payload.freePassExpirationUtcTicks = 0;
+                }
             }
 
             return true;

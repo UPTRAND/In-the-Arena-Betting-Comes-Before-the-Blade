@@ -7,7 +7,8 @@ namespace InTheArena.MainGame
     public enum ItemCategory
     {
         Betting,
-        Combat
+        Combat,
+        Lobby
     }
 
     public enum ItemType
@@ -20,7 +21,9 @@ namespace InTheArena.MainGame
         // 전투 아이템
         Meteor = 11,
         Mercenary = 12,
-        TimeExtension = 13
+        TimeExtension = 13,
+        // 로비 아이템
+        FreePass = 21
     }
 
     [CreateAssetMenu(fileName = "New Item Data", menuName = "InTheArena/Item Data")]
@@ -33,6 +36,10 @@ namespace InTheArena.MainGame
         [SerializeField] private Sprite m_Icon;
         [TextArea]
         [SerializeField] private string m_Description;
+
+        [Header("Timed Effect")]
+        [Min(0)]
+        [SerializeField] private int m_EffectDurationSeconds;
 
         public ItemType ItemType 
         { 
@@ -80,6 +87,17 @@ namespace InTheArena.MainGame
             { 
                 return m_Description; 
             } 
+        }
+
+        /// <summary>
+        /// 시간제 아이템 효과가 지속되는 시간을 초 단위로 반환합니다.
+        /// </summary>
+        public int EffectDurationSeconds
+        {
+            get
+            {
+                return m_EffectDurationSeconds;
+            }
         }
     }
 }

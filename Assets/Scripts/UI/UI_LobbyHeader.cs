@@ -1,4 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
+using System;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -13,13 +14,22 @@ namespace InTheArena.UI
         [SerializeField] private TMP_Text m_TimerText;
         [SerializeField] private RectTransform m_TimerBox;
         [SerializeField] private TMP_Text m_StarText;
+
+        [Header("Ticket")]
+        [SerializeField] private Image m_TicketImage;
+        [SerializeField] private Sprite m_FreePassTicketSprite;
+
         [SerializeField] private Image m_GoldImage;
         [SerializeField] private Image m_StarImage;
         [SerializeField] private Button m_SettingsButton;
         [SerializeField] private UI_OptionsPopup m_OptionsPopupPrefab;
+
         private float m_NextRefresh;
         private bool m_HasTimerState;
         private bool m_HasInitializedTimerState;
+        private bool m_HasDefaultTicketSprite;
+
+        private Sprite m_DefaultTicketSprite;
         private Tween m_TimerBoxTween;
         private int m_ActiveRewardAnimations;
 
@@ -27,6 +37,8 @@ namespace InTheArena.UI
         {
             base.Awake();
             ResolveRewardReferences();
+            ResolveTicketReferences();
+
             if (m_SettingsButton != null)
             {
                 m_SettingsButton.onClick.AddListener(OpenOptionsPopup);
@@ -68,19 +80,45 @@ namespace InTheArena.UI
             m_NextRefresh = Time.unscaledTime + 1f;
             SaveManager save = SaveManager.Instance;
             if (save == null) return;
+
             save.RefreshHearts();
+
             if (m_ActiveRewardAnimations == 0)
             {
                 m_GoldText.text = save.Gold.ToString();
                 m_StarText.text = save.Stars.ToString();
             }
-            bool needsTimer = save.Hearts < SaveManager.MaxHearts;
-            m_HeartText.text = $"{save.Hearts}/{SaveManager.MaxHearts}";
+
+            TimeSpan freePassRemaining = save.GetRemainingFreePassTime();
+            bool hasActiveFreePass = freePassRemaining > TimeSpan.Zero;
+            bool needsHeartRecoveryTimer = !hasActiveFreePass && save.Hearts < SaveManager.MaxHearts;
+
+            if (m_HeartText != null)
+            {
+                if (hasActiveFreePass)
+                {
+                    m_HeartText.text = FormatFreePassRemainingTime(freePassRemaining);
+                }
+                else
+                {
+                    m_HeartText.text = $"{save.Hearts}/{SaveManager.MaxHearts}";
+                }
+            }
+
             if (m_TimerText != null)
             {
-                m_TimerText.text = needsTimer ? save.GetRemainingHeartTime().ToString(@"mm\:ss") : string.Empty;
+                if (needsHeartRecoveryTimer)
+                {
+                    m_TimerText.text = save.GetRemainingHeartTime().ToString(@"mm\:ss");
+                }
+                else
+                {
+                    m_TimerText.text = string.Empty;
+                }
             }
-            RefreshTimerBox(needsTimer);
+
+            RefreshTicketImage(hasActiveFreePass);
+            RefreshTimerBox(needsHeartRecoveryTimer);
         }
 
         private void TryPlayPendingStageClearRewards()
@@ -152,6 +190,62 @@ namespace InTheArena.UI
         {
             m_GoldImage ??= FindDescendant(transform, "GoldImage")?.GetComponent<Image>();
             m_StarImage ??= FindDescendant(transform, "StarImage")?.GetComponent<Image>();
+        }
+
+        /// <summary>
+        /// 티켓 아이콘 참조와 자유 이용권 종료 후 복원할 기본 스프라이트를 찾습니다.
+        /// </summary>
+        private void ResolveTicketReferences()
+        {
+            if (m_TicketImage == null)
+            {
+                Transform heartBox = FindDescendant(transform, "HeartBox");
+                m_TicketImage = FindDescendant(heartBox, "Image")?.GetComponent<Image>();
+            }
+
+            if (!m_HasDefaultTicketSprite && m_TicketImage != null)
+            {
+                m_DefaultTicketSprite = m_TicketImage.sprite;
+                m_HasDefaultTicketSprite = true;
+            }
+        }
+
+        /// <summary>
+        /// 자유 이용권 활성 상태에 맞춰 티켓 아이콘을 교체합니다.
+        /// </summary>
+        private void RefreshTicketImage(bool hasActiveFreePass)
+        {
+            ResolveTicketReferences();
+            if (m_TicketImage == null)
+            {
+                return;
+            }
+
+            if (hasActiveFreePass && m_FreePassTicketSprite != null)
+            {
+                m_TicketImage.sprite = m_FreePassTicketSprite;
+                return;
+            }
+
+            m_TicketImage.sprite = m_DefaultTicketSprite;
+        }
+
+        /// <summary>
+        /// 자유 이용권 남은 시간을 1시간 미만은 분:초, 그 이상은 시:분:초로 표시합니다.
+        /// </summary>
+        private static string FormatFreePassRemainingTime(TimeSpan remaining)
+        {
+            long totalSeconds = (long)Math.Ceiling(Math.Max(0d, remaining.TotalSeconds));
+            long hours = totalSeconds / 3600;
+            long minutes = totalSeconds % 3600 / 60;
+            long seconds = totalSeconds % 60;
+
+            if (hours > 0)
+            {
+                return $"{hours:00}:{minutes:00}:{seconds:00}";
+            }
+
+            return $"{minutes:00}:{seconds:00}";
         }
 
         private void OpenOptionsPopup()

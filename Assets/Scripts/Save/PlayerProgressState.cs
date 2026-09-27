@@ -12,6 +12,8 @@ namespace InTheArena.Save
         public int Stars { get; private set; }
         public int SelectedStageDifficulty { get; private set; }
         public long LastHeartRecoveryUtcTicks { get; private set; }
+        public long FreePassExpirationUtcTicks { get; private set; }
+
         private readonly Dictionary<ItemType, int> m_ItemCounts = new Dictionary<ItemType, int>();
 
         public PlayerProgressState()
@@ -26,6 +28,9 @@ namespace InTheArena.Save
             Stars = other.Stars;
             SelectedStageDifficulty = other.SelectedStageDifficulty;
             LastHeartRecoveryUtcTicks = other.LastHeartRecoveryUtcTicks;
+
+            FreePassExpirationUtcTicks = other.FreePassExpirationUtcTicks;
+
             foreach (var pair in other.m_ItemCounts) m_ItemCounts[pair.Key] = pair.Value;
         }
 
@@ -43,6 +48,9 @@ namespace InTheArena.Save
             Stars = payload.stars;
             SelectedStageDifficulty = payload.selectedStageDifficulty;
             LastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks;
+
+            FreePassExpirationUtcTicks = payload.freePassExpirationUtcTicks;
+
             m_ItemCounts.Clear();
             if (payload.itemCounts == null) return;
             foreach (ItemCountPayload entry in payload.itemCounts)
@@ -62,8 +70,9 @@ namespace InTheArena.Save
                 hearts = Hearts,
                 stars = Stars,
                 selectedStageDifficulty = SelectedStageDifficulty,
-                lastHeartRecoveryUtcTicks = LastHeartRecoveryUtcTicks
-                ,itemCounts = ToItemCountPayload()
+                lastHeartRecoveryUtcTicks = LastHeartRecoveryUtcTicks,
+                freePassExpirationUtcTicks = FreePassExpirationUtcTicks,
+                itemCounts = ToItemCountPayload()
             };
         }
 
@@ -73,6 +82,15 @@ namespace InTheArena.Save
         public void SetStars(int val) => Stars = val;
         public void SetSelectedStageDifficulty(int val) => SelectedStageDifficulty = val;
         public void SetLastHeartRecoveryUtcTicks(long val) => LastHeartRecoveryUtcTicks = val;
+
+        /// <summary>
+        /// 자유 이용권이 만료되는 UTC 시각을 ticks 단위로 저장합니다.
+        /// </summary>
+        public void SetFreePassExpirationUtcTicks(long value)
+        {
+            FreePassExpirationUtcTicks = value;
+        }
+
         public int GetItemCount(ItemType type) => type == ItemType.None || !m_ItemCounts.TryGetValue(type, out int count) ? 0 : count;
         public void SetItemCount(ItemType type, int count)
         {
