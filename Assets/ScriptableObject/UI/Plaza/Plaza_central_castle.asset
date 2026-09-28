@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a4b5d509843154448e07fd68b4c81ee, type: 3}
+  m_Name: Plaza_central_castle
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.LobbyPlazaProfile
+  FirstStage: 6
+  LastStage: 10
+  Background: {fileID: 21300000, guid: cb24d6af666fbc542be1c17c6c6db674, type: 3}
+  Residents:
+  - Id: central_castle_resident_01
+    Visual: {fileID: 11400000, guid: 00b194bfc6d2a5c498274d0dc60a5cb9, type: 2}
+  - Id: central_castle_resident_02
+    Visual: {fileID: 11400000, guid: ffb694912dc3d0f45a5aa0bf3e8f0381, type: 2}
+  - Id: central_castle_resident_03
+    Visual: {fileID: 11400000, guid: 3c0a987e42a0ee747a5dbc2dd359c5cf, type: 2}
+  - Id: central_castle_resident_04
+    Visual: {fileID: 11400000, guid: 00b194bfc6d2a5c498274d0dc60a5cb9, type: 2}
+  - Id: central_castle_resident_05
+    Visual: {fileID: 11400000, guid: ffb694912dc3d0f45a5aa0bf3e8f0381, type: 2}
+  WalkArea:
+  - {x: 0.18, y: 0.28}
+  - {x: 0.82, y: 0.28}
+  - {x: 0.78, y: 0.59}
+  - {x: 0.22, y: 0.59}
+  Speed: {x: 35, y: 55}
+  WaitSeconds: {x: 2, y: 5}
+  Separation: 70

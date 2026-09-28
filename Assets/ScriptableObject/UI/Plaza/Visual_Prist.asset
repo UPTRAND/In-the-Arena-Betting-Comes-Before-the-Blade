@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 534d133af8bee7f408534ab59c291e99, type: 3}
+  m_Name: Visual_Prist
+  m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.LobbyNpcVisualData
+  Idle:
+    Frames:
+    - {fileID: 1916722958, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 560025795, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 1399044344, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: -1049244634, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    Times:
+    - 0
+    - 0.083333336
+    - 0.16666667
+    - 0.25
+    Duration: 0.33333334
+  Walk:
+    Frames:
+    - {fileID: -370336972, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 1798997962, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 601628139, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: -336596157, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 1471161684, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    - {fileID: 803898323, guid: 27fc9c80561e9e44db4740ab373e0f23, type: 3}
+    Times:
+    - 0
+    - 0.083333336
+    - 0.16666667
+    - 0.25
+    - 0.33333334
+    - 0.41666666
+    Duration: 0.5
+  FootPixel: {x: 16, y: 1}
+  PixelScale: 5
+  FacesRight: 1

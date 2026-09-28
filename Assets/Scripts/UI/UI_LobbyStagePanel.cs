@@ -19,8 +19,11 @@ namespace InTheArena.UI
         [SerializeField] private List<StageData> m_StageDatas = new List<StageData>();
         [SerializeField] private Button m_ChestButton;
         [SerializeField] private List<ItemData> m_ChestItems = new List<ItemData>();
+        [SerializeField] private LobbyPlazaController m_Plaza;
 
         private StageData m_Target;
+        private bool m_PlazaSaveReady;
+        private int m_PlazaStage;
 
         protected override void Awake()
         {
@@ -68,6 +71,18 @@ namespace InTheArena.UI
 
             RefreshBackground();
             RefreshChestButton();
+            m_PlazaSaveReady = IsSaveReadyForPlaza();
+            m_PlazaStage = next;
+            m_Plaza?.SetContext(next, m_BackgroundImage != null ? m_BackgroundImage.rectTransform : null, m_PlazaSaveReady);
+        }
+
+        private static bool IsSaveReadyForPlaza() => SaveManager.Instance != null &&
+            SaveManager.Instance.IsInitialized && SaveManager.Instance.Availability == SaveAvailability.Ready;
+
+        private void Update()
+        {
+            if (m_Plaza != null && IsLobbySceneActive() &&
+                (m_PlazaSaveReady != IsSaveReadyForPlaza() || m_PlazaStage != GetNextStageNumber())) Refresh();
         }
 
         private int GetNextStageNumber()
@@ -83,17 +98,24 @@ namespace InTheArena.UI
         /// <summary>현재 스테이지 배경을 원본 비율을 유지하며 화면 전체에 채웁니다.</summary>
         private void RefreshBackground()
         {
-            if (m_BackgroundImage != null && m_Target != null && m_Target.BackgroundSprite != null)
+            StageData backgroundStage = m_Target;
+            if (backgroundStage == null)
+            {
+                foreach (StageData stage in m_StageDatas)
+                    if (stage != null && stage.StageNum < GetNextStageNumber() &&
+                        (backgroundStage == null || stage.StageNum > backgroundStage.StageNum)) backgroundStage = stage;
+            }
+            if (m_BackgroundImage != null && backgroundStage != null && backgroundStage.BackgroundSprite != null)
             {
                 m_BackgroundImage.gameObject.SetActive(true);
-                m_BackgroundImage.sprite = m_Target.BackgroundSprite;
+                m_BackgroundImage.sprite = backgroundStage.BackgroundSprite;
                 m_BackgroundImage.preserveAspect = true;
 
                 AspectRatioFitter fitter = m_BackgroundImage.GetComponent<AspectRatioFitter>();
                 if (fitter != null)
                 {
-                    fitter.aspectRatio = m_Target.BackgroundSprite.rect.width /
-                        Mathf.Max(1f, m_Target.BackgroundSprite.rect.height);
+                    fitter.aspectRatio = backgroundStage.BackgroundSprite.rect.width /
+                        Mathf.Max(1f, backgroundStage.BackgroundSprite.rect.height);
                 }
             }
         }
