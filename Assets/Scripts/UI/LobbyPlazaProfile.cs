@@ -14,6 +14,8 @@ namespace InTheArena.UI
     [CreateAssetMenu(menuName = "In The Arena/Lobby/Plaza Profile")]
     public sealed class LobbyPlazaProfile : ScriptableObject
     {
+        [Tooltip("퀘스트 NPC 배정을 복원할 때 사용하는 안정적인 지역 ID입니다.")]
+        public string ProfileId;
         public int FirstStage = 1;
         public int LastStage = 5;
         public Sprite Background;
@@ -28,6 +30,8 @@ namespace InTheArena.UI
         public bool IsValid => FirstStage > 0 && LastStage >= FirstStage &&
             ValidRange(Speed, .1f) && ValidRange(WaitSeconds, 0f) &&
             float.IsFinite(Separation) && Separation > 0f && LobbyPlazaGeometry.IsConvex(WalkArea);
+
+        public string StableId => string.IsNullOrWhiteSpace(ProfileId) ? name : ProfileId;
 
         private static bool ValidRange(Vector2 value, float min) => float.IsFinite(value.x) &&
             float.IsFinite(value.y) && value.x >= min && value.y >= value.x;

@@ -1,6 +1,5 @@
 #if UNITY_6000_0_OR_NEWER
 using System;
-using System.Linq;
 using System.Collections.Generic;
 using DG.Tweening;
 using InTheArena.MainGame;
@@ -74,6 +73,7 @@ namespace InTheArena.UI
             ResetSummaryDisplay();
         }
 
+        /// <summary>항목별 판정을 순서대로 표시하고 무승부 3배 또는 팀 배당을 연출합니다.</summary>
         public void PlayResultAnimation()
         {
             CancelResultAnimation();
@@ -94,9 +94,20 @@ namespace InTheArena.UI
                 if (updateOdds)
                 {
                     if (entry.IsCorrect)
-                        displayedOdds = m_Ticket.Faction == FactionPrediction.Draw ? 3 : 1 << (i + 1);
+                    {
+                        if (m_Ticket.Faction == FactionPrediction.Draw)
+                        {
+                            displayedOdds = 3;
+                        }
+                        else
+                        {
+                            displayedOdds = 1 << (i + 1);
+                        }
+                    }
                     else
+                    {
                         oddsStopped = true;
+                    }
                 }
 
                 m_ResultSequence.AppendInterval(i == 0 ? 0.08f : 0.12f);
@@ -128,30 +139,71 @@ namespace InTheArena.UI
             m_ResultText?.DOKill();
         }
 
+        /// <summary>확정 티켓의 메인과 팀 기준 서브를 항목별 적중 결과로 구성합니다.</summary>
         private void BuildEntries()
         {
             m_Entries.Clear();
-            if (m_Ticket == null || m_CombatResult == null || m_Settlement == null) return;
+            if (m_Ticket == null || m_Settlement == null)
+            {
+                return;
+            }
 
             if (m_Ticket.Faction != FactionPrediction.NotSelected)
-                m_Entries.Add(new BetEntry($"필수 메인 베팅 · {FormatFaction(m_Ticket.Faction)}", !m_Settlement.FailedCategories.Contains("Faction")));
+            {
+                m_Entries.Add(new BetEntry(
+                    $"필수 메인 베팅 · {FormatFaction(m_Ticket.Faction)}",
+                    IsMatched(BetCategory.Faction)));
+            }
 
             if (m_Ticket.RemainingTime.HasValue)
-                m_Entries.Add(new BetEntry($"종료 시간 · {FormatRemainingTime(m_Ticket.RemainingTime.Value)}", !m_Settlement.FailedCategories.Contains("RemainingTime")));
+            {
+                m_Entries.Add(new BetEntry(
+                    $"\uC885\uB8CC \uC2DC\uAC04 \u00B7 {FormatRemainingTime(m_Ticket.RemainingTime.Value)}",
+                    IsMatched(BetCategory.RemainingTime)));
+            }
 
             if (m_Ticket.OddEven.HasValue)
             {
-                m_Entries.Add(new BetEntry($"{FormatFaction(m_Ticket.Faction)} 생존 수 홀짝 · {FormatOddEven(m_Ticket.OddEven.Value)}", !m_Settlement.FailedCategories.Contains("OddEven")));
+                m_Entries.Add(new BetEntry(
+                    $"{FormatFaction(m_Ticket.Faction)} 생존 수 홀짝 · {FormatOddEven(m_Ticket.OddEven.Value)}",
+                    IsMatched(BetCategory.OddEven)));
             }
 
             if (m_Ticket.FirstEliminatedColumn.HasValue)
-                m_Entries.Add(new BetEntry($"첫 전멸 열 · {FormatFirstEliminatedColumn(m_Ticket.FirstEliminatedColumn.Value)}", !m_Settlement.FailedCategories.Contains("FirstEliminatedColumn")));
+            {
+                m_Entries.Add(new BetEntry(
+                    $"\uCCAB \uC804\uBA78 \uC5F4 \u00B7 {FormatFirstEliminatedColumn(m_Ticket.FirstEliminatedColumn.Value)}",
+                    IsMatched(BetCategory.FirstEliminatedColumn)));
+            }
 
             if (m_Ticket.SurvivingRow.HasValue)
-                m_Entries.Add(new BetEntry($"생존 행 · {FormatSurvivingRow(m_Ticket.SurvivingRow.Value)}", !m_Settlement.FailedCategories.Contains("SurvivingRow")));
+            {
+                m_Entries.Add(new BetEntry(
+                    $"생존 행 · {FormatSurvivingRow(m_Ticket.SurvivingRow.Value)}",
+                    IsMatched(BetCategory.SurvivingRow)));
+            }
 
             if (m_Entries.Count > 4)
+            {
                 m_Entries.RemoveRange(4, m_Entries.Count - 4);
+            }
+        }
+
+        /// <summary>
+        /// 정산 계층이 확정한 항목별 적중 결과를 UI 표시에도 그대로 사용합니다.
+        /// </summary>
+        private bool IsMatched(BetCategory category)
+        {
+            for (int i = 0; i < m_Settlement.Outcomes.Count; i++)
+            {
+                BetOutcome outcome = m_Settlement.Outcomes[i];
+                if (outcome.Category == category)
+                {
+                    return outcome.IsSelected && outcome.IsMatched;
+                }
+            }
+
+            return false;
         }
 
         private void BuildBettingBoxes()

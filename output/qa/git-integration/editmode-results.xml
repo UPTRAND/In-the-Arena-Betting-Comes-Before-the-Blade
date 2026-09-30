@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="112" result="Passed" total="112" passed="112" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:50Z" duration="0.6806116">
+  <test-suite type="TestSuite" id="1000" name="In-the-Arena-Betting-Comes-Before-the-Blade" fullname="In-the-Arena-Betting-Comes-Before-the-Blade" runstate="Runnable" testcasecount="305" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:50Z" duration="0.680612" total="112" passed="112" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1345" name="Assembly-CSharp-Editor.dll" fullname="C:/Users/pgu51/AppData/Local/Temp/arena-merge-20260930-221129/validation-project/Library/ScriptAssemblies/Assembly-CSharp-Editor.dll" runstate="Runnable" testcasecount="305" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:50Z" duration="0.673324" total="112" passed="112" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="48148" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1001" name="BetSettlementServiceTests" fullname="BetSettlementServiceTests" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="38" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.051212" total="38" passed="38" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1004" name="AdditionalBet_IncreasesWinningPayoutByExistingBonusCall" fullname="BetSettlementServiceTests.AdditionalBet_IncreasesWinningPayoutByExistingBonusCall" methodname="AdditionalBet_IncreasesWinningPayoutByExistingBonusCall" classname="BetSettlementServiceTests" runstate="Runnable" seed="1761205888" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.016354" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1042" name="Draw_RejectsInjectedSpecialBet_AndPaysThreeTimesIncludingPrincipal" fullname="BetSettlementServiceTests.Draw_RejectsInjectedSpecialBet_AndPaysThreeTimesIncludingPrincipal" methodname="Draw_RejectsInjectedSpecialBet_AndPaysThreeTimesIncludingPrincipal" classname="BetSettlementServiceTests" runstate="Runnable" seed="1475631703" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001299" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1028" name="FirstEliminatedColumn_FailsWhenNoPopulatedColumnWasEliminated" fullname="BetSettlementServiceTests.FirstEliminatedColumn_FailsWhenNoPopulatedColumnWasEliminated" methodname="FirstEliminatedColumn_FailsWhenNoPopulatedColumnWasEliminated" classname="BetSettlementServiceTests" runstate="Runnable" seed="442105509" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001856" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1029" name="FourCorrectCategories_PayWagerTimesSixteen" fullname="BetSettlementServiceTests.FourCorrectCategories_PayWagerTimesSixteen" methodname="FourCorrectCategories_PayWagerTimesSixteen" classname="BetSettlementServiceTests" runstate="Runnable" seed="1622889785" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000630" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1020" name="GridColumnMapping_MatchesTeamFacing" fullname="BetSettlementServiceTests.GridColumnMapping_MatchesTeamFacing" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.004625" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1016" name="GridColumnMapping_MatchesTeamFacing(Red,0,RedBack)" fullname="BetSettlementServiceTests.GridColumnMapping_MatchesTeamFacing(Red,0,RedBack)" methodname="GridColumnMapping_MatchesTeamFacing" classname="BetSettlementServiceTests" runstate="Runnable" seed="1988891780" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.002247" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1017" name="GridColumnMapping_MatchesTeamFacing(Red,1,RedFront)" fullname="BetSettlementServiceTests.GridColumnMapping_MatchesTeamFacing(Red,1,RedFront)" methodname="GridColumnMapping_MatchesTeamFacing" classname="BetSettlementServiceTests" runstate="Runnable" seed="1259478750" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000206" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1018" name="GridColumnMapping_MatchesTeamFacing(Blue,0,BlueFront)" fullname="BetSettlementServiceTests.GridColumnMapping_MatchesTeamFacing(Blue,0,BlueFront)" methodname="GridColumnMapping_MatchesTeamFacing" classname="BetSettlementServiceTests" runstate="Runnable" seed="324401316" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000121" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1019" name="GridColumnMapping_MatchesTeamFacing(Blue,1,BlueBack)" fullname="BetSettlementServiceTests.GridColumnMapping_MatchesTeamFacing(Blue,1,BlueBack)" methodname="GridColumnMapping_MatchesTeamFacing" classname="BetSettlementServiceTests" runstate="Runnable" seed="566837094" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000109" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1027" name="GridRowMapping_MatchesSlotPairs" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001966" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1021" name="GridRowMapping_MatchesSlotPairs(Red,0,RedRow1)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Red,0,RedRow1)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="1468011863" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000470" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1022" name="GridRowMapping_MatchesSlotPairs(Red,2,RedRow2)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Red,2,RedRow2)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="395786097" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000165" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1023" name="GridRowMapping_MatchesSlotPairs(Red,4,RedRow3)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Red,4,RedRow3)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="269552519" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000122" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1024" name="GridRowMapping_MatchesSlotPairs(Blue,0,BlueRow1)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Blue,0,BlueRow1)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="675722677" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000124" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1025" name="GridRowMapping_MatchesSlotPairs(Blue,2,BlueRow2)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Blue,2,BlueRow2)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="1065558929" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000104" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1026" name="GridRowMapping_MatchesSlotPairs(Blue,4,BlueRow3)" fullname="BetSettlementServiceTests.GridRowMapping_MatchesSlotPairs(Blue,4,BlueRow3)" methodname="GridRowMapping_MatchesSlotPairs" classname="BetSettlementServiceTests" runstate="Runnable" seed="32224956" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000098" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1005" name="Insurance_ReturnsBaseWagerWhenTheBetLoses" fullname="BetSettlementServiceTests.Insurance_ReturnsBaseWagerWhenTheBetLoses" methodname="Insurance_ReturnsBaseWagerWhenTheBetLoses" classname="BetSettlementServiceTests" runstate="Runnable" seed="1129641674" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000311" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1040" name="LeavingTeamBet_ClearsEverySpecialPrediction" fullname="BetSettlementServiceTests.LeavingTeamBet_ClearsEverySpecialPrediction" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001332" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1038" name="LeavingTeamBet_ClearsEverySpecialPrediction(Draw)" fullname="BetSettlementServiceTests.LeavingTeamBet_ClearsEverySpecialPrediction(Draw)" methodname="LeavingTeamBet_ClearsEverySpecialPrediction" classname="BetSettlementServiceTests" runstate="Runnable" seed="1234647417" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000811" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1039" name="LeavingTeamBet_ClearsEverySpecialPrediction(NotSelected)" fullname="BetSettlementServiceTests.LeavingTeamBet_ClearsEverySpecialPrediction(NotSelected)" methodname="LeavingTeamBet_ClearsEverySpecialPrediction" classname="BetSettlementServiceTests" runstate="Runnable" seed="252583683" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000115" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1037" name="MainBet_IsRequiredEvenWhenASpecialBetIsSelected" fullname="BetSettlementServiceTests.MainBet_IsRequiredEvenWhenASpecialBetIsSelected" methodname="MainBet_IsRequiredEvenWhenASpecialBetIsSelected" classname="BetSettlementServiceTests" runstate="Runnable" seed="1456070561" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000997" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1043" name="OddEven_UsesOnlyBettingTeamWhenOpposingCountChangesParity" fullname="BetSettlementServiceTests.OddEven_UsesOnlyBettingTeamWhenOpposingCountChangesParity" methodname="OddEven_UsesOnlyBettingTeamWhenOpposingCountChangesParity" classname="BetSettlementServiceTests" runstate="Runnable" seed="1596519390" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000306" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1003" name="OneWrongCategory_LosesEntireWager" fullname="BetSettlementServiceTests.OneWrongCategory_LosesEntireWager" methodname="OneWrongCategory_LosesEntireWager" classname="BetSettlementServiceTests" runstate="Runnable" seed="776206847" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000332" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1013" name="RemainingTime_UsesDefinedBoundaries" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001936" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1006" name="RemainingTime_UsesDefinedBoundaries(0.0f,Seconds0To5)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(0.0f,Seconds0To5)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="1360633364" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000370" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1007" name="RemainingTime_UsesDefinedBoundaries(4.999f,Seconds0To5)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(4.999f,Seconds0To5)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="223234051" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000119" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1008" name="RemainingTime_UsesDefinedBoundaries(5.0f,Seconds5To10)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(5.0f,Seconds5To10)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="1731731717" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000093" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1009" name="RemainingTime_UsesDefinedBoundaries(10.0f,Seconds10To15)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(10.0f,Seconds10To15)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="712646521" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000093" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1010" name="RemainingTime_UsesDefinedBoundaries(15.0f,Seconds15To20)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(15.0f,Seconds15To20)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="1389068304" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000098" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1011" name="RemainingTime_UsesDefinedBoundaries(20.0f,Seconds20OrMore)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(20.0f,Seconds20OrMore)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="2002593242" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000098" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1012" name="RemainingTime_UsesDefinedBoundaries(30.0f,Seconds20OrMore)" fullname="BetSettlementServiceTests.RemainingTime_UsesDefinedBoundaries(30.0f,Seconds20OrMore)" methodname="RemainingTime_UsesDefinedBoundaries" classname="BetSettlementServiceTests" runstate="Runnable" seed="2134114421" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000100" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1044" name="SpecialPrediction_RejectsOtherTeamsRowOrColumn" fullname="BetSettlementServiceTests.SpecialPrediction_RejectsOtherTeamsRowOrColumn" methodname="SpecialPrediction_RejectsOtherTeamsRowOrColumn" classname="BetSettlementServiceTests" runstate="Runnable" seed="1381310279" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000314" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1015" name="SurvivingRow_FailsWhenOnlyOtherRowsSurvive" fullname="BetSettlementServiceTests.SurvivingRow_FailsWhenOnlyOtherRowsSurvive" methodname="SurvivingRow_FailsWhenOnlyOtherRowsSurvive" classname="BetSettlementServiceTests" runstate="Runnable" seed="1088029338" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000676" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1014" name="SurvivingRow_SucceedsWhenSelectedRowHasAnySurvivor" fullname="BetSettlementServiceTests.SurvivingRow_SucceedsWhenSelectedRowHasAnySurvivor" methodname="SurvivingRow_SucceedsWhenSelectedRowHasAnySurvivor" classname="BetSettlementServiceTests" runstate="Runnable" seed="1875704918" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000383" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1041" name="SwitchingTeams_RetainsRelativePredictions" fullname="BetSettlementServiceTests.SwitchingTeams_RetainsRelativePredictions" methodname="SwitchingTeams_RetainsRelativePredictions" classname="BetSettlementServiceTests" runstate="Runnable" seed="60527693" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000537" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1002" name="ThreeCorrectCategories_PayWagerTimesEight_ExactlyOnce" fullname="BetSettlementServiceTests.ThreeCorrectCategories_PayWagerTimesEight_ExactlyOnce" methodname="ThreeCorrectCategories_PayWagerTimesEight_ExactlyOnce" classname="BetSettlementServiceTests" runstate="Runnable" seed="1362241854" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.002024" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1036" name="WagerValidation_UsesSharedAmountRule" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.002120" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1030" name="WagerValidation_UsesSharedAmountRule(0,False)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(0,False)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="1439344204" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000721" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1031" name="WagerValidation_UsesSharedAmountRule(50,False)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(50,False)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="151261677" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000116" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1032" name="WagerValidation_UsesSharedAmountRule(99,False)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(99,False)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="180359399" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000105" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1033" name="WagerValidation_UsesSharedAmountRule(100,True)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(100,True)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="919244158" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000087" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1034" name="WagerValidation_UsesSharedAmountRule(150,False)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(150,False)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="1817548936" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000089" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1035" name="WagerValidation_UsesSharedAmountRule(500,True)" fullname="BetSettlementServiceTests.WagerValidation_UsesSharedAmountRule(500,True)" methodname="WagerValidation_UsesSharedAmountRule" classname="BetSettlementServiceTests" runstate="Runnable" seed="1253636786" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000087" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1045" name="BettingRevisionTests" fullname="BettingRevisionTests" classname="BettingRevisionTests" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:50Z" duration="0.258691" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="ParameterizedMethod" id="1048" name="Draw_PaysThreeTimesAndPreservesOutcome" fullname="BettingRevisionTests.Draw_PaysThreeTimesAndPreservesOutcome" classname="BettingRevisionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001512" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1046" name="Draw_PaysThreeTimesAndPreservesOutcome(None,300,True)" fullname="BettingRevisionTests.Draw_PaysThreeTimesAndPreservesOutcome(None,300,True)" methodname="Draw_PaysThreeTimesAndPreservesOutcome" classname="BettingRevisionTests" runstate="Runnable" seed="2128057808" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.001078" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1047" name="Draw_PaysThreeTimesAndPreservesOutcome(Red,0,False)" fullname="BettingRevisionTests.Draw_PaysThreeTimesAndPreservesOutcome(Red,0,False)" methodname="Draw_PaysThreeTimesAndPreservesOutcome" classname="BettingRevisionTests" runstate="Runnable" seed="340685488" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000139" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1061" name="Draw_PreservesAdditionalBetAndInsurance" fullname="BettingRevisionTests.Draw_PreservesAdditionalBetAndInsurance" classname="BettingRevisionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000786" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1059" name="Draw_PreservesAdditionalBetAndInsurance(None,1800)" fullname="BettingRevisionTests.Draw_PreservesAdditionalBetAndInsurance(None,1800)" methodname="Draw_PreservesAdditionalBetAndInsurance" classname="BettingRevisionTests" runstate="Runnable" seed="243419592" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000318" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1060" name="Draw_PreservesAdditionalBetAndInsurance(Blue,100)" fullname="BettingRevisionTests.Draw_PreservesAdditionalBetAndInsurance(Blue,100)" methodname="Draw_PreservesAdditionalBetAndInsurance" classname="BettingRevisionTests" runstate="Runnable" seed="335077409" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000114" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1050" name="FirstColumnOutcome_UsesIndependentTeamResult" fullname="BettingRevisionTests.FirstColumnOutcome_UsesIndependentTeamResult" methodname="FirstColumnOutcome_UsesIndependentTeamResult" classname="BettingRevisionTests" runstate="Runnable" seed="964752704" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000257" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1054" name="FiveCategories_AreRejectedWithoutSpendingCall" fullname="BettingRevisionTests.FiveCategories_AreRejectedWithoutSpendingCall" methodname="FiveCategories_AreRejectedWithoutSpendingCall" classname="BettingRevisionTests" runstate="Runnable" seed="2061832494" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000264" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1053" name="FourCategories_KeepSixteenTimesAndIndividualOutcomes" fullname="BettingRevisionTests.FourCategories_KeepSixteenTimesAndIndividualOutcomes" classname="BettingRevisionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000792" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1051" name="FourCategories_KeepSixteenTimesAndIndividualOutcomes(Odd,1600,True)" fullname="BettingRevisionTests.FourCategories_KeepSixteenTimesAndIndividualOutcomes(Odd,1600,True)" methodname="FourCategories_KeepSixteenTimesAndIndividualOutcomes" classname="BettingRevisionTests" runstate="Runnable" seed="499311082" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000358" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1052" name="FourCategories_KeepSixteenTimesAndIndividualOutcomes(Even,0,False)" fullname="BettingRevisionTests.FourCategories_KeepSixteenTimesAndIndividualOutcomes(Even,0,False)" methodname="FourCategories_KeepSixteenTimesAndIndividualOutcomes" classname="BettingRevisionTests" runstate="Runnable" seed="1862369722" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000126" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1049" name="LosingTicket_PreservesTeamBasedSuccessfulSubOutcome" fullname="BettingRevisionTests.LosingTicket_PreservesTeamBasedSuccessfulSubOutcome" methodname="LosingTicket_PreservesTeamBasedSuccessfulSubOutcome" classname="BettingRevisionTests" runstate="Runnable" seed="279154333" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:49Z" duration="0.000912" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1062" name="Reroll_AssetAndPrefabReferencesRemainCompatible" fullname="BettingRevisionTests.Reroll_AssetAndPrefabReferencesRemainCompatible" methodname="Reroll_AssetAndPrefabReferencesRemainCompatible" classname="BettingRevisionTests" runstate="Runnable" seed="2124648653" result="Passed" start-time="2026-09-30 13:30:49Z" end-time="2026-09-30 13:30:50Z" duration="0.250256" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1058" name="Reroll_KeepsBaseSubCount" fullname="BettingRevisionTests.Reroll_KeepsBaseSubCount" classname="BettingRevisionTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002721" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1055" name="Reroll_KeepsBaseSubCount(2,1)" fullname="BettingRevisionTests.Reroll_KeepsBaseSubCount(2,1)" methodname="Reroll_KeepsBaseSubCount" classname="BettingRevisionTests" runstate="Runnable" seed="1669466261" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001588" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1056" name="Reroll_KeepsBaseSubCount(4,2)" fullname="BettingRevisionTests.Reroll_KeepsBaseSubCount(4,2)" methodname="Reroll_KeepsBaseSubCount" classname="BettingRevisionTests" runstate="Runnable" seed="1451972622" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000149" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1057" name="Reroll_KeepsBaseSubCount(6,3)" fullname="BettingRevisionTests.Reroll_KeepsBaseSubCount(6,3)" methodname="Reroll_KeepsBaseSubCount" classname="BettingRevisionTests" runstate="Runnable" seed="2007856035" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000101" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1063" name="CombatItemTargetingTests" fullname="CombatItemTargetingTests" classname="CombatItemTargetingTests" runstate="Runnable" testcasecount="17" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.048126" total="17" passed="17" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1065" name="BattlefieldArea_FormationPaddingKeepsAllThreeMercenariesInside" fullname="CombatItemTargetingTests.BattlefieldArea_FormationPaddingKeepsAllThreeMercenariesInside" methodname="BattlefieldArea_FormationPaddingKeepsAllThreeMercenariesInside" classname="CombatItemTargetingTests" runstate="Runnable" seed="1567698684" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.004649" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1064" name="BattlefieldArea_RaycastAcceptsOnlyColliderAndNormalizesY" fullname="CombatItemTargetingTests.BattlefieldArea_RaycastAcceptsOnlyColliderAndNormalizesY" methodname="BattlefieldArea_RaycastAcceptsOnlyColliderAndNormalizesY" classname="CombatItemTargetingTests" runstate="Runnable" seed="27779352" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002600" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1066" name="CombatPhase_ItemCastingSlowMotionBlocksToggleAndRestoresSelectedSpeed" fullname="CombatItemTargetingTests.CombatPhase_ItemCastingSlowMotionBlocksToggleAndRestoresSelectedSpeed" methodname="CombatPhase_ItemCastingSlowMotionBlocksToggleAndRestoresSelectedSpeed" classname="CombatItemTargetingTests" runstate="Runnable" seed="1533024896" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001034" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1078" name="FirstEliminatedColumn_RecordsEachTeamAfterOpposingTeamGoesFirst" fullname="CombatItemTargetingTests.FirstEliminatedColumn_RecordsEachTeamAfterOpposingTeamGoesFirst" methodname="FirstEliminatedColumn_RecordsEachTeamAfterOpposingTeamGoesFirst" classname="CombatItemTargetingTests" runstate="Runnable" seed="13705425" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.011319" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[Phase1C Test] 유닛 사망. Team: Blue, RuntimeListCount: 2, RedAlive: 2/0, BlueAlive: 1/0
+[Phase1C Test] 유닛 사망. Team: Red, RuntimeListCount: 2, RedAlive: 1/0, BlueAlive: 1/0
+]]></output>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1077" name="Mercenary_AutomaticPositionIsRearCenterAndFitsFormation" fullname="CombatItemTargetingTests.Mercenary_AutomaticPositionIsRearCenterAndFitsFormation" classname="CombatItemTargetingTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.005830" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1075" name="Mercenary_AutomaticPositionIsRearCenterAndFitsFormation(Red,-6.0f)" fullname="CombatItemTargetingTests.Mercenary_AutomaticPositionIsRearCenterAndFitsFormation(Red,-6.0f)" methodname="Mercenary_AutomaticPositionIsRearCenterAndFitsFormation" classname="CombatItemTargetingTests" runstate="Runnable" seed="1007547694" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001214" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1076" name="Mercenary_AutomaticPositionIsRearCenterAndFitsFormation(Blue,6.0f)" fullname="CombatItemTargetingTests.Mercenary_AutomaticPositionIsRearCenterAndFitsFormation(Blue,6.0f)" methodname="Mercenary_AutomaticPositionIsRearCenterAndFitsFormation" classname="CombatItemTargetingTests" runstate="Runnable" seed="1224814756" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000277" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1074" name="Meteor_StunsOnlyTargetTeamAtAnyDistanceForThreeSeconds" fullname="CombatItemTargetingTests.Meteor_StunsOnlyTargetTeamAtAnyDistanceForThreeSeconds" methodname="Meteor_StunsOnlyTargetTeamAtAnyDistanceForThreeSeconds" classname="CombatItemTargetingTests" runstate="Runnable" seed="1380867973" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003176" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1073" name="TeamResolver_UsesMainBet" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.006714" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1067" name="TeamResolver_UsesMainBet(Red,Meteor,Blue)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Red,Meteor,Blue)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="1115215644" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000406" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1068" name="TeamResolver_UsesMainBet(Blue,Meteor,Red)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Blue,Meteor,Red)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="759249244" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000139" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1069" name="TeamResolver_UsesMainBet(Red,Mercenary,Red)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Red,Mercenary,Red)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="1645385572" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000111" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1070" name="TeamResolver_UsesMainBet(Blue,Mercenary,Blue)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Blue,Mercenary,Blue)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="1896218485" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000102" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1071" name="TeamResolver_UsesMainBet(Draw,Meteor,None)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Draw,Meteor,None)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="299844317" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000126" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1072" name="TeamResolver_UsesMainBet(Draw,Mercenary,None)" fullname="CombatItemTargetingTests.TeamResolver_UsesMainBet(Draw,Mercenary,None)" methodname="TeamResolver_UsesMainBet" classname="CombatItemTargetingTests" runstate="Runnable" seed="571516921" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000135" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1082" name="TeamSelection_CombatEndRejectsLateChoiceAndRestoresTime" fullname="CombatItemTargetingTests.TeamSelection_CombatEndRejectsLateChoiceAndRestoresTime" methodname="TeamSelection_CombatEndRejectsLateChoiceAndRestoresTime" classname="CombatItemTargetingTests" runstate="Runnable" seed="1427988731" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001687" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1081" name="TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly" fullname="CombatItemTargetingTests.TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly" classname="CombatItemTargetingTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.006696" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1079" name="TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly(Meteor)" fullname="CombatItemTargetingTests.TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly(Meteor)" methodname="TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly" classname="CombatItemTargetingTests" runstate="Runnable" seed="110586588" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001372" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1080" name="TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly(Mercenary)" fullname="CombatItemTargetingTests.TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly(Mercenary)" methodname="TeamSelection_ConfirmOrCancelRestoresSpeedAndIsOnceOnly" classname="CombatItemTargetingTests" runstate="Runnable" seed="547516068" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000445" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1083" name="TimeExtension_RejectsEndedCombatBeforeApplyingOrConsuming" fullname="CombatItemTargetingTests.TimeExtension_RejectsEndedCombatBeforeApplyingOrConsuming" methodname="TimeExtension_RejectsEndedCombatBeforeApplyingOrConsuming" classname="CombatItemTargetingTests" runstate="Runnable" seed="160432353" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000599" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1084" name="ItemPurchaseUseStateTests" fullname="ItemPurchaseUseStateTests" classname="ItemPurchaseUseStateTests" runstate="Runnable" testcasecount="30" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.144470" total="30" passed="30" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1099" name="BettingItemExecutor_RejectsUseAfterBetPlacementAndRollsBackTransaction" fullname="ItemPurchaseUseStateTests.BettingItemExecutor_RejectsUseAfterBetPlacementAndRollsBackTransaction" methodname="BettingItemExecutor_RejectsUseAfterBetPlacementAndRollsBackTransaction" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1852826012" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.004921" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1097" name="BettingItemExecutor_UsesSharedRoundUsageState" fullname="ItemPurchaseUseStateTests.BettingItemExecutor_UsesSharedRoundUsageState" methodname="BettingItemExecutor_UsesSharedRoundUsageState" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1521885711" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001793" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1112" name="CombatClick_DrawSelectionAfterPurchase_CancelKeepsPurchase" fullname="ItemPurchaseUseStateTests.CombatClick_DrawSelectionAfterPurchase_CancelKeepsPurchase" methodname="CombatClick_DrawSelectionAfterPurchase_CancelKeepsPurchase" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="372081105" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.033931" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1109" name="CombatClick_OwnedItemBypassesPopupAndRejectsRepeatUse" fullname="ItemPurchaseUseStateTests.CombatClick_OwnedItemBypassesPopupAndRejectsRepeatUse" methodname="CombatClick_OwnedItemBypassesPopupAndRejectsRepeatUse" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1310251220" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.005160" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1111" name="CombatClick_PurchaseCancelOrEffectFailureNeverConsumesItem" fullname="ItemPurchaseUseStateTests.CombatClick_PurchaseCancelOrEffectFailureNeverConsumesItem" methodname="CombatClick_PurchaseCancelOrEffectFailureNeverConsumesItem" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1531687572" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002010" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1110" name="CombatClick_PurchaseConfirmationContinuesIntoUse" fullname="ItemPurchaseUseStateTests.CombatClick_PurchaseConfirmationContinuesIntoUse" methodname="CombatClick_PurchaseConfirmationContinuesIntoUse" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1551755424" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001565" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1113" name="CombatClick_TargetCommitIsOnceOnly_AndRejectsRoundChange" fullname="ItemPurchaseUseStateTests.CombatClick_TargetCommitIsOnceOnly_AndRejectsRoundChange" methodname="CombatClick_TargetCommitIsOnceOnly_AndRejectsRoundChange" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1761857228" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001713" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1105" name="CombatMercenaryExecutor_InvalidCombatStateRollsBackTransaction" fullname="ItemPurchaseUseStateTests.CombatMercenaryExecutor_InvalidCombatStateRollsBackTransaction" methodname="CombatMercenaryExecutor_InvalidCombatStateRollsBackTransaction" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1365228262" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000914" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1104" name="CombatMeteorExecutor_InvalidCombatStateRollsBackTransaction" fullname="ItemPurchaseUseStateTests.CombatMeteorExecutor_InvalidCombatStateRollsBackTransaction" methodname="CombatMeteorExecutor_InvalidCombatStateRollsBackTransaction" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1427366990" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000833" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1103" name="CombatTimeExtensionExecutor_ChangesTimeThroughTransactionalService" fullname="ItemPurchaseUseStateTests.CombatTimeExtensionExecutor_ChangesTimeThroughTransactionalService" methodname="CombatTimeExtensionExecutor_ChangesTimeThroughTransactionalService" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="293696510" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000744" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1096" name="Coordinator_CapturesGoldAtPopupOpen" fullname="ItemPurchaseUseStateTests.Coordinator_CapturesGoldAtPopupOpen" methodname="Coordinator_CapturesGoldAtPopupOpen" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="100509647" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003447" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1092" name="Coordinator_OwnedItemRequiresUseConfirmation" fullname="ItemPurchaseUseStateTests.Coordinator_OwnedItemRequiresUseConfirmation" methodname="Coordinator_OwnedItemRequiresUseConfirmation" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1855946317" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001386" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1093" name="Coordinator_PurchaseOnlyDoesNotExecuteItem" fullname="ItemPurchaseUseStateTests.Coordinator_PurchaseOnlyDoesNotExecuteItem" methodname="Coordinator_PurchaseOnlyDoesNotExecuteItem" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1895877444" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001105" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1088" name="Coordinator_RejectsDuplicateRequestAndCancelIsIdempotent" fullname="ItemPurchaseUseStateTests.Coordinator_RejectsDuplicateRequestAndCancelIsIdempotent" methodname="Coordinator_RejectsDuplicateRequestAndCancelIsIdempotent" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="71052419" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001096" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1094" name="Coordinator_TargetedUseCancelKeepsOwnedItem" fullname="ItemPurchaseUseStateTests.Coordinator_TargetedUseCancelKeepsOwnedItem" methodname="Coordinator_TargetedUseCancelKeepsOwnedItem" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1172352583" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001048" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1091" name="Coordinator_TargetPurchaseCompletesWithoutEnteringTargeting" fullname="ItemPurchaseUseStateTests.Coordinator_TargetPurchaseCompletesWithoutEnteringTargeting" methodname="Coordinator_TargetPurchaseCompletesWithoutEnteringTargeting" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="987331168" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003480" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1098" name="InsuranceItemExecutor_UsesSharedRoundUsageStateAndNotifiesOnce" fullname="ItemPurchaseUseStateTests.InsuranceItemExecutor_UsesSharedRoundUsageStateAndNotifiesOnce" methodname="InsuranceItemExecutor_UsesSharedRoundUsageStateAndNotifiesOnce" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="239039334" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000764" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1095" name="ItemPurchaseUseService_CommitsGoldAndUsageOnlyAfterSuccessfulEffect" fullname="ItemPurchaseUseStateTests.ItemPurchaseUseService_CommitsGoldAndUsageOnlyAfterSuccessfulEffect" methodname="ItemPurchaseUseService_CommitsGoldAndUsageOnlyAfterSuccessfulEffect" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="617525377" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000516" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1107" name="PopupController_BuyClickConfirmsAndRejectedReentryPreservesDecision" fullname="ItemPurchaseUseStateTests.PopupController_BuyClickConfirmsAndRejectedReentryPreservesDecision" methodname="PopupController_BuyClickConfirmsAndRejectedReentryPreservesDecision" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="795898647" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.046152" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1108" name="PopupController_TokenCancellationCompletesCancelled" fullname="ItemPurchaseUseStateTests.PopupController_TokenCancellationCompletesCancelled" methodname="PopupController_TokenCancellationCompletesCancelled" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1558189927" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001476" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1106" name="PopupPrefab_PreservesBuyAndUsesUiBaseControl" fullname="ItemPurchaseUseStateTests.PopupPrefab_PreservesBuyAndUsesUiBaseControl" methodname="PopupPrefab_PreservesBuyAndUsesUiBaseControl" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1046996262" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000606" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1114" name="Reroll_DrawBetRejectsUseWithoutChangingInventory" fullname="ItemPurchaseUseStateTests.Reroll_DrawBetRejectsUseWithoutChangingInventory" methodname="Reroll_DrawBetRejectsUseWithoutChangingInventory" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="2136354383" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002263" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1101" name="RerollItemExecutor_PreservesWagerFactionAndOtherItemUsage" fullname="ItemPurchaseUseStateTests.RerollItemExecutor_PreservesWagerFactionAndOtherItemUsage" methodname="RerollItemExecutor_PreservesWagerFactionAndOtherItemUsage" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="947037660" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001070" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1102" name="RerollItemExecutor_RollbackRestoresDraftSpecialPredictions" fullname="ItemPurchaseUseStateTests.RerollItemExecutor_RollbackRestoresDraftSpecialPredictions" methodname="RerollItemExecutor_RollbackRestoresDraftSpecialPredictions" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="379726462" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001534" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1100" name="RerollItemExecutor_UpdatesActiveSpecialBetAndUsageState" fullname="ItemPurchaseUseStateTests.RerollItemExecutor_UpdatesActiveSpecialBetAndUsageState" methodname="RerollItemExecutor_UpdatesActiveSpecialBetAndUsageState" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1425086595" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000693" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1087" name="RoundContext_SetRoundDataResetsOncePerRoundBoundary" fullname="ItemPurchaseUseStateTests.RoundContext_SetRoundDataResetsOncePerRoundBoundary" methodname="RoundContext_SetRoundDataResetsOncePerRoundBoundary" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="2145938117" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000813" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1085" name="RoundItemUsageState_RejectsNoneAndAllowsEachItemTypeOnce" fullname="ItemPurchaseUseStateTests.RoundItemUsageState_RejectsNoneAndAllowsEachItemTypeOnce" methodname="RoundItemUsageState_RejectsNoneAndAllowsEachItemTypeOnce" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="393092674" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000352" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1086" name="RoundItemUsageState_ResetClearsOnlyRoundUsage" fullname="ItemPurchaseUseStateTests.RoundItemUsageState_ResetClearsOnlyRoundUsage" methodname="RoundItemUsageState_ResetClearsOnlyRoundUsage" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="513445402" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000227" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1089" name="Service_PreviewDoesNotChangeGoldOrRoundUsage" fullname="ItemPurchaseUseStateTests.Service_PreviewDoesNotChangeGoldOrRoundUsage" methodname="Service_PreviewDoesNotChangeGoldOrRoundUsage" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1684966143" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000483" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1090" name="Service_PreviewFailureLeavesGoldAndRoundUsageUnchanged" fullname="ItemPurchaseUseStateTests.Service_PreviewFailureLeavesGoldAndRoundUsageUnchanged" methodname="Service_PreviewFailureLeavesGoldAndRoundUsageUnchanged" classname="ItemPurchaseUseStateTests" runstate="Runnable" seed="1382460715" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000345" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1124" name="QuestSystemTests" fullname="QuestSystemTests" classname="QuestSystemTests" runstate="Runnable" testcasecount="9" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.038085" total="9" passed="9" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1126" name="BigBettor_ReachesReadyThenConfirmCreatesMailWithoutGrantingGold" fullname="QuestSystemTests.BigBettor_ReachesReadyThenConfirmCreatesMailWithoutGrantingGold" methodname="BigBettor_ReachesReadyThenConfirmCreatesMailWithoutGrantingGold" classname="QuestSystemTests" runstate="Runnable" seed="1393966726" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.010841" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1127" name="CompletionSaveFailure_KeepsPendingRequestAndManualRetryDoesNotDuplicateMail" fullname="QuestSystemTests.CompletionSaveFailure_KeepsPendingRequestAndManualRetryDoesNotDuplicateMail" methodname="CompletionSaveFailure_KeepsPendingRequestAndManualRetryDoesNotDuplicateMail" classname="QuestSystemTests" runstate="Runnable" seed="188891511" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002771" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1130" name="GameEventBus_ReentrantPublishPreservesFifoAndDisposeStopsDelivery" fullname="QuestSystemTests.GameEventBus_ReentrantPublishPreservesFifoAndDisposeStopsDelivery" methodname="GameEventBus_ReentrantPublishPreservesFifoAndDisposeStopsDelivery" classname="QuestSystemTests" runstate="Runnable" seed="556996723" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003231" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1125" name="Initialize_CreatesThreeDailyQuestsAndOneWelcomeMail" fullname="QuestSystemTests.Initialize_CreatesThreeDailyQuestsAndOneWelcomeMail" methodname="Initialize_CreatesThreeDailyQuestsAndOneWelcomeMail" classname="QuestSystemTests" runstate="Runnable" seed="1003591433" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002219" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1128" name="MailClaim_AppliesAllRewardsAtomicallyAndAllowsTicketsAboveFive" fullname="QuestSystemTests.MailClaim_AppliesAllRewardsAtomicallyAndAllowsTicketsAboveFive" methodname="MailClaim_AppliesAllRewardsAtomicallyAndAllowsTicketsAboveFive" classname="QuestSystemTests" runstate="Runnable" seed="2077860437" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002926" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1132" name="PlayerProgressState_RoundTripsSchemaSixFieldsWithDeepCopies" fullname="QuestSystemTests.PlayerProgressState_RoundTripsSchemaSixFieldsWithDeepCopies" methodname="PlayerProgressState_RoundTripsSchemaSixFieldsWithDeepCopies" classname="QuestSystemTests" runstate="Runnable" seed="924887225" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003337" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1129" name="ProcessStageReturn_CreatesOneEmergencyAndDoesNotRerollReceipt" fullname="QuestSystemTests.ProcessStageReturn_CreatesOneEmergencyAndDoesNotRerollReceipt" methodname="ProcessStageReturn_CreatesOneEmergencyAndDoesNotRerollReceipt" classname="QuestSystemTests" runstate="Runnable" seed="314232415" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002610" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1131" name="Settlement_ExposesSelectedAndMatchedOutcomePerCategory" fullname="QuestSystemTests.Settlement_ExposesSelectedAndMatchedOutcomePerCategory" methodname="Settlement_ExposesSelectedAndMatchedOutcomePerCategory" classname="QuestSystemTests" runstate="Runnable" seed="1009026059" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.002278" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1133" name="VersionFiveChecksum_DoesNotIncludeQuestOrMailFields" fullname="QuestSystemTests.VersionFiveChecksum_DoesNotIncludeQuestOrMailFields" methodname="VersionFiveChecksum_DoesNotIncludeQuestOrMailFields" classname="QuestSystemTests" runstate="Runnable" seed="1197278568" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.003361" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1117" name="RoundContextSpecialBetTests" fullname="RoundContextSpecialBetTests" classname="RoundContextSpecialBetTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.121696" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1123" name="BattleHistory_BindsEveryCategoryAndDisplaysTicket" fullname="RoundContextSpecialBetTests.BattleHistory_BindsEveryCategoryAndDisplaysTicket" methodname="BattleHistory_BindsEveryCategoryAndDisplaysTicket" classname="RoundContextSpecialBetTests" runstate="Runnable" seed="49995417" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.117298" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1122" name="BettingGroupContainsAllPossibleEntries" fullname="RoundContextSpecialBetTests.BettingGroupContainsAllPossibleEntries" classname="RoundContextSpecialBetTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.001908" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1121" name="BettingGroupContainsAllPossibleEntries(&quot;Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab&quot;,&quot;WinningTeam_Group&quot;,&quot;GameEndTime_Group&quot;,&quot;OddEven_Group&quot;,&quot;FirstAnnihilated_Group&quot;,&quot;SurvivingSlots_Group&quot;)" fullname="RoundContextSpecialBetTests.BettingGroupContainsAllPossibleEntries(&quot;Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab&quot;,&quot;WinningTeam_Group&quot;,&quot;GameEndTime_Group&quot;,&quot;OddEven_Group&quot;,&quot;FirstAnnihilated_Group&quot;,&quot;SurvivingSlots_Group&quot;)" methodname="BettingGroupContainsAllPossibleEntries" classname="RoundContextSpecialBetTests" runstate="Runnable" seed="681655028" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000848" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1119" name="RerollKeepsCountAndChangesActiveSet" fullname="RoundContextSpecialBetTests.RerollKeepsCountAndChangesActiveSet" methodname="RerollKeepsCountAndChangesActiveSet" classname="RoundContextSpecialBetTests" runstate="Runnable" seed="397562672" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000382" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1120" name="RestoringOrderRestoresVisiblePrefix" fullname="RoundContextSpecialBetTests.RestoringOrderRestoresVisiblePrefix" methodname="RestoringOrderRestoresVisiblePrefix" classname="RoundContextSpecialBetTests" runstate="Runnable" seed="79797156" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000368" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1118" name="RoundsRevealUniqueSpecialBetsCumulatively" fullname="RoundContextSpecialBetTests.RoundsRevealUniqueSpecialBetsCumulatively" methodname="RoundsRevealUniqueSpecialBetsCumulatively" classname="RoundContextSpecialBetTests" runstate="Runnable" seed="1782936656" result="Passed" start-time="2026-09-30 13:30:50Z" end-time="2026-09-30 13:30:50Z" duration="0.000534" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/pgu51/AppData/LocalLow/UPTRAND/In-the-Arena-Betting-Comes-Before-the-Blade\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

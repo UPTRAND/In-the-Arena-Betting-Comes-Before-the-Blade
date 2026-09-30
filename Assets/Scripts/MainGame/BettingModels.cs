@@ -66,6 +66,33 @@ namespace InTheArena.MainGame
         BlueRow3 = 5
     }
 
+    public enum BetCategory
+    {
+        Faction,
+        RemainingTime,
+        OddEven,
+        FirstEliminatedColumn,
+        SurvivingRow
+    }
+
+    /// <summary>
+    /// 선택 항목 하나의 선택 여부와 실제 적중 여부를 함께 전달합니다.
+    /// </summary>
+    public readonly struct BetOutcome
+    {
+        public BetCategory Category { get; }
+        public bool IsSelected { get; }
+        public bool IsMatched { get; }
+
+        /// <summary>항목의 선택 여부와 적중 여부를 불변 값으로 보관합니다.</summary>
+        public BetOutcome(BetCategory category, bool isSelected, bool isMatched)
+        {
+            Category = category;
+            IsSelected = isSelected;
+            IsMatched = isMatched;
+        }
+    }
+
     /// <summary>
     /// 한 라운드에 확정된 단일 복합 베팅입니다.
     /// 슬롯 번호는 에디터 표기와 동일하게 1~6을 사용합니다.
@@ -85,12 +112,23 @@ namespace InTheArena.MainGame
         public bool HasAdditionalBet { get; private set; }
         public bool HasInsurance { get; private set; }
 
-        public Team BettingTeam => Faction switch
+        /// <summary>메인에서 선택한 전투 팀을 반환하며, 무승부와 미선택은 None입니다.</summary>
+        public Team BettingTeam
         {
-            FactionPrediction.Red => Team.Red,
-            FactionPrediction.Blue => Team.Blue,
-            _ => Team.None
-        };
+            get
+            {
+                switch (Faction)
+                {
+                    case FactionPrediction.Red:
+                        return Team.Red;
+                    case FactionPrediction.Blue:
+                        return Team.Blue;
+                    default:
+                        return Team.None;
+                }
+            }
+        }
+
         public bool CanSelectSpecialBets => BettingTeam != Team.None;
 
         public int SelectedCategoryCount
@@ -106,45 +144,75 @@ namespace InTheArena.MainGame
             }
         }
 
-        public int Multiplier => Faction == FactionPrediction.NotSelected ? 0
-            : Faction == FactionPrediction.Draw ? 3 : SelectedCategoryCount switch
+        /// <summary>무승부는 3배, 팀 배팅은 선택한 1~4개 항목에 따라 2~16배를 지급합니다.</summary>
+        public int Multiplier
         {
-            1 => 2,
-            2 => 4,
-            3 => 8,
-            4 => 16,
-            _ => 0
-        };
+            get
+            {
+                if (Faction == FactionPrediction.NotSelected)
+                {
+                    return 0;
+                }
 
-        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+                if (Faction == FactionPrediction.Draw)
+                {
+                    return 3;
+                }
+
+                int count = SelectedCategoryCount;
+                if ((count < 1) || (count > 4))
+                {
+                    return 0;
+                }
+
+                return 1 << count;
+            }
+        }
+
+        /// <summary>확정 전 베팅 금액을 변경합니다.</summary>
         public void SetWager(int wagerCall)
         {
             EnsureEditable();
             WagerCall = wagerCall;
         }
-        /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
+
+        /// <summary>팀 변경은 행·열 선택을 새 팀으로 옮기며, 무승부·미선택은 서브를 지웁니다.</summary>
         public void SetFaction(FactionPrediction faction)
         {
             EnsureEditable();
-            if (faction != FactionPrediction.Red && faction != FactionPrediction.Blue &&
-                faction != FactionPrediction.Draw && faction != FactionPrediction.NotSelected)
+            if (!Enum.IsDefined(typeof(FactionPrediction), faction))
+            {
                 throw new ArgumentOutOfRangeException(nameof(faction));
+            }
 
-            if (faction == FactionPrediction.NotSelected || faction == FactionPrediction.Draw)
+            if ((faction == FactionPrediction.NotSelected) || (faction == FactionPrediction.Draw))
             {
                 ClearSpecialPredictions();
             }
             else if (Faction != faction)
             {
+                int rowOffset = 0;
+                int columnOffset = 0;
+                if (faction == FactionPrediction.Blue)
+                {
+                    rowOffset = 3;
+                    columnOffset = 2;
+                }
+
                 if (SurvivingRow.HasValue)
-                    SurvivingRow = (SurvivingRowPrediction)((int)SurvivingRow.Value % 3 +
-                        (faction == FactionPrediction.Blue ? 3 : 0));
+                {
+                    SurvivingRow = (SurvivingRowPrediction)(((int)SurvivingRow.Value % 3) + rowOffset);
+                }
+
                 if (FirstEliminatedColumn.HasValue)
-                    FirstEliminatedColumn = (FirstEliminatedColumnPrediction)((int)FirstEliminatedColumn.Value % 2 +
-                        (faction == FactionPrediction.Blue ? 2 : 0));
+                {
+                    FirstEliminatedColumn = (FirstEliminatedColumnPrediction)(((int)FirstEliminatedColumn.Value % 2) + columnOffset);
+                }
             }
+
             Faction = faction;
         }
+
         /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
         public void SetRemainingTime(RemainingTimePrediction? prediction)
         {
@@ -188,6 +256,7 @@ namespace InTheArena.MainGame
             HasInsurance = hasInsurance;
         }
 
+        /// <summary>금액·메인 필수·팀 기준 선택·공개된 서브 종류를 검증합니다.</summary>
         public bool Validate(StageData stageData, RoundContext context, int availableCall, out string error)
         {
             if (stageData == null)
@@ -208,21 +277,15 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (Faction == FactionPrediction.NotSelected)
+            if (!Enum.IsDefined(typeof(FactionPrediction), Faction) || (Faction == FactionPrediction.NotSelected))
             {
                 error = "필수 메인 베팅에서 레드·블루·무승부를 선택해야 합니다.";
                 return false;
             }
 
-            if (Faction == FactionPrediction.Draw && SelectedCategoryCount != 1)
+            if ((SelectedCategoryCount < 1) || (SelectedCategoryCount > 4))
             {
-                error = "무승부는 서브 베팅을 할 수 없습니다.";
-                return false;
-            }
-
-            if (SelectedCategoryCount < 1 || SelectedCategoryCount > 4)
-            {
-                error = "베팅 항목은 1~4개를 선택해야 합니다.";
+                error = "메인과 서브 배팅은 합계 1~4개를 선택해야 합니다.";
                 return false;
             }
 
@@ -232,19 +295,46 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            if (SurvivingRow.HasValue && ((int)SurvivingRow.Value < 0 || (int)SurvivingRow.Value > 5 ||
-                    ((int)SurvivingRow.Value < 3 ? Team.Red : Team.Blue) != BettingTeam) ||
-                FirstEliminatedColumn.HasValue && ((int)FirstEliminatedColumn.Value < 0 || (int)FirstEliminatedColumn.Value > 3 ||
-                    ((int)FirstEliminatedColumn.Value < 2 ? Team.Red : Team.Blue) != BettingTeam))
+            if (Faction == FactionPrediction.Draw)
             {
-                error = "서브 베팅은 메인 베팅한 팀을 기준으로 선택해야 합니다.";
-                return false;
+                if (RemainingTime.HasValue || OddEven.HasValue || FirstEliminatedColumn.HasValue || SurvivingRow.HasValue)
+                {
+                    error = "무승부 배팅에는 서브 배팅을 사용할 수 없습니다.";
+                    return false;
+                }
+            }
+            else if (CanSelectSpecialBets)
+            {
+                Team betTeam = BettingTeam;
+                if (FirstEliminatedColumn.HasValue)
+                {
+                    int column = (int)FirstEliminatedColumn.Value;
+                    bool isRedColumn = (column >= 0) && (column <= 1);
+                    bool isBlueColumn = (column >= 2) && (column <= 3);
+                    if (((betTeam == Team.Red) && !isRedColumn) || ((betTeam == Team.Blue) && !isBlueColumn))
+                    {
+                        error = "첫 전멸 열은 메인에서 배팅한 팀을 대상으로 선택해야 합니다.";
+                        return false;
+                    }
+                }
+
+                if (SurvivingRow.HasValue)
+                {
+                    int row = (int)SurvivingRow.Value;
+                    bool isRedRow = (row >= 0) && (row <= 2);
+                    bool isBlueRow = (row >= 3) && (row <= 5);
+                    if (((betTeam == Team.Red) && !isRedRow) || ((betTeam == Team.Blue) && !isBlueRow))
+                    {
+                        error = "생존 행은 메인에서 배팅한 팀을 대상으로 선택해야 합니다.";
+                        return false;
+                    }
+                }
             }
 
-            if (RemainingTime.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.RemainingTime) ||
-                OddEven.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.OddEven) ||
-                FirstEliminatedColumn.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedColumn) ||
-                SurvivingRow.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingRow))
+            if ((RemainingTime.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.RemainingTime)) ||
+                (OddEven.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.OddEven)) ||
+                (FirstEliminatedColumn.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.FirstEliminatedColumn)) ||
+                (SurvivingRow.HasValue && !context.ActiveSpecialBets.Contains(SpecialBetType.SurvivingRow)))
             {
                 error = "스테이지에서 제공하지 않는 특수 베팅이 선택되었습니다.";
                 return false;
@@ -275,11 +365,13 @@ namespace InTheArena.MainGame
         public int BlueAliveCount { get; }
         public IReadOnlyList<SurvivingRowPrediction> SurvivingRows { get; }
         public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; }
+
         public FirstEliminatedColumnPrediction? RedFirstEliminatedColumn { get; }
         public FirstEliminatedColumnPrediction? BlueFirstEliminatedColumn { get; }
 
         public int TotalAliveCount => RedAliveCount + BlueAliveCount;
 
+        /// <summary>전투 종료 결과와 각 팀의 첫 전멸을 복사하여 불변 스냅샷을 만듭니다.</summary>
         public CombatResultSnapshot(
             Team winner,
             float remainingTime,
@@ -297,25 +389,51 @@ namespace InTheArena.MainGame
             var rows = new HashSet<SurvivingRowPrediction>(survivingRows ?? Array.Empty<SurvivingRowPrediction>());
             SurvivingRows = new List<SurvivingRowPrediction>(rows).AsReadOnly();
             FirstEliminatedColumn = firstEliminatedColumn;
-            RedFirstEliminatedColumn = redFirstEliminatedColumn ??
-                (firstEliminatedColumn.HasValue && (int)firstEliminatedColumn.Value < 2 ? firstEliminatedColumn : null);
-            BlueFirstEliminatedColumn = blueFirstEliminatedColumn ??
-                (firstEliminatedColumn.HasValue && (int)firstEliminatedColumn.Value >= 2 ? firstEliminatedColumn : null);
+            RedFirstEliminatedColumn = redFirstEliminatedColumn;
+            BlueFirstEliminatedColumn = blueFirstEliminatedColumn;
+
+            // 기존 생성 호출도 최초 전멸이 발생한 팀의 결과는 보존합니다.
+            if ((firstEliminatedColumn == FirstEliminatedColumnPrediction.RedFront) ||
+                (firstEliminatedColumn == FirstEliminatedColumnPrediction.RedBack))
+            {
+                RedFirstEliminatedColumn = redFirstEliminatedColumn ?? firstEliminatedColumn;
+            }
+            else if ((firstEliminatedColumn == FirstEliminatedColumnPrediction.BlueFront) ||
+                     (firstEliminatedColumn == FirstEliminatedColumnPrediction.BlueBack))
+            {
+                BlueFirstEliminatedColumn = blueFirstEliminatedColumn ?? firstEliminatedColumn;
+            }
         }
 
-        public int GetAliveCount(Team team) => team switch
+        /// <summary>지정한 팀의 전투 종료 시 생존 수를 반환합니다.</summary>
+        public int GetAliveCount(Team team)
         {
-            Team.Red => RedAliveCount,
-            Team.Blue => BlueAliveCount,
-            _ => 0
-        };
+            switch (team)
+            {
+                case Team.Red:
+                    return RedAliveCount;
+                case Team.Blue:
+                    return BlueAliveCount;
+                default:
+                    return 0;
+            }
+        }
 
-        public FirstEliminatedColumnPrediction? GetFirstEliminatedColumn(Team team) => team switch
+        /// <summary>지정한 팀의 첫 전멸 열을 반환하며, 전멸이 없으면 null을 반환합니다.</summary>
+        public FirstEliminatedColumnPrediction? GetFirstEliminatedColumn(Team team)
         {
-            Team.Red => RedFirstEliminatedColumn,
-            Team.Blue => BlueFirstEliminatedColumn,
-            _ => null
-        };
+            if (team == Team.Red)
+            {
+                return RedFirstEliminatedColumn;
+            }
+
+            if (team == Team.Blue)
+            {
+                return BlueFirstEliminatedColumn;
+            }
+
+            return null;
+        }
     }
 
     public sealed class BetSettlement
@@ -326,62 +444,60 @@ namespace InTheArena.MainGame
         public int PayoutCall { get; }
         public int NetChange => PayoutCall - WagerCall;
         public IReadOnlyList<string> FailedCategories { get; }
+        public IReadOnlyList<BetOutcome> Outcomes { get; }
 
+        /// <summary>지급액과 항목별 판정을 복사하여 UI와 퀘스트에서 같은 결과를 사용합니다.</summary>
         public BetSettlement(
             bool isWin,
             int wagerCall,
             int multiplier,
             int payoutCall,
-            IReadOnlyList<string> failedCategories)
+            IReadOnlyList<string> failedCategories,
+            IReadOnlyList<BetOutcome> outcomes = null)
         {
             IsWin = isWin;
             WagerCall = wagerCall;
             Multiplier = multiplier;
             PayoutCall = payoutCall;
             FailedCategories = new List<string>(failedCategories ?? Array.Empty<string>()).AsReadOnly();
+            Outcomes = new List<BetOutcome>(outcomes ?? Array.Empty<BetOutcome>()).AsReadOnly();
         }
     }
 
     public static class BetSettlementService
     {
+        /// <summary>모든 선택 항목의 적중과 아이템 보정을 계산하고, 퀘스트용 판정도 보존합니다.</summary>
         public static BetSettlement Settle(RoundBetTicket ticket, CombatResultSnapshot result)
         {
-            if (ticket == null) throw new ArgumentNullException(nameof(ticket));
-            if (result == null) throw new ArgumentNullException(nameof(result));
-            if (!ticket.IsPlaced) throw new InvalidOperationException("확정되지 않은 베팅은 정산할 수 없습니다.");
-            if (ticket.IsSettled) throw new InvalidOperationException("이미 정산된 베팅입니다.");
-
-            var failed = new List<string>();
-
-            if (ticket.Faction != FactionPrediction.NotSelected &&
-                !MatchesFaction(ticket.Faction, result.Winner))
+            if (ticket == null)
             {
-                failed.Add("Faction");
+                throw new ArgumentNullException(nameof(ticket));
             }
 
-            if (ticket.RemainingTime.HasValue &&
-                ticket.RemainingTime.Value != ClassifyRemainingTime(result.RemainingTime))
+            if (result == null)
             {
-                failed.Add("RemainingTime");
+                throw new ArgumentNullException(nameof(result));
             }
 
-            if (ticket.OddEven.HasValue)
+            if (!ticket.IsPlaced)
             {
-                bool isEven = result.GetAliveCount(ticket.BettingTeam) % 2 == 0;
-                bool matched = ticket.OddEven.Value == (isEven ? OddEvenPrediction.Even : OddEvenPrediction.Odd);
-                if (!matched) failed.Add("OddEven");
+                throw new InvalidOperationException("확정되지 않은 베팅은 정산할 수 없습니다.");
             }
 
-            if (ticket.FirstEliminatedColumn.HasValue &&
-                ticket.FirstEliminatedColumn != result.GetFirstEliminatedColumn(ticket.BettingTeam))
+            if (ticket.IsSettled)
             {
-                failed.Add("FirstEliminatedColumn");
+                throw new InvalidOperationException("이미 정산된 베팅입니다.");
             }
 
-            if (ticket.SurvivingRow.HasValue &&
-                !result.SurvivingRows.Contains(ticket.SurvivingRow.Value))
+            List<string> failed = new List<string>();
+            List<BetOutcome> outcomes = BuildOutcomes(ticket, result);
+            for (int i = 0; i < outcomes.Count; i++)
             {
-                failed.Add("SurvivingRow");
+                BetOutcome outcome = outcomes[i];
+                if (outcome.IsSelected && !outcome.IsMatched)
+                {
+                    failed.Add(outcome.Category.ToString());
+                }
             }
 
             bool isWin = failed.Count == 0;
@@ -405,7 +521,7 @@ namespace InTheArena.MainGame
             }
 
             ticket.MarkSettled();
-            return new BetSettlement(isWin, ticket.WagerCall, ticket.Multiplier, payout, failed);
+            return new BetSettlement(isWin, ticket.WagerCall, ticket.Multiplier, payout, failed, outcomes);
         }
 
         public static RemainingTimePrediction ClassifyRemainingTime(float seconds)
@@ -417,15 +533,67 @@ namespace InTheArena.MainGame
             return RemainingTimePrediction.Seconds20OrMore;
         }
 
+        /// <summary>메인과 선택한 팀 기준 서브의 적중 여부를 항목별로 계산합니다.</summary>
+        private static List<BetOutcome> BuildOutcomes(RoundBetTicket ticket, CombatResultSnapshot result)
+        {
+            List<BetOutcome> outcomes = new List<BetOutcome>();
+
+            bool factionSelected = ticket.Faction != FactionPrediction.NotSelected;
+            outcomes.Add(new BetOutcome(
+                BetCategory.Faction,
+                factionSelected,
+                factionSelected && MatchesFaction(ticket.Faction, result.Winner)));
+
+            bool remainingTimeSelected = ticket.RemainingTime.HasValue;
+            outcomes.Add(new BetOutcome(
+                BetCategory.RemainingTime,
+                remainingTimeSelected,
+                remainingTimeSelected && ticket.RemainingTime.Value == ClassifyRemainingTime(result.RemainingTime)));
+
+            bool oddEvenSelected = ticket.OddEven.HasValue;
+            Team betTeam = ticket.BettingTeam;
+            bool hasBetTeam = ticket.CanSelectSpecialBets;
+            int aliveCount = result.GetAliveCount(betTeam);
+
+            OddEvenPrediction actualOddEven = OddEvenPrediction.Odd;
+            if ((aliveCount % 2) == 0)
+            {
+                actualOddEven = OddEvenPrediction.Even;
+            }
+            outcomes.Add(new BetOutcome(
+                BetCategory.OddEven,
+                oddEvenSelected,
+                oddEvenSelected && hasBetTeam && (ticket.OddEven.Value == actualOddEven)));
+
+            bool firstColumnSelected = ticket.FirstEliminatedColumn.HasValue;
+            outcomes.Add(new BetOutcome(
+                BetCategory.FirstEliminatedColumn,
+                firstColumnSelected,
+                firstColumnSelected && hasBetTeam && (ticket.FirstEliminatedColumn == result.GetFirstEliminatedColumn(betTeam))));
+
+            bool survivingRowSelected = ticket.SurvivingRow.HasValue;
+            outcomes.Add(new BetOutcome(
+                BetCategory.SurvivingRow,
+                survivingRowSelected,
+                survivingRowSelected && result.SurvivingRows.Contains(ticket.SurvivingRow.Value)));
+
+            return outcomes;
+        }
+
+        /// <summary>메인의 레드·블루·무승부 예측을 전투 승자와 비교합니다.</summary>
         private static bool MatchesFaction(FactionPrediction prediction, Team winner)
         {
-            return prediction switch
+            switch (prediction)
             {
-                FactionPrediction.Red => winner == Team.Red,
-                FactionPrediction.Blue => winner == Team.Blue,
-                FactionPrediction.Draw => winner == Team.None,
-                _ => false
-            };
+                case FactionPrediction.Red:
+                    return winner == Team.Red;
+                case FactionPrediction.Blue:
+                    return winner == Team.Blue;
+                case FactionPrediction.Draw:
+                    return winner == Team.None;
+                default:
+                    return false;
+            }
         }
     }
 

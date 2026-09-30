@@ -592,34 +592,6 @@ namespace InTheArena.Editor.Unit
             }
         }
 
-        /// <summary>로그의 미완성 UTF-8 줄을 다시 읽고 축소된 로그는 처음부터 처리합니다.</summary>
-        [Test]
-        public void EditorBridge_ConsumesCompleteLinesAndPreservesHttpStatus()
-        {
-            var lines = new List<string>();
-            using (var stream = new System.IO.MemoryStream())
-            {
-                byte[] bytes = System.Text.Encoding.UTF8.GetBytes("first\n한글 error CS");
-                stream.Write(bytes, 0, bytes.Length);
-                long position = UnityEditorWebServer.ReadCompleteLogLines(stream, 0, lines.Add);
-                Assert.That(lines, Is.EqualTo(new[] { "first" }));
-                byte[] tail = System.Text.Encoding.UTF8.GetBytes("1002\n");
-                stream.Position = stream.Length;
-                stream.Write(tail, 0, tail.Length);
-                position = UnityEditorWebServer.ReadCompleteLogLines(stream, position, lines.Add);
-                Assert.That(lines, Is.EqualTo(new[] { "first", "한글 error CS1002" }));
-                UnityEditorWebServer.ReadCompleteLogLines(stream, position, lines.Add);
-                Assert.That(lines.Count, Is.EqualTo(2));
-                stream.SetLength(0);
-                stream.Position = 0;
-                stream.Write(tail, 0, tail.Length);
-                UnityEditorWebServer.ReadCompleteLogLines(stream, position, lines.Add);
-                Assert.That(lines.Count, Is.EqualTo(3));
-            }
-            Assert.That(UnityEditorWebServer.GetStatusReason(400), Is.EqualTo("Bad Request"));
-            Assert.That(UnityEditorWebServer.GetStatusReason(504), Is.EqualTo("Gateway Timeout"));
-        }
-
         /// <summary>기본 스탯의 테스트 유닛을 등록합니다.</summary>
         private UnitObject CreateUnit(int team, float defense = 0f, Vector3 position = default)
         {

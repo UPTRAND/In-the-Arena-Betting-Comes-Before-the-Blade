@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace InTheArena.UI
@@ -33,6 +34,7 @@ namespace InTheArena.UI
         public IReadOnlyList<LobbyNpcView> Residents => m_Residents;
         public IReadOnlyList<Vector2> ActiveArea => m_Area;
         public LobbyPlazaProfile CurrentProfile => m_Profile;
+        public event Action ResidentsChanged;
 
         public void SetContext(int stage, RectTransform background, bool ready)
         {
@@ -49,6 +51,7 @@ namespace InTheArena.UI
                 Destroy(resident.gameObject);
             }
             m_Residents.Clear(); m_Sorted.Clear();
+            ResidentsChanged?.Invoke();
             m_Profile = next; m_LayoutDirty = true; m_Spawned = false;
             m_SideMargin = 70f; m_HeadMargin = 130f;
             if (m_Profile != null && m_Profile.Residents != null)
@@ -171,6 +174,7 @@ namespace InTheArena.UI
                 m_Residents.Add(view); m_Sorted.Add(view);
             }
             SortDepth();
+            ResidentsChanged?.Invoke();
         }
 
         private void Simulate(float dt)

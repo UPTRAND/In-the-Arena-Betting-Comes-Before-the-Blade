@@ -1,0 +1,22 @@
+Git integration verified on 2026-09-30.
+
+Base: cf5ac011
+Integrated remote commits: eb196411, 2d9b1751
+Main HEAD: 2d9b1751571abb6647101ea6f31f5615fbe360c9
+Backup stash: 80d0b350001eeb736ba0ff368bfa8a1d2a5f6aea
+Byte backup: C:/Users/pgu51/AppData/Local/Temp/arena-merge-20260930-221129
+
+User-selected rules: remote betting rules, remote combat item targeting, remote click-use flow.
+Draw: 3x, no sub bets. Red/Blue changes retain relative sub choices.
+Reroll retained at saved item ID 3. Maximum 4 selections / 16x for team bets.
+Meteor affects the entire opposing team. Mercenaries use the selected team's rear center.
+Draw combat items open the team picker. Purchase confirmation remains for missing inventory.
+Local quest outcomes and bet-placement/settlement/item-use event hooks preserved.
+Other local work retained without committing or pushing.
+
+Unity 6000.5.4f1 EditMode: 112 passed, 0 failed, 0 skipped.
+Validated groups: BettingRevisionTests, BetSettlementServiceTests, RoundContextSpecialBetTests,
+ItemPurchaseUseStateTests, CombatItemTargetingTests, QuestSystemTests.
+C# compiler errors: 0. No unresolved Git paths or conflict markers.
+Validation ran in an isolated project copy; no manual PlayMode UI verification this turn.
+External wiki update excluded according to the preceding task decision.

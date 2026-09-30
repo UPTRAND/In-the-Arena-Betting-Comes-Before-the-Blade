@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a4b5d509843154448e07fd68b4c81ee, type: 3}
   m_Name: Plaza_outskirts
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.LobbyPlazaProfile
+  ProfileId: outskirts
   FirstStage: 11
   LastStage: 15
   Background: {fileID: 21300000, guid: 0bfe34e5aab99da448485306b06f002f, type: 3}

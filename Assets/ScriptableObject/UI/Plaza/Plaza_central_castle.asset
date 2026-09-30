@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a4b5d509843154448e07fd68b4c81ee, type: 3}
   m_Name: Plaza_central_castle
   m_EditorClassIdentifier: Assembly-CSharp::InTheArena.UI.LobbyPlazaProfile
+  ProfileId: central_castle
   FirstStage: 6
   LastStage: 10
   Background: {fileID: 21300000, guid: cb24d6af666fbc542be1c17c6c6db674, type: 3}

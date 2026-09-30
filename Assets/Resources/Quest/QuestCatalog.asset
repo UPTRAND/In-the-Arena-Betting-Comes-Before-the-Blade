@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: QuestCatalog
+  m_EditorClassIdentifier: Assembly-CSharp:InTheArena.Quests:QuestCatalog
+  m_DailyDefinitions:
+  - {fileID: 11400000, guid: a2e50790482233c4dbc5f9603571b528, type: 2}
+  - {fileID: 11400000, guid: ae8f497160a1acb4fb1233354722e6c7, type: 2}
+  - {fileID: 11400000, guid: 4b14582f642949e46925e4363b34104e, type: 2}
+  m_EmergencyDefinitions:
+  - {fileID: 11400000, guid: 02a5ba23775ba6f43be1ee94c8108fd7, type: 2}
+  - {fileID: 11400000, guid: d5ca5c526eb5c014c85f13332fbd64b8, type: 2}
+  m_DailyCount: 3
+  m_TierWeights: {x: 50, y: 30, z: 20}
+  m_EmergencyChance: 0.5
+  m_EmergencyDailyLimit: 3

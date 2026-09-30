@@ -59,6 +59,22 @@ namespace InTheArena.UI
                 return;
             }
 
+            float introWaitDeadline = Time.unscaledTime + 5f;
+            while (EventManager.Instance != null && EventManager.Instance.ShouldDeferLobbyRewardPresentation)
+            {
+                if (!EventManager.Instance.IsEmergencyIntroVisible
+                    && Time.unscaledTime >= introWaitDeadline)
+                {
+                    break;
+                }
+
+                await Awaitable.NextFrameAsync();
+                if (this == null)
+                {
+                    return;
+                }
+            }
+
             TryPlayPendingStageClearRewards();
         }
 

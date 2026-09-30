@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: emergency_raise_stakes
+  m_EditorClassIdentifier: Assembly-CSharp:InTheArena.Quests:QuestDefinition
+  m_DefinitionId: emergency_raise_stakes
+  m_Kind: 1
+  m_Title: "\uD310\uB3C8 \uC62C\uB9AC\uAE30"
+  m_DescriptionTemplate: "\uC2A4\uD14C\uC774\uC9C0 {target}\uD68C \uC5F0\uC18D \uD074\uB9AC\uC5B4"
+  m_ObjectiveKind: 3
+  m_Tiers:
+  - TargetAmount: 3
+    RewardGold: 300
+  - TargetAmount: 4
+    RewardGold: 400
+  - TargetAmount: 5
+    RewardGold: 500
+  m_DurationSeconds: 1800

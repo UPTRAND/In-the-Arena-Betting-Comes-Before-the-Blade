@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
 using InTheArena.UI;
+using InTheArena.Events.Core;
 
 namespace InTheArena.MainGame
 {
@@ -59,6 +60,7 @@ namespace InTheArena.MainGame
         private StageClearCommitState m_StageClearCommitState = StageClearCommitState.None;
         private string m_LastStageClearSaveError = null;
         private InTheArena.Save.PlayerProgressState m_PendingStageClearCandidate = null;
+        private StageClearedEvent m_PendingStageClearedEvent;
         private const int StageClearGoldReward = 100;
         private const int StageClearStarReward = 1;
 
@@ -141,6 +143,12 @@ namespace InTheArena.MainGame
                 return;
             }
 
+            if (EventManager.Instance != null && !EventManager.Instance.TryStartStage(stageData.StageNum, out _))
+            {
+                Debug.LogError("[StageManager] 도전 시작 표식을 저장하지 못해 스테이지 시작을 중단합니다.");
+                return;
+            }
+
             m_StageCts?.Cancel();
             m_StageCts?.Dispose();
 
@@ -158,6 +166,7 @@ namespace InTheArena.MainGame
             m_CurrentRoundIndex = 0;
             SetStageClearCommitState(StageClearCommitState.None);
             m_PendingStageClearCandidate = null;
+            m_PendingStageClearedEvent = null;
             m_LastStageClearSaveError = null;
 
             try
@@ -174,11 +183,14 @@ namespace InTheArena.MainGame
             catch (OperationCanceledException)
             {
                 Debug.LogWarning("[StageManager] 스테이지 취소됨");
+                StageEndReason reason = m_IsReturningToLobby ? StageEndReason.UserExit : StageEndReason.Error;
+                EventManager.Instance?.RecordStageEnded(reason);
                 await RecoverToLobbyAsync();
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+                EventManager.Instance?.RecordStageEnded(StageEndReason.Error);
                 await RecoverToLobbyAsync();
             }
             finally
@@ -248,6 +260,7 @@ namespace InTheArena.MainGame
             {
                 if (SaveManager.Instance.TryCommitPendingStageClear(m_PendingStageClearCandidate, out string error))
                 {
+                    EventManager.Instance?.NotifyStageClearCommitted(m_PendingStageClearedEvent);
                     QueueLobbyRewardPresentation();
                     SetStageClearCommitState(StageClearCommitState.Committed);
                     return true;
@@ -273,6 +286,8 @@ namespace InTheArena.MainGame
                 return false;
 
             m_PendingStageClearCandidate = null;
+            m_PendingStageClearedEvent = null;
+            EventManager.Instance?.RecordStageEnded(StageEndReason.UserExit);
             SetStageClearCommitState(StageClearCommitState.GivenUp);
             return true;
         }
@@ -307,6 +322,7 @@ namespace InTheArena.MainGame
             }
             else
             {
+                EventManager.Instance?.NotifyStageClearCommitted(m_PendingStageClearedEvent);
                 QueueLobbyRewardPresentation();
                 SetStageClearCommitState(StageClearCommitState.Committed);
             }
@@ -428,6 +444,9 @@ namespace InTheArena.MainGame
                     if (SaveManager.Instance != null)
                     {
                         m_PendingStageClearCandidate = SaveManager.Instance.CreatePendingStageClearCandidate(PlayerState, m_CurrentStageData.StageNum, StageClearGoldReward, StageClearStarReward);
+                        m_PendingStageClearedEvent = EventManager.Instance?.ApplyStageClearedToCandidate(
+                            m_PendingStageClearCandidate,
+                            m_CurrentStageData.StageNum);
                         if (m_PendingStageClearCandidate == null)
                         {
                             m_LastStageClearSaveError = "Failed to create candidate (Invalid state).";
@@ -508,6 +527,7 @@ namespace InTheArena.MainGame
                 if (CheckGameOver())
                 {
                     Debug.Log("[StageManager] GAME OVER!");
+                    EventManager.Instance?.RecordStageEnded(StageEndReason.Defeated);
                     await ShowResultPanelAsync(false, token);
                     if (UIManager.Instance != null)
                     {
@@ -623,6 +643,7 @@ namespace InTheArena.MainGame
             m_Context?.Clear();
             PlayerState = null;
             m_PendingStageClearCandidate = null;
+            m_PendingStageClearedEvent = null;
         }
     }
 }

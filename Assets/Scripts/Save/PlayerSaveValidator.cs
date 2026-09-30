@@ -16,7 +16,7 @@ namespace InTheArena.Save
 
     public static class PlayerSaveValidator
     {
-        public const int CurrentSchemaVersion = 5;
+        public const int CurrentSchemaVersion = 6;
 
         public static bool ValidateAndNormalize(PlayerSaveEnvelope envelope, IClock clock)
         {
@@ -36,7 +36,15 @@ namespace InTheArena.Save
             var payload = envelope.payload;
             payload.clearedStageNumber = Math.Max(0, payload.clearedStageNumber);
             payload.gold = Math.Max(0, payload.gold);
-            payload.hearts = Math.Clamp(payload.hearts, 0, 5); // MaxHearts는 보통 SaveManager에 있지만 임시로 5로 고정 또는 Repository에서 검증
+            // 스키마 6부터 보상으로 자연 회복 상한을 초과할 수 있습니다.
+            if (envelope.schemaVersion < 6)
+            {
+                payload.hearts = Math.Clamp(payload.hearts, 0, 5);
+            }
+            else
+            {
+                payload.hearts = Math.Max(0, payload.hearts);
+            }
             payload.stars = Math.Max(0, payload.stars);
             payload.selectedStageDifficulty = Math.Clamp(payload.selectedStageDifficulty, 0, 2);
             var normalizedItems = new Dictionary<ItemType, int>();
@@ -87,6 +95,25 @@ namespace InTheArena.Save
                     payload.freePassExpirationUtcTicks = 0;
                 }
             }
+
+            if (envelope.schemaVersion < 6)
+            {
+                payload.createdWithSchemaVersion = 0;
+                payload.mailEntries = Array.Empty<MailEntryPayload>();
+                payload.completedOneShotRuleIds = Array.Empty<string>();
+                payload.dailyQuestInstances = Array.Empty<QuestInstancePayload>();
+                payload.processedStageReturnIds = Array.Empty<string>();
+                payload.emergencyQuestInstance = null;
+                payload.activeStageRun = null;
+                payload.pendingStageReturn = null;
+                payload.emergencyIntroPending = false;
+            }
+
+            payload.mailEntries = payload.mailEntries ?? Array.Empty<MailEntryPayload>();
+            payload.completedOneShotRuleIds = payload.completedOneShotRuleIds ?? Array.Empty<string>();
+            payload.dailyQuestInstances = payload.dailyQuestInstances ?? Array.Empty<QuestInstancePayload>();
+            payload.processedStageReturnIds = payload.processedStageReturnIds ?? Array.Empty<string>();
+            payload.emergencyGenerationCount = Math.Max(0, payload.emergencyGenerationCount);
 
             return true;
         }

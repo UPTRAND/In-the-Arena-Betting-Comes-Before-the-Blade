@@ -410,6 +410,10 @@ namespace InTheArena.Save
             {
                 payloadJson = JsonUtility.ToJson(PreFreePassChecksumPayload.From(env.payload));
             }
+            else if (env.schemaVersion < 6)
+            {
+                payloadJson = JsonUtility.ToJson(PreQuestChecksumPayload.From(env.payload));
+            }
             else
             {
                 payloadJson = JsonUtility.ToJson(env.payload);
@@ -505,6 +509,42 @@ namespace InTheArena.Save
                     stars = payload.stars,
                     selectedStageDifficulty = payload.selectedStageDifficulty,
                     lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks,
+                    itemCounts = payload.itemCounts
+                };
+            }
+        }
+
+        [Serializable]
+        private sealed class PreQuestChecksumPayload
+        {
+            public int clearedStageNumber;
+            public int gold;
+            public int hearts;
+            public int stars;
+            public int selectedStageDifficulty;
+            public long lastHeartRecoveryUtcTicks;
+            public long freePassExpirationUtcTicks;
+            public ItemCountPayload[] itemCounts;
+
+            /// <summary>
+            /// 스키마 5 체크섬에 포함되던 필드와 순서를 그대로 복사합니다.
+            /// </summary>
+            public static PreQuestChecksumPayload From(PlayerSavePayload payload)
+            {
+                if (payload == null)
+                {
+                    return new PreQuestChecksumPayload();
+                }
+
+                return new PreQuestChecksumPayload
+                {
+                    clearedStageNumber = payload.clearedStageNumber,
+                    gold = payload.gold,
+                    hearts = payload.hearts,
+                    stars = payload.stars,
+                    selectedStageDifficulty = payload.selectedStageDifficulty,
+                    lastHeartRecoveryUtcTicks = payload.lastHeartRecoveryUtcTicks,
+                    freePassExpirationUtcTicks = payload.freePassExpirationUtcTicks,
                     itemCounts = payload.itemCounts
                 };
             }

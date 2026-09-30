@@ -26,6 +26,8 @@ public class SaveManager : Manager_Base
     public const int HeartRecoverySeconds = 300;
     public static SaveManager Instance { get; private set; }
 
+    public event Action StateChanged;
+
     [SerializeField] private int m_DefaultClearedStageNumber;
     [SerializeField] private int m_DefaultGold;
     [SerializeField] private int m_DefaultHearts = MaxHearts;
@@ -50,6 +52,7 @@ public class SaveManager : Manager_Base
     public int GetItemCount(ItemType itemType) => m_State?.GetItemCount(itemType) ?? 0;
 
     public long FreePassExpirationUtcTicks => m_State?.FreePassExpirationUtcTicks ?? 0;
+    public DateTime UtcNow => m_Clock != null ? m_Clock.UtcNow : DateTime.UtcNow;
 
     public bool HasActiveFreePass
     {
@@ -109,6 +112,7 @@ public class SaveManager : Manager_Base
         defaultCandidate.SetHearts(Mathf.Clamp(m_DefaultHearts, 0, MaxHearts));
         defaultCandidate.SetStars(Mathf.Max(0, m_DefaultStars));
         defaultCandidate.SetLastHeartRecoveryUtcTicks(m_Clock.UtcNow.Ticks);
+        defaultCandidate.SetCreatedWithSchemaVersion(PlayerSaveValidator.CurrentSchemaVersion);
 
         var result = m_Repository.LoadOrCreate(defaultCandidate);
 
@@ -175,6 +179,34 @@ public class SaveManager : Manager_Base
         finally { m_IsSaving = false; }
     }
 
+    /// <summary>
+    /// 최신 상태에서 만든 후보를 원자적으로 저장하고 성공한 경우에만 현재 상태를 교체합니다.
+    /// </summary>
+    public bool TryCommitCandidate(PlayerProgressState candidate, out string error)
+    {
+        if (!TrySave(candidate, out error))
+        {
+            return false;
+        }
+
+        m_State = candidate.DeepClone();
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// 외부 서비스가 안전하게 변경할 수 있는 최신 저장 상태 복사본을 반환합니다.
+    /// </summary>
+    public PlayerProgressState CreateSnapshot()
+    {
+        if (m_State == null || Availability != SaveAvailability.Ready)
+        {
+            return null;
+        }
+
+        return m_State.DeepClone();
+    }
+
     public void Save()
     {
         if (m_State == null || m_IsReadOnly || Availability != SaveAvailability.Ready) return;
@@ -201,6 +233,7 @@ public class SaveManager : Manager_Base
         if (TrySave(copy, out _))
         {
             m_State = copy;
+            StateChanged?.Invoke();
             return HeartRefreshResult.Committed;
         }
         return HeartRefreshResult.SaveFailed;
@@ -295,6 +328,7 @@ public class SaveManager : Manager_Base
         if (TrySave(copy, out _))
         {
             m_State = copy;
+            StateChanged?.Invoke();
             return true;
         }
         return false;
@@ -470,13 +504,23 @@ public class SaveManager : Manager_Base
         if (TrySave(candidate, out error))
         {
             m_State = candidate.DeepClone();
+            StateChanged?.Invoke();
             return true;
         }
         return false;
     }
 
     public override void OnApplicationPauseChanged(bool paused) { if (paused) Save(); }
-    public override void Release() { Save(); if (Instance == this) Instance = null; base.Release(); }
+    public override void Release()
+    {
+        Save();
+        StateChanged = null;
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+        base.Release();
+    }
 
 #if UNITY_EDITOR
     /// <summary>

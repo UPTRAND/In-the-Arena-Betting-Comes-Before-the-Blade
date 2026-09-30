@@ -321,6 +321,144 @@ public class UIManager : Manager_Base
         return m_UiElementsByTypename.TryGetValue(typeName, out var element) ? element as T : null;
     }
 
+    /// <summary>
+    /// 로비에서 편집 가능한 퀘스트 HUD 프리팹을 UI_Root에 한 번만 생성합니다.
+    /// </summary>
+    public void EnsureQuestAndMailboxUi()
+    {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Lobby")
+        {
+            return;
+        }
+
+        UI_QuestLobbyHud hud = EnsurePrefabControl<UI_QuestLobbyHud>("UI/Quest/UI_QuestLobbyHud");
+        if (hud != null && !hud.BIsOpened)
+        {
+            OpenControl(hud);
+        }
+    }
+
+    /// <summary>
+    /// 퀘스트 정보 프리팹을 UIManager 제어 스택으로 엽니다.
+    /// </summary>
+    public void OpenQuestInfo(string instanceId, bool isEmergencyIntro = false)
+    {
+        UI_QuestInfoPopup popup = EnsurePrefabControl<UI_QuestInfoPopup>("UI/Quest/UI_QuestInfoPopup");
+        if (popup != null)
+        {
+            popup.ShowQuest(instanceId, isEmergencyIntro);
+        }
+    }
+
+    /// <summary>
+    /// NPC가 부족한 경우도 접근 가능한 퀘스트 목록 프리팹을 엽니다.
+    /// </summary>
+    public void OpenQuestList()
+    {
+        UI_QuestListPopup popup = EnsurePrefabControl<UI_QuestListPopup>("UI/Quest/UI_QuestListPopup");
+        if (popup != null)
+        {
+            OpenControl(popup);
+        }
+    }
+
+    /// <summary>
+    /// 우편함 프리팹을 UIManager 제어 스택으로 엽니다.
+    /// </summary>
+    public void OpenMailbox()
+    {
+        UI_MailboxPopup popup = EnsurePrefabControl<UI_MailboxPopup>("UI/Quest/UI_MailboxPopup");
+        if (popup != null)
+        {
+            OpenControl(popup);
+        }
+    }
+
+    /// <summary>
+    /// 등록된 인스턴스를 재사용하거나 Resources 프리팹을 현재 로비 UI_Root에 생성합니다.
+    /// </summary>
+    private T EnsurePrefabControl<T>(string resourcesPath) where T : UI_Base
+    {
+        T existing = GetElement<T>();
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        T prefab = Resources.Load<T>(resourcesPath);
+        UI_Root root = FindActiveSceneRoot();
+        if (prefab == null)
+        {
+            Debug.LogError($"[UIManager] UI 프리팹을 찾을 수 없습니다: {resourcesPath}");
+            return null;
+        }
+
+        if (root == null)
+        {
+            return null;
+        }
+
+        T control = Instantiate(prefab, root.transform);
+        control.name = prefab.name;
+        control.SetRoot(root);
+        RegisterDynamicElement(control);
+        return control;
+    }
+
+    /// <summary>
+    /// 활성 씬의 HUD 루트를 우선하고 없으면 같은 씬의 첫 UI_Root를 반환합니다.
+    /// </summary>
+    private UI_Root FindActiveSceneRoot()
+    {
+        UnityEngine.SceneManagement.Scene activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        UI_Root fallback = null;
+
+        for (int i = 0; i < m_UiRoots.Count; i++)
+        {
+            UI_Root root = m_UiRoots[i];
+            if (root == null || root.gameObject.scene != activeScene)
+            {
+                continue;
+            }
+
+            if (root.Type == EUIObjectPoolingParent.HUD)
+            {
+                return root;
+            }
+
+            if (fallback == null)
+            {
+                fallback = root;
+            }
+        }
+
+        return fallback;
+    }
+
+    /// <summary>
+    /// 런타임 생성 프리팹을 기존 UIManager 타입·이름 조회표에 등록합니다.
+    /// </summary>
+    private void RegisterDynamicElement(UI_Base control)
+    {
+        if (control == null)
+        {
+            return;
+        }
+
+        if (!m_AllUiBaseObjects.Contains(control.gameObject))
+        {
+            m_AllUiBaseObjects.Add(control.gameObject);
+        }
+
+        string typeName = control.GetType().Name;
+        if (control.BIsSearchedByTypeHash)
+        {
+            m_UiElementsByTypename[typeName] = control;
+        }
+
+        m_UiElementsByName[control.name] = control.transform;
+    }
+
     public Transform GetElement(string name)
     {
         return m_UiElementsByName.TryGetValue(name, out var transformElement) ? transformElement : null;

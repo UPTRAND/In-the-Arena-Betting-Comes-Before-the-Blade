@@ -7,6 +7,23 @@ namespace InTheArena.UI
     {
         public string NpcId { get; private set; }
         public LobbyNpcMotion Motion { get; private set; }
+        public Vector3 HeadWorldPosition
+        {
+            get
+            {
+                if (m_Image == null)
+                {
+                    return transform.position;
+                }
+
+                // 스프라이트의 피벗과 좌우 반전 여부에 관계없이 실제 상단 중앙을 사용합니다.
+                m_Image.rectTransform.GetWorldCorners(m_WorldCorners);
+                return (m_WorldCorners[1] + m_WorldCorners[2]) * 0.5f;
+            }
+        }
+
+        private readonly Vector3[] m_WorldCorners = new Vector3[4];
+
         private LobbyNpcVisualData m_Visual;
         private RectTransform m_Root;
         private Image m_Image;
@@ -15,7 +32,9 @@ namespace InTheArena.UI
 
         public void Initialize(LobbyNpcDefinition definition, LobbyNpcMotion motion)
         {
-            NpcId = definition.Id; Motion = motion; m_Visual = definition.Visual;
+            NpcId = definition.Id;
+            Motion = motion;
+            m_Visual = definition.Visual;
             m_Root = (RectTransform)transform;
             m_Root.anchorMin = m_Root.anchorMax = new Vector2(.5f, .5f);
             m_Root.sizeDelta = Vector2.zero;

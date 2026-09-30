@@ -1056,9 +1056,13 @@ namespace InTheArena.MainGame
             m_ConfirmAttentionGraphic.color = m_ConfirmAttentionGraphicColor;
         }
 
+        /// <summary>메인 필수 티켓을 확정하여 원금을 차감하고 퀘스트 배팅 이벤트를 기록합니다.</summary>
         private void OnConfirmBetClicked()
         {
-            if (IsPhaseCompleted) return;
+            if (IsPhaseCompleted)
+            {
+                return;
+            }
 
             m_DraftTicket.SetItemUsages(
                 Context.RoundItemUsage.HasUsed(ItemType.AdditionalBetTicket),
@@ -1072,6 +1076,7 @@ namespace InTheArena.MainGame
             }
 
             Context.BetTicket = m_DraftTicket;
+            EventManager.Instance?.RecordBetPlaced(m_DraftTicket, Context.CurrentRound);
             SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
             StopAttention();
             AnimateNowCol(callBeforeBet, Context.CurrentCall);

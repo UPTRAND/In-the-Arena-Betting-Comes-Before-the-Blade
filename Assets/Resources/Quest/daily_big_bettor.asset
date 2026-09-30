@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: daily_big_bettor
+  m_EditorClassIdentifier: Assembly-CSharp:InTheArena.Quests:QuestDefinition
+  m_DefinitionId: daily_big_bettor
+  m_Kind: 0
+  m_Title: "\uD070\uC190 \uBC30\uD305"
+  m_DescriptionTemplate: "\uD655\uC815 \uBCA0\uD305\uC561 {target} Col \uB204\uC801"
+  m_ObjectiveKind: 1
+  m_Tiers:
+  - TargetAmount: 3000
+    RewardGold: 300
+  - TargetAmount: 4000
+    RewardGold: 400
+  - TargetAmount: 5000
+    RewardGold: 500
+  m_DurationSeconds: 1800

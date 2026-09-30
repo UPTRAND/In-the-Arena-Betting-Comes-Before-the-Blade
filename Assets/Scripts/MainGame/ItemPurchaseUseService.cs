@@ -175,6 +175,7 @@ namespace InTheArena.MainGame
             bool spent = succeeded && TrySpendItem(itemData.ItemType, out saveError);
             if (spent)
             {
+                EventManager.Instance?.RecordItemUseCommitted(itemData.ItemType, m_Context.CurrentRound);
                 return true;
             }
 
@@ -225,6 +226,7 @@ namespace InTheArena.MainGame
 
             if (succeeded)
             {
+                EventManager.Instance?.RecordItemUseCommitted(itemData.ItemType, m_Context.CurrentRound);
                 return true;
             }
 
