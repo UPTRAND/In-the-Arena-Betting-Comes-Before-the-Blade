@@ -156,6 +156,12 @@ namespace InTheArena.UI
                 return;
             }
 
+            if (itemData.ItemType == ItemType.RerollTicket && !bettingPhase.CanRerollSpecialBets)
+            {
+                ShowFeedback("팀 메인 베팅을 선택해야 리롤을 사용할 수 있습니다. 무승부는 서브 베팅 불가입니다.");
+                return;
+            }
+
             if (itemData.PriceGold < 0)
             {
                 SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
@@ -285,6 +291,7 @@ namespace InTheArena.UI
             if (m_BettingPhase != null)
             {
                 m_BettingPhase.OnItemUsed += HandleBettingItemUsed;
+                m_BettingPhase.OnMainBetChanged += RefreshItemButtons;
             }
 
             if (m_RoundContext != null)
@@ -305,6 +312,7 @@ namespace InTheArena.UI
             if (m_BettingPhase != null)
             {
                 m_BettingPhase.OnItemUsed -= HandleBettingItemUsed;
+                m_BettingPhase.OnMainBetChanged -= RefreshItemButtons;
             }
 
             if (m_RoundContext != null)
@@ -376,7 +384,8 @@ namespace InTheArena.UI
                            coordinator != null &&
                            coordinator.State == ItemPurchaseUseState.Idle;
 
-            button.interactable = canRequest;
+            button.interactable = canRequest &&
+                (itemData.ItemType != ItemType.RerollTicket || m_BettingPhase.CanRerollSpecialBets);
         }
 
         private void ResolveItemPresenters()

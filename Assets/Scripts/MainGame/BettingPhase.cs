@@ -153,6 +153,10 @@ namespace InTheArena.MainGame
             }
         }
 
+        public bool CanRerollSpecialBets => m_DraftTicket?.CanSelectSpecialBets == true &&
+            Context?.ActiveSpecialBets.Count > 0 && !IsPhaseCompleted && !m_DraftTicket.IsPlaced;
+        public event Action OnMainBetChanged;
+
         public bool UsedAdditionalBetTicket
         {
             get
@@ -369,8 +373,8 @@ namespace InTheArena.MainGame
             SetOptions(m_WinningTeamDropdown, "미선택", "레드", "블루", "무승부");
             SetOptions(m_GameEndTimeDropdown, "미선택", "0~5초", "5~10초", "10~15초", "15~20초", "20초 이상");
             SetOptions(m_OddEvenDropdown, "미선택", "홀", "짝");
-            SetOptions(m_FirstAnnihilatedDropdown, "미선택", "레드 / 전열", "레드 / 후열", "블루 / 전열", "블루 / 후열");
-            SetOptions(m_SurvivingRowDropdown, "미선택", "레드 / 1행", "레드 / 2행", "레드 / 3행", "블루 / 1행", "블루 / 2행", "블루 / 3행");
+            SetOptions(m_FirstAnnihilatedDropdown, "미선택", "전열", "후열");
+            SetOptions(m_SurvivingRowDropdown, "미선택", "1행", "2행", "3행");
         }
 
         private void EnsureSurvivingRowDropdown()
@@ -456,6 +460,21 @@ namespace InTheArena.MainGame
             SetActive(m_OddEvenDropdownRoot, HasSpecial(SpecialBetType.OddEven));
             SetActive(m_FirstEliminatedSlotRoot, HasSpecial(SpecialBetType.FirstEliminatedColumn));
             SetActive(m_FirstAnnihilatedDropdownRoot, HasSpecial(SpecialBetType.FirstEliminatedColumn));
+            bool enabled = m_DraftTicket?.CanSelectSpecialBets == true;
+            foreach (TMP_Dropdown dropdown in new[] { m_GameEndTimeDropdown, m_SurvivingRowDropdown, m_OddEvenDropdown, m_FirstAnnihilatedDropdown })
+                if (dropdown != null) dropdown.interactable = enabled;
+            SetButtonsInteractable(m_RemainingTimeButtons, enabled);
+            SetButtonsInteractable(m_OddEvenButtons, enabled);
+            for (int i = 0; i < m_FirstEliminatedSlotButtons.Length; i++)
+            {
+                Button button = m_FirstEliminatedSlotButtons[i];
+                if (button != null)
+                {
+                    bool sameTeam = m_DraftTicket != null && (i < 2 ? Team.Red : Team.Blue) == m_DraftTicket.BettingTeam;
+                    button.interactable = enabled && sameTeam;
+                    button.gameObject.SetActive(sameTeam);
+                }
+            }
         }
 
         private static void SetActive(GameObject target, bool active)
@@ -553,6 +572,7 @@ namespace InTheArena.MainGame
 
         private void OnGameEndTimeChanged(int value)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             m_DraftTicket.SetRemainingTime(value == 0 ? null : (RemainingTimePrediction)(value - 1));
             PlaySelectionSfx(value != 0);
             RefreshBetSummary();
@@ -560,6 +580,7 @@ namespace InTheArena.MainGame
 
         private void OnOddEvenChanged(int value)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             m_DraftTicket.SetOddEven(value == 0 ? null : (OddEvenPrediction)(value - 1));
             PlaySelectionSfx(value != 0);
             RefreshBetSummary();
@@ -567,15 +588,17 @@ namespace InTheArena.MainGame
 
         private void OnFirstAnnihilatedChanged(int value)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             m_DraftTicket.SetFirstEliminatedColumn(
-                value == 0 ? null : (FirstEliminatedColumnPrediction?)(value - 1));
+                value == 0 ? null : (FirstEliminatedColumnPrediction?)(value - 1 + (m_DraftTicket.BettingTeam == Team.Blue ? 2 : 0)));
             PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
 
         private void OnSurvivingRowChanged(int value)
         {
-            m_DraftTicket.SetSurvivingRow(value == 0 ? null : (SurvivingRowPrediction?)(value - 1));
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
+            m_DraftTicket.SetSurvivingRow(value == 0 ? null : (SurvivingRowPrediction?)(value - 1 + (m_DraftTicket.BettingTeam == Team.Blue ? 3 : 0)));
             PlaySelectionSfx(value != 0);
             RefreshBetSummary();
         }
@@ -583,12 +606,15 @@ namespace InTheArena.MainGame
         private void SetFaction(FactionPrediction prediction)
         {
             m_DraftTicket.SetFaction(prediction);
+            RefreshSpecialBetAvailability();
+            OnMainBetChanged?.Invoke();
             PlaySelectionSfx(prediction != FactionPrediction.NotSelected);
             RefreshBetSummary();
         }
 
         private void ToggleRemainingTime(RemainingTimePrediction value)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             bool selected = m_DraftTicket.RemainingTime != value;
             m_DraftTicket.SetRemainingTime(selected ? value : null);
             PlaySelectionSfx(selected);
@@ -597,6 +623,7 @@ namespace InTheArena.MainGame
 
         private void ToggleOddEven(OddEvenPrediction value)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             bool selected = m_DraftTicket.OddEven != value;
             m_DraftTicket.SetOddEven(selected ? value : null);
             PlaySelectionSfx(selected);
@@ -605,6 +632,7 @@ namespace InTheArena.MainGame
 
         private void ToggleFirstEliminatedColumn(FirstEliminatedColumnPrediction prediction)
         {
+            if (!m_DraftTicket.CanSelectSpecialBets) return;
             bool selected = m_DraftTicket.FirstEliminatedColumn != prediction;
             m_DraftTicket.SetFirstEliminatedColumn(selected ? prediction : null);
             PlaySelectionSfx(selected);
@@ -705,10 +733,12 @@ namespace InTheArena.MainGame
 
             if (m_AgreeText != null)
             {
-                bool hasSelection = m_DraftTicket.SelectedCategoryCount > 0;
-                m_AgreeText.text = hasSelection
-                    ? "위 배팅에 동의하십니까?"
-                    : "최소 1개 이상의 배팅 내역을 선택해야합니다.";
+                bool hasSelection = m_DraftTicket.Faction != FactionPrediction.NotSelected;
+                m_AgreeText.text = !hasSelection
+                    ? "필수 메인 베팅에서 레드·블루·무승부를 선택해 주세요."
+                    : m_DraftTicket.Faction == FactionPrediction.Draw
+                        ? "무승부 적중 시 3배 지급 · 서브 베팅 불가"
+                        : "위 배팅에 동의하십니까?";
                 m_AgreeText.color = hasSelection ? AgreeTextColor : AgreeWarningColor;
             }
         }
@@ -734,9 +764,9 @@ namespace InTheArena.MainGame
             if (m_GameEndTimeDropdown != null) m_GameEndTimeDropdown.SetValueWithoutNotify(m_DraftTicket.RemainingTime.HasValue ? (int)m_DraftTicket.RemainingTime.Value + 1 : 0);
             if (m_OddEvenDropdown != null) m_OddEvenDropdown.SetValueWithoutNotify(m_DraftTicket.OddEven.HasValue ? (int)m_DraftTicket.OddEven.Value + 1 : 0);
             if (m_FirstAnnihilatedDropdown != null) m_FirstAnnihilatedDropdown.SetValueWithoutNotify(
-                m_DraftTicket.FirstEliminatedColumn.HasValue ? (int)m_DraftTicket.FirstEliminatedColumn.Value + 1 : 0);
+                m_DraftTicket.FirstEliminatedColumn.HasValue ? (int)m_DraftTicket.FirstEliminatedColumn.Value % 2 + 1 : 0);
             if (m_SurvivingRowDropdown != null) m_SurvivingRowDropdown.SetValueWithoutNotify(
-                m_DraftTicket.SurvivingRow.HasValue ? (int)m_DraftTicket.SurvivingRow.Value + 1 : 0);
+                m_DraftTicket.SurvivingRow.HasValue ? (int)m_DraftTicket.SurvivingRow.Value % 3 + 1 : 0);
 
             for (int i = 0; i < m_RemainingTimeButtons.Length; i++)
                 SetSelected(m_RemainingTimeButtons[i], m_DraftTicket.RemainingTime == (RemainingTimePrediction)i);
@@ -789,6 +819,14 @@ namespace InTheArena.MainGame
             if (itemData.ItemType != ItemType.RerollTicket)
             {
                 message = "베팅 아이템이 아닙니다.";
+                return false;
+            }
+
+            if (!CanRerollSpecialBets)
+            {
+                message = m_DraftTicket?.Faction == FactionPrediction.Draw
+                    ? "무승부는 서브 베팅과 리롤을 사용할 수 없습니다."
+                    : "팀 메인 베팅과 사용 가능한 서브 베팅이 필요합니다.";
                 return false;
             }
 

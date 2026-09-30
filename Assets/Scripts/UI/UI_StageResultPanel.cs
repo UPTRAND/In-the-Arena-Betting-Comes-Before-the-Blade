@@ -200,11 +200,12 @@ namespace InTheArena.UI
             ClearRoundChecks();
             if (m_RoundCheckGroup == null || m_RoundCheckBoxTemplate == null) return;
             m_RoundCheckBoxTemplate.SetActive(false);
-            foreach (BetSettlement settlement in m_Settlements)
+            for (int i = 0; i < m_Settlements.Count; i++)
             {
+                BetSettlement settlement = m_Settlements[i];
                 GameObject item = Instantiate(m_RoundCheckBoxTemplate, m_RoundCheckGroup);
                 item.name = "RoundCheck_Box_Result";
-                var roundCheck = new RoundCheckView(item, settlement.NetChange);
+                var roundCheck = new RoundCheckView(item, i + 1, settlement.NetChange);
                 roundCheck.Initialize();
                 m_RoundChecks.Add(roundCheck);
             }
@@ -339,16 +340,20 @@ namespace InTheArena.UI
         private sealed class RoundCheckView
         {
             private readonly Image m_BoxImage;
+            private readonly TMP_Text m_RoundText;
             private readonly TMP_Text m_AddColText;
             private readonly RectTransform m_RectTransform;
+            private readonly int m_RoundNumber;
             public GameObject Root { get; }
             public int NetChange { get; }
 
-            public RoundCheckView(GameObject root, int netChange)
+            public RoundCheckView(GameObject root, int roundNumber, int netChange)
             {
                 Root = root;
+                m_RoundNumber = roundNumber;
                 NetChange = netChange;
                 m_BoxImage = root.GetComponent<Image>();
+                m_RoundText = FindDescendant(root.transform, "Round_Text")?.GetComponent<TMP_Text>();
                 m_AddColText = FindDescendant(root.transform, "AddCol_Text")?.GetComponent<TMP_Text>();
                 m_RectTransform = root.transform as RectTransform;
             }
@@ -356,11 +361,12 @@ namespace InTheArena.UI
             public void Initialize()
             {
                 Root.SetActive(true);
+                if (m_RoundText != null) m_RoundText.text = m_RoundNumber.ToString();
                 if (m_BoxImage != null) m_BoxImage.color = NetChange > 0 ? ProfitBoxColor : NetChange < 0 ? LossBoxColor : NeutralBoxColor;
                 if (m_AddColText != null)
                 {
                     m_AddColText.color = NetChange > 0 ? ProfitTextColor : NetChange < 0 ? LossTextColor : NeutralTextColor;
-                    m_AddColText.text = NetChange > 0 ? $"+{NetChange} Col" : NetChange < 0 ? $"-{Mathf.Abs(NetChange)} Col" : "0 Col";
+                    m_AddColText.text = NetChange > 0 ? $"+\n{NetChange}\nCol" : NetChange < 0 ? $"-\n{Mathf.Abs(NetChange)}\nCol" : "0\nCol";
                 }
                 GetCanvasGroup().alpha = 0f;
                 if (m_RectTransform != null) m_RectTransform.localScale = Vector3.one * 0.82f;

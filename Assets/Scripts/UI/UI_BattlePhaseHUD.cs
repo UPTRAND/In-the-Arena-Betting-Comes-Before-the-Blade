@@ -63,7 +63,7 @@ namespace InTheArena.UI
         [SerializeField] private UI_ItemPurchasePopupController m_ItemPurchasePopup;
         [SerializeField] private Sprite m_CancelOverlaySprite;
         [SerializeField] private TMP_FontAsset m_DuplicateItemFeedbackFont;
-        [SerializeField] private UI_CombatItemTargetingController m_CombatItemTargetingController;
+        [SerializeField] private UI_CombatItemTeamSelectionController m_CombatItemTeamSelectionController;
         [SerializeField] private Image m_ItemSlot1CancelOverlay;
         [SerializeField] private Image m_ItemSlot2CancelOverlay;
         [SerializeField] private Image m_ItemSlot3CancelOverlay;
@@ -76,9 +76,7 @@ namespace InTheArena.UI
         private StagePlayerState m_PlayerState;
 
         private ItemData m_ActiveTargetingItemData;
-        private Image m_ActiveTargetingCancelOverlay;
         private bool m_IsSubscribed;
-        private CancellationTokenSource m_ItemUseLifetimeCancellation;
         private CancellationTokenSource m_TargetingLifetimeCancellation;
         private long m_ActiveTargetingRequestVersion = -1;
         private Tween m_DuplicateItemFeedbackTween;
@@ -87,10 +85,8 @@ namespace InTheArena.UI
         protected override void Awake()
         {
             base.Awake();
-            m_ItemUseLifetimeCancellation = new CancellationTokenSource();
             m_TargetingLifetimeCancellation = new CancellationTokenSource();
-            EnsureCombatItemTargetingController();
-            EnsureCancelOverlays();
+            EnsureCombatItemTeamSelectionController();
             EnsureDuplicateItemFeedback();
             ApplyItemIcons();
             ResolveItemPresenters();
@@ -161,6 +157,11 @@ namespace InTheArena.UI
             base.OnClosed();
         }
 
+        private void OnDisable()
+        {
+            CancelTargetingRequest();
+        }
+
         private int m_LastDisplayedSecond = -1;
         private BettingPhase m_BettingPhase;
         private bool m_LastSlowMotion;
@@ -173,6 +174,11 @@ namespace InTheArena.UI
             {
                 bool slowMotion = m_CombatPhase.IsItemCastingSlowMotion;
                 bool canAcceptInput = CanAcceptCombatInput();
+                ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+                if (!canAcceptInput || (m_ActiveTargetingRequestVersion >= 0 &&
+                    (coordinator == null || coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
+                     coordinator.ActiveRequestVersion != m_ActiveTargetingRequestVersion)))
+                    CancelTargetingRequest();
                 if (slowMotion != m_LastSlowMotion || canAcceptInput != m_LastCanAcceptInput)
                 {
                     m_LastSlowMotion = slowMotion;
@@ -196,137 +202,106 @@ namespace InTheArena.UI
 
 
 
-        private async void RequestTargetedItemUse(ItemData itemData)
+        private async void RequestTeamSelectionUse(ItemData itemData)
         {
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
             UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
                 UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
-
-            if (coordinator == null || popup == null || m_CombatPhase == null ||
-                !CanUseNewTargetingFlow(itemData) || coordinator.State != ItemPurchaseUseState.Idle)
-            {
+            if (coordinator == null || m_CombatPhase == null || coordinator.State != ItemPurchaseUseState.Idle)
                 return;
-            }
 
-            m_TargetingLifetimeCancellation?.Cancel();
-            m_TargetingLifetimeCancellation?.Dispose();
-            m_TargetingLifetimeCancellation = new CancellationTokenSource();
-
+            RenewItemRequestLifetime();
             long requestVersion = await coordinator.RequestTargetedUseAsync(
-                itemData,
-                popup,
-                m_TargetingLifetimeCancellation.Token);
-
-            if (this == null || requestVersion == -1 ||
-                m_TargetingLifetimeCancellation.IsCancellationRequested ||
+                itemData, popup, m_TargetingLifetimeCancellation.Token,
+                ItemUseConfirmationPolicy.CombatClickUse);
+            if (this == null || requestVersion < 0 || m_TargetingLifetimeCancellation.IsCancellationRequested ||
                 coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
                 coordinator.ActiveRequestVersion != requestVersion)
             {
-                if (coordinator.LastResult == ItemPurchaseUseResult.PurchaseSucceeded)
-                {
-                    RefreshItemButtons();
-                }
+                if (this != null) RefreshItemButtons();
                 return;
             }
 
-            ResolveItemSlot(itemData, out RectTransform selectedSlot, out Image cancelOverlay);
-            if (selectedSlot == null || m_CombatItemTargetingController == null ||
-                !m_CombatItemTargetingController.BeginTargeting(
-                    itemData.ItemType,
-                    m_CombatPhase,
-                    selectedSlot,
-                    cancelOverlay))
+            if (m_CombatItemTeamSelectionController == null ||
+                !m_CombatItemTeamSelectionController.BeginSelection(itemData.ItemType, m_CombatPhase))
             {
                 coordinator.CancelActiveRequest();
+                RefreshItemButtons();
                 return;
             }
-
             m_ActiveTargetingRequestVersion = requestVersion;
             m_ActiveTargetingItemData = itemData;
-            m_ActiveTargetingCancelOverlay = cancelOverlay;
             ResolvePresenter(itemData)?.SetState(ItemSlotVisualState.Casting);
+            RefreshItemButtons();
         }
 
-        private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Vector3 worldPos)
+        private void RenewItemRequestLifetime()
         {
-            if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, worldPos);
-            if (itemData.ItemType == ItemType.Mercenary) return new CombatMercenaryUseExecutor(m_CombatPhase, worldPos);
+            m_TargetingLifetimeCancellation?.Cancel();
+            m_TargetingLifetimeCancellation?.Dispose();
+            m_TargetingLifetimeCancellation = new CancellationTokenSource();
+        }
+
+        private IItemPurchaseUseExecutor CreateExecutor(ItemData itemData, Team team)
+        {
+            if (itemData.ItemType == ItemType.Meteor) return new CombatMeteorUseExecutor(m_CombatPhase, team);
+            if (itemData.ItemType == ItemType.Mercenary) return new CombatMercenaryUseExecutor(m_CombatPhase, team);
+            if (itemData.ItemType == ItemType.TimeExtension) return new CombatTimeExtensionUseExecutor(m_CombatPhase);
             return null;
         }
-
-
 
         private void ClearTargetingBinding()
         {
             m_ActiveTargetingRequestVersion = -1;
             m_ActiveTargetingItemData = null;
-            m_ActiveTargetingCancelOverlay = null;
         }
 
         private void CancelTargetingRequest()
         {
             long requestVersion = m_ActiveTargetingRequestVersion;
             ItemData itemData = m_ActiveTargetingItemData;
-            m_CombatItemTargetingController?.AbortTargeting();
+            m_CombatItemTeamSelectionController?.AbortSelection();
             ResolvePresenter(itemData)?.SetState(ItemSlotVisualState.Normal);
             ClearTargetingBinding();
-
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
             if (coordinator != null && coordinator.State == ItemPurchaseUseState.AwaitingTarget &&
                 coordinator.ActiveRequestVersion == requestVersion)
-            {
                 coordinator.CancelActiveRequest();
-            }
-
             m_TargetingLifetimeCancellation?.Cancel();
         }
 
-        private void OnTargetConfirmed(Vector3 worldPosition)
+        private void OnTeamConfirmed(Team team)
         {
             if (m_CombatPhase == null || m_ActiveTargetingItemData == null)
             {
                 CancelTargetingRequest();
                 return;
             }
-
-            long targetVersion = m_ActiveTargetingRequestVersion;
+            long requestVersion = m_ActiveTargetingRequestVersion;
             ItemData itemData = m_ActiveTargetingItemData;
             ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
             if (coordinator == null || coordinator.State != ItemPurchaseUseState.AwaitingTarget ||
-                coordinator.ActiveRequestVersion != targetVersion)
+                coordinator.ActiveRequestVersion != requestVersion)
             {
                 CancelTargetingRequest();
                 return;
             }
 
-            IItemPurchaseUseExecutor executor = CreateExecutor(itemData, worldPosition);
-            UI_ItemSlotPresenter presenter = ResolvePresenter(itemData);
+            IItemPurchaseUseExecutor executor = CreateExecutor(itemData, team);
             ClearTargetingBinding();
-
             bool success = coordinator.TryCompleteTargetUse(
-                targetVersion,
-                executor,
-                out ItemPurchaseUseResult result,
-                out string message);
-
+                requestVersion, executor, out _, out string message);
             Debug.Log($"[UI_BattlePhaseHUD] {message}");
-            if (success)
-            {
-                SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
-                presenter?.SetState(ItemSlotVisualState.Used);
-                RefreshItemButtons();
-            }
-            else
-            {
-                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
-                presenter?.SetState(ItemSlotVisualState.Normal);
-            }
+            SoundManager.Instance?.PlaySfx(success ? SfxIds.ButtonPositive : SfxIds.ButtonNegative);
+            ResolvePresenter(itemData)?.SetState(success ? ItemSlotVisualState.Used : ItemSlotVisualState.Normal);
+            RefreshItemButtons();
         }
 
-        private void OnTargetCanceled()
+        private void OnTeamSelectionCanceled()
         {
             SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
             CancelTargetingRequest();
+            RefreshItemButtons();
         }
 
         private void SubscribeEvents()
@@ -433,75 +408,48 @@ namespace InTheArena.UI
 
         private void RequestItemUse(ItemData itemData)
         {
-            if (itemData == null || !CanAcceptCombatInput() || !IsCombatItem(itemData))
+            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            if (itemData == null || !CanAcceptCombatInput() || !IsCombatItem(itemData) ||
+                coordinator == null || coordinator.State != ItemPurchaseUseState.Idle ||
+                m_RoundContext?.BetTicket?.IsPlaced != true)
+                return;
+
+            if (m_RoundContext.RoundItemUsage.HasUsed(itemData.ItemType))
             {
+                SoundManager.Instance?.PlaySfx(SfxIds.ButtonNegative);
+                ShowDuplicateItemFeedback();
                 return;
             }
 
             SoundManager.Instance?.PlaySfx(SfxIds.ButtonPositive);
-            if (CanUseNewImmediateFlow(itemData))
-            {
-                RequestImmediateItemUse(itemData);
-                return;
-            }
-
-            if (CanUseNewTargetingFlow(itemData))
-            {
-                RequestTargetedItemUse(itemData);
-            }
+            if (itemData.ItemType != ItemType.TimeExtension &&
+                m_RoundContext.BetTicket.Faction == FactionPrediction.Draw)
+                RequestTeamSelectionUse(itemData);
+            else
+                _ = RequestImmediateItemUseAsync(itemData, coordinator);
         }
 
-        private static bool IsCombatItem(ItemData itemData)
-        {
-            return itemData != null &&
-                   (itemData.ItemType == ItemType.Meteor ||
-                    itemData.ItemType == ItemType.Mercenary ||
-                    itemData.ItemType == ItemType.TimeExtension);
-        }
+        private static bool IsCombatItem(ItemData itemData) => itemData != null &&
+            (itemData.ItemType == ItemType.Meteor || itemData.ItemType == ItemType.Mercenary ||
+             itemData.ItemType == ItemType.TimeExtension);
 
         private void OnItemSlot1Clicked() => RequestItemUse(m_ItemSlot1Data);
         private void OnItemSlot2Clicked() => RequestItemUse(m_ItemSlot2Data);
         private void OnItemSlot3Clicked() => RequestItemUse(m_ItemSlot3Data);
 
-        private void RequestImmediateItemUse(ItemData itemData)
+        private async Awaitable RequestImmediateItemUseAsync(ItemData itemData, ItemPurchaseUseCoordinator coordinator)
         {
-            if (!CanUseNewImmediateFlow(itemData) || itemData.ItemType != ItemType.TimeExtension)
-            {
-                return;
-            }
-
-            ItemPurchaseUseCoordinator coordinator = RoundManager.Instance?.ItemPurchaseUseCoordinator;
+            RenewItemRequestLifetime();
+            Team targetTeam = CombatItemTeamResolver.Resolve(m_RoundContext.BetTicket, itemData.ItemType);
             UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
                 UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
-            if (coordinator == null || popup == null || popup.ParentRoot == null)
-            {
-                return;
-            }
-
-            _ = RequestImmediateItemUseAsync(itemData, coordinator, popup);
-        }
-
-        private async Awaitable RequestImmediateItemUseAsync(
-            ItemData itemData,
-            ItemPurchaseUseCoordinator coordinator,
-            UI_ItemPurchasePopupController popup)
-        {
             await coordinator.RequestImmediateUseAsync(
-                itemData,
-                popup,
-                new CombatTimeExtensionUseExecutor(m_CombatPhase),
-                m_ItemUseLifetimeCancellation?.Token ?? CancellationToken.None);
-
-            if (coordinator.LastResult == ItemPurchaseUseResult.PurchaseSucceeded ||
-                coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded ||
-                coordinator.LastResult == ItemPurchaseUseResult.Failed)
-            {
-                SoundManager.Instance?.PlaySfx(
-                    coordinator.LastResult == ItemPurchaseUseResult.Failed
-                        ? SfxIds.ButtonNegative
-                        : SfxIds.ButtonPositive);
-                RefreshItemButtons();
-            }
+                itemData, popup, CreateExecutor(itemData, targetTeam),
+                m_TargetingLifetimeCancellation.Token, ItemUseConfirmationPolicy.CombatClickUse);
+            if (this == null) return;
+            bool success = coordinator.LastResult == ItemPurchaseUseResult.UseSucceeded;
+            SoundManager.Instance?.PlaySfx(success ? SfxIds.ButtonPositive : SfxIds.ButtonNegative);
+            RefreshItemButtons();
         }
 
         private void OnCombatItemUsed(ItemData itemData)
@@ -637,7 +585,7 @@ namespace InTheArena.UI
             {
                 m_OddEvenHistoryText.text = ticket?.OddEven == null
                     ? "-"
-                    : ticket.OddEven == OddEvenPrediction.Odd ? "홀수" : "짝수";
+                    : $"{FormatFaction(ticket.Faction)} / {(ticket.OddEven == OddEvenPrediction.Odd ? "홀수" : "짝수")}";
             }
 
             if (m_FirstAnnihilatedHistoryText != null)
@@ -657,7 +605,7 @@ namespace InTheArena.UI
 
         private bool HasSpecial(SpecialBetType type)
         {
-            return m_RoundContext != null && m_RoundContext.ActiveSpecialBets.Contains(type);
+            return m_RoundContext?.BetTicket?.CanSelectSpecialBets == true && m_RoundContext.ActiveSpecialBets.Contains(type);
         }
 
         private static void SetActive(GameObject target, bool active)
@@ -676,24 +624,9 @@ namespace InTheArena.UI
 
         private void SetItemButtonState(Button button, ItemData itemData)
         {
-            if (button == null)
-            {
-                return;
-            }
-
-            if (CanUseNewTargetingFlow(itemData))
-            {
-                button.interactable = CanAcceptCombatInput();
-                return;
-            }
-
-            if (CanUseNewImmediateFlow(itemData))
-            {
-                button.interactable = CanAcceptCombatInput();
-                return;
-            }
-
-            button.interactable = false;
+            if (button == null) return;
+            button.interactable = CanUseCombatItemFlow(itemData) && CanAcceptCombatInput() &&
+                RoundManager.Instance.ItemPurchaseUseCoordinator.State == ItemPurchaseUseState.Idle;
         }
 
         private void ResolveItemPresenters()
@@ -760,39 +693,12 @@ namespace InTheArena.UI
                 false);
         }
 
-        private bool CanUseNewImmediateFlow(ItemData itemData)
+        private bool CanUseCombatItemFlow(ItemData itemData)
         {
-            if (itemData == null || itemData.ItemType != ItemType.TimeExtension)
-            {
-                return false;
-            }
-
-            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
-                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
-            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
-                popup != null &&
-                popup.ParentRoot != null &&
-                m_RoundContext != null &&
-                m_PlayerState != null;
+            return IsCombatItem(itemData) &&
+                RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
+                m_RoundContext?.BetTicket?.IsPlaced == true && m_PlayerState != null;
         }
-
-        private bool CanUseNewTargetingFlow(ItemData itemData)
-        {
-            if (itemData == null || (itemData.ItemType != ItemType.Meteor && itemData.ItemType != ItemType.Mercenary))
-            {
-                return false;
-            }
-
-            UI_ItemPurchasePopupController popup = m_ItemPurchasePopup ??
-                UIManager.Instance?.GetElement<UI_ItemPurchasePopupController>();
-            return RoundManager.Instance?.ItemPurchaseUseCoordinator != null &&
-                popup != null &&
-                popup.ParentRoot != null &&
-                m_RoundContext != null &&
-                m_PlayerState != null;
-        }
-
-
 
         private bool CanAcceptCombatInput()
         {
@@ -872,43 +778,17 @@ namespace InTheArena.UI
             };
         }
 
-        private void EnsureCombatItemTargetingController()
+        private void EnsureCombatItemTeamSelectionController()
         {
-            if (m_CombatItemTargetingController == null)
-            {
-                GameObject inputObject = new GameObject(
-                    "CombatItemTargetingInput",
-                    typeof(RectTransform),
-                    typeof(Canvas),
-                    typeof(GraphicRaycaster),
-                    typeof(Image));
-                inputObject.transform.SetParent(transform, false);
-
-                RectTransform inputRect = (RectTransform)inputObject.transform;
-                inputRect.anchorMin = Vector2.zero;
-                inputRect.anchorMax = Vector2.one;
-                inputRect.offsetMin = Vector2.zero;
-                inputRect.offsetMax = Vector2.zero;
-
-                Canvas inputCanvas = inputObject.GetComponent<Canvas>();
-                inputCanvas.overrideSorting = true;
-                inputCanvas.sortingOrder = 1000;
-
-                Image inputImage = inputObject.GetComponent<Image>();
-                inputImage.color = Color.clear;
-                inputImage.raycastTarget = true;
-                m_CombatItemTargetingController =
-                    inputObject.AddComponent<UI_CombatItemTargetingController>();
-            }
-
-            if (m_CombatItemTargetingController != null)
-            {
-                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
-                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
-                m_CombatItemTargetingController.TargetConfirmed += OnTargetConfirmed;
-                m_CombatItemTargetingController.TargetCanceled += OnTargetCanceled;
-                m_CombatItemTargetingController.gameObject.SetActive(false);
-            }
+            m_CombatItemTeamSelectionController ??=
+                GetComponentInChildren<UI_CombatItemTeamSelectionController>(true);
+            m_CombatItemTeamSelectionController ??=
+                UI_CombatItemTeamSelectionController.Create(transform,
+                    m_DuplicateItemFeedbackFont ?? m_BattleTimerText?.font);
+            m_CombatItemTeamSelectionController.TeamConfirmed -= OnTeamConfirmed;
+            m_CombatItemTeamSelectionController.SelectionCanceled -= OnTeamSelectionCanceled;
+            m_CombatItemTeamSelectionController.TeamConfirmed += OnTeamConfirmed;
+            m_CombatItemTeamSelectionController.SelectionCanceled += OnTeamSelectionCanceled;
         }
 
         private void EnsureCancelOverlays()
@@ -1107,21 +987,18 @@ namespace InTheArena.UI
 
         protected override void OnDestroy()
         {
-            m_ItemUseLifetimeCancellation?.Cancel();
             m_TargetingLifetimeCancellation?.Cancel();
-            if (m_CombatItemTargetingController != null)
+            if (m_CombatItemTeamSelectionController != null)
             {
-                m_CombatItemTargetingController.TargetConfirmed -= OnTargetConfirmed;
-                m_CombatItemTargetingController.TargetCanceled -= OnTargetCanceled;
+                m_CombatItemTeamSelectionController.TeamConfirmed -= OnTeamConfirmed;
+                m_CombatItemTeamSelectionController.SelectionCanceled -= OnTeamSelectionCanceled;
             }
-            m_CombatItemTargetingController?.AbortTargeting();
+            m_CombatItemTeamSelectionController?.AbortSelection();
             m_DuplicateItemFeedbackTween?.Kill();
 
             UnsubscribeEvents();
             ClearBindings();
 
-            m_ItemUseLifetimeCancellation?.Dispose();
-            m_ItemUseLifetimeCancellation = null;
             m_TargetingLifetimeCancellation?.Dispose();
             m_TargetingLifetimeCancellation = null;
 

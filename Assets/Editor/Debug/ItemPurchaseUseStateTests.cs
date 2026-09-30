@@ -527,6 +527,7 @@ public sealed class ItemPurchaseUseStateTests
             bettingPhase.InitializePhase(context);
             var ticket = new RoundBetTicket();
             ticket.SetRemainingTime(RemainingTimePrediction.Seconds0To5);
+            ticket.SetFaction(FactionPrediction.Red);
             ticket.SetOddEven(OddEvenPrediction.Odd);
             ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
             SetField(bettingPhase, "m_DraftTicket", ticket);
@@ -540,7 +541,7 @@ public sealed class ItemPurchaseUseStateTests
             Assert.That(context.RoundItemUsage.HasUsed(ItemType.RerollTicket), Is.True, "Reroll usage should be recorded");
             Assert.That(context.ActiveSpecialBets.Count, Is.EqualTo(3));
             Assert.That(new HashSet<SpecialBetType>(context.ActiveSpecialBets).SetEquals(previousActive), Is.False);
-            Assert.That(ticket.SelectedCategoryCount, Is.Zero, "Reroll should clear special predictions");
+            Assert.That(ticket.SelectedCategoryCount, Is.EqualTo(1), "Reroll should retain the main bet");
         }
         finally
         {
@@ -601,6 +602,7 @@ public sealed class ItemPurchaseUseStateTests
             bettingPhase.InitializePhase(context);
             var ticket = new RoundBetTicket();
             ticket.SetRemainingTime(RemainingTimePrediction.Seconds0To5);
+            ticket.SetFaction(FactionPrediction.Red);
             ticket.SetOddEven(OddEvenPrediction.Odd);
             ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
             SetField(bettingPhase, "m_DraftTicket", ticket);
@@ -615,7 +617,7 @@ public sealed class ItemPurchaseUseStateTests
             Assert.That(playerState.Gold, Is.EqualTo(100));
             Assert.That(context.RoundItemUsage.HasUsed(ItemType.RerollTicket), Is.False);
             Assert.That(new HashSet<SpecialBetType>(context.ActiveSpecialBets).SetEquals(previousActive), Is.True);
-            Assert.That(ticket.SelectedCategoryCount, Is.EqualTo(3));
+            Assert.That(ticket.SelectedCategoryCount, Is.EqualTo(4));
             Assert.That(ticket.RemainingTime, Is.EqualTo(RemainingTimePrediction.Seconds0To5));
             Assert.That(ticket.OddEven, Is.EqualTo(OddEvenPrediction.Odd));
             Assert.That(ticket.FirstEliminatedColumn, Is.EqualTo(FirstEliminatedColumnPrediction.RedFront));
@@ -665,7 +667,7 @@ public sealed class ItemPurchaseUseStateTests
             SetField(itemData, "m_ItemType", ItemType.Meteor);
             var combatPhase = phaseObject.AddComponent<CombatPhase>();
             var service = new ItemPurchaseUseService(context, playerState);
-            var executor = new CombatMeteorUseExecutor(combatPhase, Vector3.zero);
+            var executor = new CombatMeteorUseExecutor(combatPhase, Team.Blue);
 
             Assert.That(service.TryUse(itemData, executor, 100, out _), Is.False);
             Assert.That(playerState.Gold, Is.EqualTo(100));
@@ -688,7 +690,7 @@ public sealed class ItemPurchaseUseStateTests
             SetField(itemData, "m_ItemType", ItemType.Mercenary);
             var combatPhase = phaseObject.AddComponent<CombatPhase>();
             var service = new ItemPurchaseUseService(context, playerState);
-            var executor = new CombatMercenaryUseExecutor(combatPhase, Vector3.zero);
+            var executor = new CombatMercenaryUseExecutor(combatPhase, Team.Red);
 
             Assert.That(service.TryUse(itemData, executor, 100, out _), Is.False);
             Assert.That(playerState.Gold, Is.EqualTo(100));
@@ -877,6 +879,156 @@ public sealed class ItemPurchaseUseStateTests
             state);
         typeof(SaveManager).GetProperty("Instance")?.SetValue(null, manager);
         return managerObject;
+    }
+
+    [UnityTest]
+    public IEnumerator CombatClick_OwnedItemBypassesPopupAndRejectsRepeatUse()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        try
+        {
+            using var coordinator = new ItemPurchaseUseCoordinator(context, playerState, new ItemPurchaseUseService(context, playerState));
+            var executor = new FakeExecutor(true);
+            coordinator.RequestImmediateUseAsync(itemData, null, executor, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.UseSucceeded));
+            Assert.That(executor.CallCount, Is.EqualTo(1));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(4));
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(100));
+            coordinator.RequestImmediateUseAsync(itemData, null, executor, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Rejected));
+            Assert.That(executor.CallCount, Is.EqualTo(1));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(4));
+        }
+        finally { DestroyDependencies(stageData, itemData); }
+    }
+
+    [UnityTest]
+    public IEnumerator CombatClick_PurchaseConfirmationContinuesIntoUse()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        SetDefaultItemCount(itemData.ItemType, 0);
+        try
+        {
+            using var coordinator = new ItemPurchaseUseCoordinator(context, playerState, new ItemPurchaseUseService(context, playerState));
+            var popup = new PendingConfirmationView();
+            var executor = new FakeExecutor(true);
+            coordinator.RequestImmediateUseAsync(itemData, popup, executor, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingPurchase));
+            popup.Complete(ItemPurchaseDecision.Confirmed);
+            yield return null;
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.UseSucceeded));
+            Assert.That(executor.CallCount, Is.EqualTo(1));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.Zero);
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.True);
+        }
+        finally { DestroyDependencies(stageData, itemData); }
+    }
+
+    [UnityTest]
+    public IEnumerator CombatClick_PurchaseCancelOrEffectFailureNeverConsumesItem()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        SetDefaultItemCount(itemData.ItemType, 0);
+        try
+        {
+            using var coordinator = new ItemPurchaseUseCoordinator(context, playerState, new ItemPurchaseUseService(context, playerState));
+            var popup = new PendingConfirmationView();
+            var executor = new ReversibleExecutor(false);
+            coordinator.RequestImmediateUseAsync(itemData, popup, executor, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            popup.Complete(ItemPurchaseDecision.Cancelled);
+            yield return null;
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Cancelled));
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(100));
+            Assert.That(executor.CallCount, Is.Zero);
+            coordinator.RequestImmediateUseAsync(itemData, popup, executor, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            popup.Complete(ItemPurchaseDecision.Confirmed);
+            yield return null;
+            Assert.That(coordinator.LastResult, Is.EqualTo(ItemPurchaseUseResult.Failed));
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
+        }
+        finally { DestroyDependencies(stageData, itemData); }
+    }
+
+    [UnityTest]
+    public IEnumerator CombatClick_DrawSelectionAfterPurchase_CancelKeepsPurchase()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        SetDefaultItemCount(itemData.ItemType, 0);
+        try
+        {
+            using var coordinator = new ItemPurchaseUseCoordinator(context, playerState, new ItemPurchaseUseService(context, playerState));
+            var popup = new PendingConfirmationView();
+            coordinator.RequestTargetedUseAsync(itemData, popup, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.ConfirmingPurchase));
+            popup.Complete(ItemPurchaseDecision.Confirmed);
+            yield return null;
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
+            coordinator.CancelActiveRequest();
+            Assert.That(SaveManager.Instance.Gold, Is.EqualTo(50));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(1));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
+        }
+        finally { DestroyDependencies(stageData, itemData); }
+    }
+
+    [UnityTest]
+    public IEnumerator CombatClick_TargetCommitIsOnceOnly_AndRejectsRoundChange()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        try
+        {
+            using var coordinator = new ItemPurchaseUseCoordinator(context, playerState, new ItemPurchaseUseService(context, playerState));
+            coordinator.RequestTargetedUseAsync(itemData, null, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.AwaitingTarget));
+            long version = coordinator.ActiveRequestVersion;
+            var executor = new FakeExecutor(true);
+            Assert.That(coordinator.TryCompleteTargetUse(version, executor, out _, out _), Is.True);
+            Assert.That(coordinator.TryCompleteTargetUse(version, executor, out _, out _), Is.False);
+            Assert.That(executor.CallCount, Is.EqualTo(1));
+            context.RoundItemUsage.Reset();
+            coordinator.RequestTargetedUseAsync(itemData, null, CancellationToken.None, ItemUseConfirmationPolicy.CombatClickUse);
+            yield return null;
+            version = coordinator.ActiveRequestVersion;
+            context.CurrentRound++;
+            Assert.That(coordinator.TryCompleteTargetUse(version, executor, out _, out _), Is.False);
+            Assert.That(coordinator.State, Is.EqualTo(ItemPurchaseUseState.Idle));
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(4));
+            Assert.That(executor.CallCount, Is.EqualTo(1));
+        }
+        finally { DestroyDependencies(stageData, itemData); }
+    }
+
+    [Test]
+    public void Reroll_DrawBetRejectsUseWithoutChangingInventory()
+    {
+        CreateDependencies(out StageData stageData, out RoundContext context, out StagePlayerState playerState, out ItemData itemData);
+        GameObject phaseObject = new GameObject("DrawRerollTest");
+        try
+        {
+            context.SetRoundData(stageData, 6);
+            SetField(itemData, "m_ItemType", ItemType.RerollTicket);
+            var phase = phaseObject.AddComponent<BettingPhase>();
+            phase.InitializePhase(context);
+            var ticket = new RoundBetTicket();
+            ticket.SetFaction(FactionPrediction.Draw);
+            SetField(phase, "m_DraftTicket", ticket);
+            Assert.That(phase.CanRerollSpecialBets, Is.False);
+            var service = new ItemPurchaseUseService(context, playerState);
+            Assert.That(service.TryUse(itemData, new BettingItemUseExecutor(phase), out _), Is.False);
+            Assert.That(SaveManager.Instance.GetItemCount(itemData.ItemType), Is.EqualTo(5));
+            Assert.That(context.RoundItemUsage.HasUsed(itemData.ItemType), Is.False);
+        }
+        finally { Object.DestroyImmediate(phaseObject); DestroyDependencies(stageData, itemData); }
     }
 
     private static void SetDefaultItemCount(ItemType itemType, int count)

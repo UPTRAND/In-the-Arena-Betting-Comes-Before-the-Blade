@@ -62,6 +62,8 @@ namespace InTheArena.MainGame
         private readonly Dictionary<UnitType, Action<UnitType>> m_DeathHandlers = new Dictionary<UnitType, Action<UnitType>>();
         private readonly List<UnitType> m_FinalDeathPresentationUnits = new List<UnitType>(2);
         private FirstEliminatedColumnPrediction? m_FirstEliminatedColumn;
+        private FirstEliminatedColumnPrediction? m_RedFirstEliminatedColumn;
+        private FirstEliminatedColumnPrediction? m_BlueFirstEliminatedColumn;
         private bool m_IsFinalEliminationPlaying;
         private bool m_IsItemCastingSlowMotion;
 
@@ -128,6 +130,8 @@ namespace InTheArena.MainGame
             m_DeathHandlers.Clear();
             m_FinalDeathPresentationUnits.Clear();
             m_FirstEliminatedColumn = null;
+            m_RedFirstEliminatedColumn = null;
+            m_BlueFirstEliminatedColumn = null;
             m_IsFinalEliminationPlaying = false;
             m_IsItemCastingSlowMotion = false;
 
@@ -227,7 +231,7 @@ namespace InTheArena.MainGame
             Team team = key.Team;
             Debug.Log($"[Phase1C Test] 유닛 사망. Team: {team}, RuntimeListCount: {(team == Team.Red ? Context.TeamAUnits.Count : Context.TeamBUnits.Count)}, RedAlive: {RedAliveCount}/{m_RedParticipantCount}, BlueAlive: {BlueAliveCount}/{m_BlueParticipantCount}");
 
-            if (!m_FirstEliminatedColumn.HasValue)
+            if (!(team == Team.Red ? m_RedFirstEliminatedColumn : m_BlueFirstEliminatedColumn).HasValue)
             {
                 bool columnHasLivingUnit = false;
                 foreach (var pair in m_UnitSlots)
@@ -243,7 +247,12 @@ namespace InTheArena.MainGame
                 }
 
                 if (!columnHasLivingUnit)
-                    m_FirstEliminatedColumn = GetColumnPrediction(key.Team, key.CellIndex);
+                {
+                    FirstEliminatedColumnPrediction prediction = GetColumnPrediction(key.Team, key.CellIndex);
+                    if (team == Team.Red) m_RedFirstEliminatedColumn = prediction;
+                    else m_BlueFirstEliminatedColumn = prediction;
+                    m_FirstEliminatedColumn ??= prediction;
+                }
             }
 
             bool teamEliminated = key.Team == Team.Red
@@ -565,7 +574,9 @@ namespace InTheArena.MainGame
                 redAlive,
                 blueAlive,
                 survivingRows,
-                m_FirstEliminatedColumn);
+                m_FirstEliminatedColumn,
+                m_RedFirstEliminatedColumn,
+                m_BlueFirstEliminatedColumn);
         }
 
         /// <summary>
@@ -656,6 +667,21 @@ namespace InTheArena.MainGame
                    m_RemainingCombatTime > 0f &&
                    HasLivingUnit(Context.TeamAUnits) &&
                    HasLivingUnit(Context.TeamBUnits);
+        }
+
+        public bool CanUseTeamItem(Team team)
+        {
+            return (team == Team.Red || team == Team.Blue) && CanCommitGroundTargetItem();
+        }
+
+        internal Vector3 GetMercenarySpawnPosition(Team team)
+        {
+            // 2행 후열 중앙: Red는 왼쪽 열, Blue는 오른쪽 열이다.
+            int rearCell = team == Team.Red ? 2 : 3;
+            Vector3 center = GetGridCellCenterPosition(team, rearCell);
+            return BattlefieldArea.Active != null
+                ? BattlefieldArea.Active.ClampPosition(center, MercenaryFormationPadding)
+                : center;
         }
 
         public float MeteorTargetRadius => MeteorEffectRadius;
@@ -771,6 +797,12 @@ namespace InTheArena.MainGame
                 return false;
             }
 
+            if (IsCombatEnded || IsFinalEliminationPlaying || m_RemainingCombatTime <= 0f)
+            {
+                message = "종료된 전투에는 아이템을 사용할 수 없습니다.";
+                return false;
+            }
+
             m_RemainingCombatTime += 5f;
             OnItemUsed?.Invoke(itemData);
             message = "전투 시간이 5초 연장되었습니다.";
@@ -801,11 +833,11 @@ namespace InTheArena.MainGame
             m_FinalDeathPresentationUnits.Add(deadUnit);
         }
 
-        internal bool TrySpawnMercenaries(Vector3 dropPosition, out string message)
+        internal bool TrySpawnMercenaries(Team team, out string message)
         {
             message = string.Empty;
 
-            if (!CanCommitGroundTargetItem())
+            if (!CanUseTeamItem(team))
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
@@ -826,23 +858,7 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            dropPosition = area.ClampPosition(
-                dropPosition,
-                MercenaryFormationPadding);
-
-            // 기존 팀 결정 로직을 그대로 유지한다.
-            Team team = Team.Red;
-
-            if (UnityEngine.Camera.main != null)
-            {
-                Vector3 viewportPos =
-                    UnityEngine.Camera.main.WorldToViewportPoint(dropPosition);
-
-                if (viewportPos.x >= 0.5f)
-                {
-                    team = Team.Blue;
-                }
-            }
+            Vector3 dropPosition = GetMercenarySpawnPosition(team);
 
             // 생성 위치를 한 번만 계산한다.
             Vector3 knightPosition = dropPosition;
@@ -1031,18 +1047,13 @@ namespace InTheArena.MainGame
             return unit;
         }
 
-        internal bool TryApplyMeteorEffect(Vector3 center, out string message)
+        internal bool TryApplyMeteorEffect(Team team, out string message)
         {
             message = string.Empty;
 
-            if (!CanCommitGroundTargetItem())
+            if (!CanUseTeamItem(team))
             {
                 message = "유효하지 않은 전투 상태입니다.";
-                return false;
-            }
-
-            if (!ValidateBattlefieldTarget(center, 0f, out message))
-            {
                 return false;
             }
 
@@ -1052,12 +1063,8 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            float radius = MeteorEffectRadius;
             float stunDuration = 3f;
-            float radiusSqr = radius * radius;
-
-            ApplyStun(Context.TeamAUnits, center, radiusSqr, stunDuration);
-            ApplyStun(Context.TeamBUnits, center, radiusSqr, stunDuration);
+            ApplyStun(team == Team.Red ? Context.TeamAUnits : Context.TeamBUnits, stunDuration);
 
             message = "메테오를 사용했습니다.";
             return true;
@@ -1080,7 +1087,7 @@ namespace InTheArena.MainGame
                             : 0f)));
         }
 
-        private void ApplyStun(List<InTheArena.Unit.Unit> units, Vector3 center, float radiusSqr, float stunDuration)
+        private void ApplyStun(List<InTheArena.Unit.Unit> units, float stunDuration)
         {
             if (units == null)
             {
@@ -1090,19 +1097,9 @@ namespace InTheArena.MainGame
             for (int i = 0; i < units.Count; i++)
             {
                 var unit = units[i];
-                if (unit != null)
+                if (unit != null && !unit.IsDead && m_MeteorStunEffect != null)
                 {
-                    if (unit.IsDead == false)
-                    {
-                        float distSqr = (unit.GroundPosition - center).sqrMagnitude;
-                        if (distSqr <= radiusSqr)
-                        {
-                            if (m_MeteorStunEffect != null)
-                            {
-                                unit.ApplyStatusEffect(m_MeteorStunEffect, null, stunDuration);
-                            }
-                        }
-                    }
+                    unit.ApplyStatusEffect(m_MeteorStunEffect, null, stunDuration);
                 }
             }
         }

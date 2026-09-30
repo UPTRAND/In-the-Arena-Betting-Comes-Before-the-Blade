@@ -17,5 +17,4 @@ MonoBehaviour:
   m_ItemName: "\uC6A9\uBCD1\uACE0\uC6A9"
   m_PriceGold: 700
   m_Icon: {fileID: -1679725100, guid: 22487a4aa057121479f0a07108c3488d, type: 3}
-  m_Description: "\uC120\uD0DD\uD55C \uD300\uC5D0 \uAE30\uC0AC, \uAD81\uC218, \uB9C8\uBC95\uC0AC\uB97C
-    \uAC01\uAC01 1\uB9C8\uB9AC\uC529 \uCD94\uAC00\uD55C\uB2E4."
+  m_Description: "메인 베팅한 팀의 후열 중앙에 기사·궁수·마법사를 각 1명 투입합니다. 무승부 베팅은 용병을 투입할 팀을 선택합니다."

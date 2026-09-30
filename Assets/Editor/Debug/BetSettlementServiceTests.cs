@@ -41,7 +41,7 @@ public sealed class BetSettlementServiceTests
         ticket.SetWager(100);
         ticket.SetFaction(FactionPrediction.Red);
         ticket.SetOddEven(OddEvenPrediction.Odd);
-        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.BlueFront);
+        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
 
         var context = new RoundContext();
         context.InitializeStage(m_StageData);
@@ -59,7 +59,7 @@ public sealed class BetSettlementServiceTests
         var result = new CombatResultSnapshot(
             Team.Red, 12f, 3, 0,
             new[] { SurvivingRowPrediction.RedRow1, SurvivingRowPrediction.RedRow2 },
-            FirstEliminatedColumnPrediction.BlueFront);
+            FirstEliminatedColumnPrediction.BlueFront, FirstEliminatedColumnPrediction.RedFront);
         BetSettlement settlement = BetSettlementService.Settle(ticket, result);
         session.ApplySettlement(settlement);
 
@@ -176,6 +176,7 @@ public sealed class BetSettlementServiceTests
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
         ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Blue);
         ticket.SetSurvivingRow(SurvivingRowPrediction.BlueRow2);
 
         var context = new RoundContext();
@@ -204,6 +205,7 @@ public sealed class BetSettlementServiceTests
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
         ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Blue);
         ticket.SetSurvivingRow(SurvivingRowPrediction.BlueRow2);
 
         var context = new RoundContext();
@@ -268,6 +270,7 @@ public sealed class BetSettlementServiceTests
         session.Initialize(m_StageData);
         var ticket = new RoundBetTicket();
         ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Red);
         ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
 
         var context = new RoundContext();
@@ -301,7 +304,7 @@ public sealed class BetSettlementServiceTests
         ticket.SetFaction(FactionPrediction.Red);
         ticket.SetRemainingTime(RemainingTimePrediction.Seconds10To15);
         ticket.SetOddEven(OddEvenPrediction.Odd);
-        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.BlueFront);
+        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedFront);
 
         var context = new RoundContext();
         context.InitializeStage(m_StageData);
@@ -318,7 +321,7 @@ public sealed class BetSettlementServiceTests
         var result = new CombatResultSnapshot(
             Team.Red, 12f, 3, 0,
             new[] { SurvivingRowPrediction.RedRow1, SurvivingRowPrediction.RedRow2 },
-            FirstEliminatedColumnPrediction.BlueFront);
+            FirstEliminatedColumnPrediction.BlueFront, FirstEliminatedColumnPrediction.RedFront);
         BetSettlement settlement = BetSettlementService.Settle(ticket, result);
 
         Assert.That(settlement.IsWin, Is.True);
@@ -343,6 +346,119 @@ public sealed class BetSettlementServiceTests
 
         Assert.That(ticket.Validate(m_StageData, context, 500, out _), Is.EqualTo(valid));
         Assert.That(BettingRules.IsValidWager(amount), Is.EqualTo(valid));
+    }
+
+    [Test]
+    public void MainBet_IsRequiredEvenWhenASpecialBetIsSelected()
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(100);
+        ticket.SetOddEven(OddEvenPrediction.Odd);
+        var context = MakeContext(SpecialBetType.OddEven);
+        Assert.That(ticket.Validate(m_StageData, context, 500, out string error), Is.False);
+        Assert.That(error, Does.Contain("필수"));
+        Assert.That(ticket.Multiplier, Is.Zero);
+    }
+
+    [TestCase(FactionPrediction.Draw)]
+    [TestCase(FactionPrediction.NotSelected)]
+    public void LeavingTeamBet_ClearsEverySpecialPrediction(FactionPrediction next)
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetFaction(FactionPrediction.Red);
+        ticket.SetRemainingTime(RemainingTimePrediction.Seconds0To5);
+        ticket.SetOddEven(OddEvenPrediction.Even);
+        ticket.SetSurvivingRow(SurvivingRowPrediction.RedRow2);
+        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedBack);
+        ticket.SetFaction(next);
+        Assert.That(ticket.RemainingTime, Is.Null);
+        Assert.That(ticket.OddEven, Is.Null);
+        Assert.That(ticket.SurvivingRow, Is.Null);
+        Assert.That(ticket.FirstEliminatedColumn, Is.Null);
+        ticket.SetFaction(FactionPrediction.Blue);
+        Assert.That(ticket.SelectedCategoryCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void SwitchingTeams_RetainsRelativePredictions()
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetFaction(FactionPrediction.Red);
+        ticket.SetRemainingTime(RemainingTimePrediction.Seconds10To15);
+        ticket.SetOddEven(OddEvenPrediction.Odd);
+        ticket.SetSurvivingRow(SurvivingRowPrediction.RedRow2);
+        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.RedBack);
+        ticket.SetFaction(FactionPrediction.Blue);
+        Assert.That(ticket.BettingTeam, Is.EqualTo(Team.Blue));
+        Assert.That(ticket.SurvivingRow, Is.EqualTo(SurvivingRowPrediction.BlueRow2));
+        Assert.That(ticket.FirstEliminatedColumn, Is.EqualTo(FirstEliminatedColumnPrediction.BlueBack));
+        Assert.That(ticket.OddEven, Is.EqualTo(OddEvenPrediction.Odd));
+        Assert.That(ticket.RemainingTime, Is.EqualTo(RemainingTimePrediction.Seconds10To15));
+        ticket.SetFaction(FactionPrediction.Red);
+        Assert.That(ticket.SurvivingRow, Is.EqualTo(SurvivingRowPrediction.RedRow2));
+        Assert.That(ticket.FirstEliminatedColumn, Is.EqualTo(FirstEliminatedColumnPrediction.RedBack));
+    }
+
+    [Test]
+    public void Draw_RejectsInjectedSpecialBet_AndPaysThreeTimesIncludingPrincipal()
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Draw);
+        var context = MakeContext(SpecialBetType.OddEven);
+        ticket.SetOddEven(OddEvenPrediction.Odd);
+        Assert.That(ticket.Validate(m_StageData, context, 500, out _), Is.False);
+        ticket.ClearSpecialPredictions();
+        var session = new StageSession();
+        session.Initialize(m_StageData);
+        Assert.That(session.TryPlaceBet(ticket, context, out string error), Is.True, error);
+        var result = new CombatResultSnapshot(Team.None, 0f, 1, 2, null, null);
+        var settlement = BetSettlementService.Settle(ticket, result);
+        session.ApplySettlement(settlement);
+        Assert.That(settlement.IsWin, Is.True);
+        Assert.That(settlement.Multiplier, Is.EqualTo(3));
+        Assert.That(settlement.PayoutCall, Is.EqualTo(300));
+        Assert.That(settlement.NetChange, Is.EqualTo(200));
+        Assert.That(session.CurrentCall, Is.EqualTo(700));
+    }
+
+    [Test]
+    public void OddEven_UsesOnlyBettingTeamWhenOpposingCountChangesParity()
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Blue);
+        ticket.SetOddEven(OddEvenPrediction.Even);
+        var session = new StageSession();
+        session.Initialize(m_StageData);
+        Assert.That(session.TryPlaceBet(ticket, MakeContext(SpecialBetType.OddEven), out _), Is.True);
+        var result = new CombatResultSnapshot(Team.Blue, 5f, 1, 2, null, null);
+        Assert.That(result.TotalAliveCount % 2, Is.EqualTo(1));
+        Assert.That(BetSettlementService.Settle(ticket, result).IsWin, Is.True);
+    }
+
+    [Test]
+    public void SpecialPrediction_RejectsOtherTeamsRowOrColumn()
+    {
+        var ticket = new RoundBetTicket();
+        ticket.SetWager(100);
+        ticket.SetFaction(FactionPrediction.Red);
+        var context = MakeContext(SpecialBetType.SurvivingRow, SpecialBetType.FirstEliminatedColumn);
+        ticket.SetSurvivingRow(SurvivingRowPrediction.BlueRow1);
+        Assert.That(ticket.Validate(m_StageData, context, 500, out _), Is.False);
+        ticket.SetSurvivingRow(null);
+        ticket.SetFirstEliminatedColumn(FirstEliminatedColumnPrediction.BlueBack);
+        Assert.That(ticket.Validate(m_StageData, context, 500, out _), Is.False);
+    }
+
+    private RoundContext MakeContext(params SpecialBetType[] active)
+    {
+        var context = new RoundContext();
+        context.InitializeStage(m_StageData);
+        context.SetRoundData(m_StageData, 6);
+        context.ActiveSpecialBets.Clear();
+        context.ActiveSpecialBets.AddRange(active);
+        return context;
     }
 
     private void SetField(string name, object value)

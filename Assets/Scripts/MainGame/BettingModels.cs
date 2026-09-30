@@ -85,6 +85,14 @@ namespace InTheArena.MainGame
         public bool HasAdditionalBet { get; private set; }
         public bool HasInsurance { get; private set; }
 
+        public Team BettingTeam => Faction switch
+        {
+            FactionPrediction.Red => Team.Red,
+            FactionPrediction.Blue => Team.Blue,
+            _ => Team.None
+        };
+        public bool CanSelectSpecialBets => BettingTeam != Team.None;
+
         public int SelectedCategoryCount
         {
             get
@@ -98,7 +106,8 @@ namespace InTheArena.MainGame
             }
         }
 
-        public int Multiplier => SelectedCategoryCount switch
+        public int Multiplier => Faction == FactionPrediction.NotSelected ? 0
+            : Faction == FactionPrediction.Draw ? 3 : SelectedCategoryCount switch
         {
             1 => 2,
             2 => 4,
@@ -117,6 +126,23 @@ namespace InTheArena.MainGame
         public void SetFaction(FactionPrediction faction)
         {
             EnsureEditable();
+            if (faction != FactionPrediction.Red && faction != FactionPrediction.Blue &&
+                faction != FactionPrediction.Draw && faction != FactionPrediction.NotSelected)
+                throw new ArgumentOutOfRangeException(nameof(faction));
+
+            if (faction == FactionPrediction.NotSelected || faction == FactionPrediction.Draw)
+            {
+                ClearSpecialPredictions();
+            }
+            else if (Faction != faction)
+            {
+                if (SurvivingRow.HasValue)
+                    SurvivingRow = (SurvivingRowPrediction)((int)SurvivingRow.Value % 3 +
+                        (faction == FactionPrediction.Blue ? 3 : 0));
+                if (FirstEliminatedColumn.HasValue)
+                    FirstEliminatedColumn = (FirstEliminatedColumnPrediction)((int)FirstEliminatedColumn.Value % 2 +
+                        (faction == FactionPrediction.Blue ? 2 : 0));
+            }
             Faction = faction;
         }
         /// <summary>확정 전 베팅 선택을 변경합니다.</summary>
@@ -182,6 +208,18 @@ namespace InTheArena.MainGame
                 return false;
             }
 
+            if (Faction == FactionPrediction.NotSelected)
+            {
+                error = "필수 메인 베팅에서 레드·블루·무승부를 선택해야 합니다.";
+                return false;
+            }
+
+            if (Faction == FactionPrediction.Draw && SelectedCategoryCount != 1)
+            {
+                error = "무승부는 서브 베팅을 할 수 없습니다.";
+                return false;
+            }
+
             if (SelectedCategoryCount < 1 || SelectedCategoryCount > 4)
             {
                 error = "베팅 항목은 1~4개를 선택해야 합니다.";
@@ -191,6 +229,15 @@ namespace InTheArena.MainGame
             if (Faction != FactionPrediction.NotSelected && !stageData.EnableFactionBet)
             {
                 error = "이 스테이지에서는 진영 베팅을 제공하지 않습니다.";
+                return false;
+            }
+
+            if (SurvivingRow.HasValue && ((int)SurvivingRow.Value < 0 || (int)SurvivingRow.Value > 5 ||
+                    ((int)SurvivingRow.Value < 3 ? Team.Red : Team.Blue) != BettingTeam) ||
+                FirstEliminatedColumn.HasValue && ((int)FirstEliminatedColumn.Value < 0 || (int)FirstEliminatedColumn.Value > 3 ||
+                    ((int)FirstEliminatedColumn.Value < 2 ? Team.Red : Team.Blue) != BettingTeam))
+            {
+                error = "서브 베팅은 메인 베팅한 팀을 기준으로 선택해야 합니다.";
                 return false;
             }
 
@@ -228,6 +275,8 @@ namespace InTheArena.MainGame
         public int BlueAliveCount { get; }
         public IReadOnlyList<SurvivingRowPrediction> SurvivingRows { get; }
         public FirstEliminatedColumnPrediction? FirstEliminatedColumn { get; }
+        public FirstEliminatedColumnPrediction? RedFirstEliminatedColumn { get; }
+        public FirstEliminatedColumnPrediction? BlueFirstEliminatedColumn { get; }
 
         public int TotalAliveCount => RedAliveCount + BlueAliveCount;
 
@@ -237,7 +286,9 @@ namespace InTheArena.MainGame
             int redAliveCount,
             int blueAliveCount,
             IEnumerable<SurvivingRowPrediction> survivingRows,
-            FirstEliminatedColumnPrediction? firstEliminatedColumn)
+            FirstEliminatedColumnPrediction? firstEliminatedColumn,
+            FirstEliminatedColumnPrediction? redFirstEliminatedColumn = null,
+            FirstEliminatedColumnPrediction? blueFirstEliminatedColumn = null)
         {
             Winner = winner;
             RemainingTime = Math.Max(0f, remainingTime);
@@ -246,7 +297,25 @@ namespace InTheArena.MainGame
             var rows = new HashSet<SurvivingRowPrediction>(survivingRows ?? Array.Empty<SurvivingRowPrediction>());
             SurvivingRows = new List<SurvivingRowPrediction>(rows).AsReadOnly();
             FirstEliminatedColumn = firstEliminatedColumn;
+            RedFirstEliminatedColumn = redFirstEliminatedColumn ??
+                (firstEliminatedColumn.HasValue && (int)firstEliminatedColumn.Value < 2 ? firstEliminatedColumn : null);
+            BlueFirstEliminatedColumn = blueFirstEliminatedColumn ??
+                (firstEliminatedColumn.HasValue && (int)firstEliminatedColumn.Value >= 2 ? firstEliminatedColumn : null);
         }
+
+        public int GetAliveCount(Team team) => team switch
+        {
+            Team.Red => RedAliveCount,
+            Team.Blue => BlueAliveCount,
+            _ => 0
+        };
+
+        public FirstEliminatedColumnPrediction? GetFirstEliminatedColumn(Team team) => team switch
+        {
+            Team.Red => RedFirstEliminatedColumn,
+            Team.Blue => BlueFirstEliminatedColumn,
+            _ => null
+        };
     }
 
     public sealed class BetSettlement
@@ -298,13 +367,13 @@ namespace InTheArena.MainGame
 
             if (ticket.OddEven.HasValue)
             {
-                bool isEven = result.TotalAliveCount % 2 == 0;
+                bool isEven = result.GetAliveCount(ticket.BettingTeam) % 2 == 0;
                 bool matched = ticket.OddEven.Value == (isEven ? OddEvenPrediction.Even : OddEvenPrediction.Odd);
                 if (!matched) failed.Add("OddEven");
             }
 
             if (ticket.FirstEliminatedColumn.HasValue &&
-                ticket.FirstEliminatedColumn != result.FirstEliminatedColumn)
+                ticket.FirstEliminatedColumn != result.GetFirstEliminatedColumn(ticket.BettingTeam))
             {
                 failed.Add("FirstEliminatedColumn");
             }

@@ -3,6 +3,21 @@ using System.Collections.Generic;
 
 namespace InTheArena.MainGame
 {
+    public static class CombatItemTeamResolver
+    {
+        public static Team Resolve(RoundBetTicket ticket, ItemType itemType)
+        {
+            Team team = ticket?.BettingTeam ?? Team.None;
+            if (team == Team.None) return Team.None;
+            return itemType switch
+            {
+                ItemType.Meteor => team == Team.Red ? Team.Blue : Team.Red,
+                ItemType.Mercenary => team,
+                _ => Team.None
+            };
+        }
+    }
+
     public sealed class BettingItemUseExecutor : IReversibleItemPurchaseUseExecutor
     {
         private readonly BettingPhase m_BettingPhase;
@@ -71,7 +86,8 @@ namespace InTheArena.MainGame
 
         public bool CanExecute(ItemData itemData, out string message)
         {
-            if (m_CombatPhase == null)
+            if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded ||
+                m_CombatPhase.IsFinalEliminationPlaying || m_CombatPhase.RemainingCombatTime <= 0f)
             {
                 message = "전투 페이즈가 없습니다.";
                 return false;
@@ -101,18 +117,18 @@ namespace InTheArena.MainGame
     public sealed class CombatMeteorUseExecutor : IItemPurchaseUseExecutor
     {
         private readonly CombatPhase m_CombatPhase;
-        private readonly UnityEngine.Vector3 m_TargetPosition;
+        private readonly Team m_TargetTeam;
 
-        public CombatMeteorUseExecutor(CombatPhase combatPhase, UnityEngine.Vector3 targetPosition)
+        public CombatMeteorUseExecutor(CombatPhase combatPhase, Team targetTeam)
         {
             m_CombatPhase = combatPhase;
-            m_TargetPosition = targetPosition;
+            m_TargetTeam = targetTeam;
         }
 
         public bool CanExecute(ItemData itemData, out string message)
         {
             if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded ||
-                !m_CombatPhase.CanCommitGroundTargetItem())
+                !m_CombatPhase.CanUseTeamItem(m_TargetTeam))
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
@@ -130,25 +146,25 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            return m_CombatPhase.TryApplyMeteorEffect(m_TargetPosition, out message);
+            return m_CombatPhase.TryApplyMeteorEffect(m_TargetTeam, out message);
         }
     }
 
     public sealed class CombatMercenaryUseExecutor : IItemPurchaseUseExecutor
     {
         private readonly CombatPhase m_CombatPhase;
-        private readonly UnityEngine.Vector3 m_TargetPosition;
+        private readonly Team m_TargetTeam;
 
-        public CombatMercenaryUseExecutor(CombatPhase combatPhase, UnityEngine.Vector3 targetPosition)
+        public CombatMercenaryUseExecutor(CombatPhase combatPhase, Team targetTeam)
         {
             m_CombatPhase = combatPhase;
-            m_TargetPosition = targetPosition;
+            m_TargetTeam = targetTeam;
         }
 
         public bool CanExecute(ItemData itemData, out string message)
         {
             if (m_CombatPhase == null || m_CombatPhase.IsCombatEnded ||
-                !m_CombatPhase.CanCommitGroundTargetItem())
+                !m_CombatPhase.CanUseTeamItem(m_TargetTeam))
             {
                 message = "유효하지 않은 전투 상태입니다.";
                 return false;
@@ -166,7 +182,7 @@ namespace InTheArena.MainGame
                 return false;
             }
 
-            return m_CombatPhase.TrySpawnMercenaries(m_TargetPosition, out message);
+            return m_CombatPhase.TrySpawnMercenaries(m_TargetTeam, out message);
         }
     }
 }

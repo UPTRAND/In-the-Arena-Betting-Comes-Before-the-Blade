@@ -94,7 +94,7 @@ namespace InTheArena.UI
                 if (updateOdds)
                 {
                     if (entry.IsCorrect)
-                        displayedOdds = 1 << (i + 1);
+                        displayedOdds = m_Ticket.Faction == FactionPrediction.Draw ? 3 : 1 << (i + 1);
                     else
                         oddsStopped = true;
                 }
@@ -131,26 +131,24 @@ namespace InTheArena.UI
         private void BuildEntries()
         {
             m_Entries.Clear();
-            if (m_Ticket == null || m_CombatResult == null) return;
+            if (m_Ticket == null || m_CombatResult == null || m_Settlement == null) return;
 
             if (m_Ticket.Faction != FactionPrediction.NotSelected)
-                m_Entries.Add(new BetEntry($"\uC2B9\uB9AC\uD560 \uD300 \u00B7 {FormatFaction(m_Ticket.Faction)}", MatchesFaction(m_Ticket.Faction, m_CombatResult.Winner)));
+                m_Entries.Add(new BetEntry($"필수 메인 베팅 · {FormatFaction(m_Ticket.Faction)}", !m_Settlement.FailedCategories.Contains("Faction")));
 
             if (m_Ticket.RemainingTime.HasValue)
-                m_Entries.Add(new BetEntry($"\uC885\uB8CC \uC2DC\uAC04 \u00B7 {FormatRemainingTime(m_Ticket.RemainingTime.Value)}", m_Ticket.RemainingTime.Value == BetSettlementService.ClassifyRemainingTime(m_CombatResult.RemainingTime)));
+                m_Entries.Add(new BetEntry($"종료 시간 · {FormatRemainingTime(m_Ticket.RemainingTime.Value)}", !m_Settlement.FailedCategories.Contains("RemainingTime")));
 
             if (m_Ticket.OddEven.HasValue)
             {
-                bool isEven = m_CombatResult.TotalAliveCount % 2 == 0;
-                bool correct = m_Ticket.OddEven.Value == (isEven ? OddEvenPrediction.Even : OddEvenPrediction.Odd);
-                m_Entries.Add(new BetEntry($"\uD640\uC9DD \u00B7 {FormatOddEven(m_Ticket.OddEven.Value)}", correct));
+                m_Entries.Add(new BetEntry($"{FormatFaction(m_Ticket.Faction)} 생존 수 홀짝 · {FormatOddEven(m_Ticket.OddEven.Value)}", !m_Settlement.FailedCategories.Contains("OddEven")));
             }
 
             if (m_Ticket.FirstEliminatedColumn.HasValue)
-                m_Entries.Add(new BetEntry($"\uCCAB \uC804\uBA78 \uC5F4 \u00B7 {FormatFirstEliminatedColumn(m_Ticket.FirstEliminatedColumn.Value)}", m_Ticket.FirstEliminatedColumn == m_CombatResult.FirstEliminatedColumn));
+                m_Entries.Add(new BetEntry($"첫 전멸 열 · {FormatFirstEliminatedColumn(m_Ticket.FirstEliminatedColumn.Value)}", !m_Settlement.FailedCategories.Contains("FirstEliminatedColumn")));
 
             if (m_Ticket.SurvivingRow.HasValue)
-                m_Entries.Add(new BetEntry($"\uB9C8\uC9C0\uB9C9 \uC0DD\uC874 \uD589 \u00B7 {FormatSurvivingRow(m_Ticket.SurvivingRow.Value)}", m_CombatResult.SurvivingRows.Contains(m_Ticket.SurvivingRow.Value)));
+                m_Entries.Add(new BetEntry($"생존 행 · {FormatSurvivingRow(m_Ticket.SurvivingRow.Value)}", !m_Settlement.FailedCategories.Contains("SurvivingRow")));
 
             if (m_Entries.Count > 4)
                 m_Entries.RemoveRange(4, m_Entries.Count - 4);
@@ -304,14 +302,6 @@ namespace InTheArena.UI
             if (sequence != null && sequence.IsActive()) sequence.Kill(false);
             sequence = null;
         }
-
-        private static bool MatchesFaction(FactionPrediction prediction, Team winner) => prediction switch
-        {
-            FactionPrediction.Red => winner == Team.Red,
-            FactionPrediction.Blue => winner == Team.Blue,
-            FactionPrediction.Draw => winner == Team.None,
-            _ => false
-        };
 
         private static string FormatFaction(FactionPrediction prediction) => prediction switch
         {

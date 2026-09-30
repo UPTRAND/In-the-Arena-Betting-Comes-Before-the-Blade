@@ -217,6 +217,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TitleScene
   m_StartText: {fileID: 1143881907}
   m_TextCanvasGroup: {fileID: 1143881909}
+  m_TitleLogo: {fileID: 397021377}
+  m_LogoCanvasGroup: {fileID: 397021380}
+  m_IntroDelay: 0.1
+  m_LogoIntroDuration: 0.5
+  m_LogoFadeDuration: 0.18
+  m_LogoStartScale: 0.65
+  m_LogoStartOffset: 80
+  m_ImpactDuration: 0.15
+  m_ImpactStrength: 6
+  m_TextRevealDuration: 0.2
   m_BlinkDuration: 1.2
   m_MinAlpha: 0.2
   m_TargetSceneName: Lobby
@@ -443,6 +453,7 @@ GameObject:
   - component: {fileID: 397021377}
   - component: {fileID: 397021379}
   - component: {fileID: 397021378}
+  - component: {fileID: 397021380}
   m_Layer: 5
   m_Name: Image
   m_TagString: Untagged
@@ -483,7 +494,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -507,6 +518,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 397021376}
   m_CullTransparentMesh: 1
+--- !u!225 &397021380
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 397021376}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 0
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!1 &564666152
 GameObject:
   m_ObjectHideFlags: 0

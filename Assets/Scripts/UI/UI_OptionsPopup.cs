@@ -156,7 +156,7 @@ namespace InTheArena.UI
 
         private void ResolveReferences()
         {
-            m_CloseButton ??= FindButton("Button");
+            m_CloseButton ??= FindButton("Close_Button") ?? FindButton("CloseButton") ?? FindButton("Button");
             m_ReturnToLobbyButton ??= FindButton("Loby_Button");
             m_GameQuitButton ??= FindButton("GameQuit_Button");
         }

@@ -20,6 +20,71 @@ namespace InTheArena.MainGame.Editor
         private const string NewBettingPrefabPath = "Assets/Prefabs/UI/Panel/UI_BettingPhase.prefab";
         private const string ResultPrefabPath = "Assets/Prefabs/UI/Panel/UI_StageResultPanel.prefab";
 
+        [MenuItem("Tools/In The Arena/Install Team Betting Controls")]
+        public static void InstallTeamBettingControls()
+        {
+            foreach (string path in new[] { NewBettingPrefabPath, BettingPrefabPath, "Assets/Prefabs/UI/HUD/UI_BattlePhaseHUD.prefab" })
+            {
+                GameObject root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    if (path == NewBettingPrefabPath) EnsureNewControls(root.transform);
+                    UpdateTeamBettingLabels(root.transform);
+                    if (path == NewBettingPrefabPath)
+                    {
+                        SetTeamDropdownOptions(root.transform, "FirstAnnihilated_Group", "미선택", "전열", "후열");
+                        SetTeamDropdownOptions(root.transform, "SurvivingSlots_Group", "미선택", "1행", "2행", "3행");
+                    }
+
+                    UI_BattlePhaseHUD hud = root.GetComponent<UI_BattlePhaseHUD>();
+                    if (hud != null)
+                    {
+                        var serialized = new SerializedObject(hud);
+                        TMP_FontAsset font = serialized.FindProperty("m_DuplicateItemFeedbackFont").objectReferenceValue as TMP_FontAsset;
+                        var picker = root.GetComponentInChildren<UI_CombatItemTeamSelectionController>(true) ??
+                            UI_CombatItemTeamSelectionController.Create(root.transform, font);
+                        foreach (Transform child in picker.GetComponentsInChildren<Transform>(true))
+                            child.gameObject.layer = root.layer;
+                        serialized.FindProperty("m_CombatItemTeamSelectionController").objectReferenceValue = picker;
+                        serialized.ApplyModifiedPropertiesWithoutUndo();
+                    }
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        private static void SetTeamDropdownOptions(Transform root, string groupName, params string[] labels)
+        {
+            TMP_Dropdown dropdown = FindDescendant(root, groupName)?.GetComponentInChildren<TMP_Dropdown>(true);
+            if (dropdown == null) return;
+            dropdown.ClearOptions();
+            dropdown.AddOptions(new List<string>(labels));
+            dropdown.SetValueWithoutNotify(0);
+        }
+
+        private static void UpdateTeamBettingLabels(Transform root)
+        {
+            foreach (TMP_Text text in root.GetComponentsInChildren<TMP_Text>(true))
+            {
+                text.text = text.text switch
+                {
+                    "승리할 팀" => "필수 메인 베팅",
+                    "마지막 생존 행" or "베팅 팀의 생존 행" => "베팅 팀 생존 행",
+                    "첫 전멸 열" or "베팅 팀의 첫 전멸 열" => "베팅 팀 첫 전멸 열",
+                    "남은 인원 수" or "ODD / EVEN" or "베팅 팀 생존 수 홀짝" => "베팅 팀 생존 수",
+                    _ => text.text
+                };
+                if (text.text.StartsWith("베팅 팀"))
+                {
+                    text.enableAutoSizing = true;
+                    text.fontSizeMax = text.fontSize;
+                    text.fontSizeMin = text.fontSize * 0.85f;
+                }
+            }
+        }
+
         /// <summary>기존 결과 프리팹의 디자인을 유지하며 저장 복구 버튼을 연결합니다.</summary>
         [MenuItem("Tools/In The Arena/Install Result Save Recovery Controls")]
         public static void InstallSaveRecoveryControls()
@@ -52,6 +117,7 @@ namespace InTheArena.MainGame.Editor
             errorRoot.transform.SetParent(parent, false);
             TMP_Text error = errorRoot.GetComponent<TMP_Text>();
             error.font = sourceText.font;
+            error.fontSharedMaterial = sourceText.fontSharedMaterial;
             error.fontSize = 36f;
             error.alignment = TextAlignmentOptions.Center;
             error.raycastTarget = false;
@@ -68,6 +134,26 @@ namespace InTheArena.MainGame.Editor
             TMP_Text giveUpText = giveUp.GetComponentInChildren<TMP_Text>(true);
             giveUpText.text = "GIVE UP";
 
+            if (parent.GetComponent<LayoutGroup>() == null)
+            {
+                RectTransform errorRect = (RectTransform)errorRoot.transform;
+                errorRect.anchorMin = errorRect.anchorMax = new Vector2(0.5f, 0f);
+                errorRect.pivot = new Vector2(0.5f, 0f);
+                errorRect.anchoredPosition = new Vector2(0f, 220f);
+                errorRect.sizeDelta = new Vector2(620f, 100f);
+                error.fontSize = 28f;
+                error.enableAutoSizing = true;
+                error.fontSizeMin = 22f;
+                error.fontSizeMax = 28f;
+
+                ConfigureRecoveryButton(retry, -145f);
+                ConfigureRecoveryButton(giveUp, 145f);
+            }
+
+            foreach (Transform child in errorRoot.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = parent.gameObject.layer;
+            foreach (Transform child in retry.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = parent.gameObject.layer;
+            foreach (Transform child in giveUp.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = parent.gameObject.layer;
+
             serialized.FindProperty("m_ErrorText").objectReferenceValue = error;
             serialized.FindProperty("m_RetryButton").objectReferenceValue = retry;
             serialized.FindProperty("m_GiveUpButton").objectReferenceValue = giveUp;
@@ -76,6 +162,19 @@ namespace InTheArena.MainGame.Editor
             errorRoot.SetActive(false);
             retry.gameObject.SetActive(false);
             giveUp.gameObject.SetActive(false);
+        }
+
+        private static void ConfigureRecoveryButton(Button button, float x)
+        {
+            RectTransform rect = (RectTransform)button.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = new Vector2(x, 90f);
+            rect.sizeDelta = new Vector2(280f, 115f);
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 22f;
+            label.fontSizeMax = 30f;
         }
 
         [MenuItem("Tools/In The Arena/Rebuild Stage Betting UI")]
@@ -202,6 +301,7 @@ namespace InTheArena.MainGame.Editor
             TMP_Text firstColumnLabel = FindDescendant(FindDescendant(root, "FirstAnnihilated_Group"), "Label_Text")
                 ?.GetComponent<TMP_Text>();
             if (firstColumnLabel != null) firstColumnLabel.text = "첫 전멸 열";
+            UpdateTeamBettingLabels(root);
 
             Transform stamp = FindDescendant(root, "ConfirmStamp_Group") ?? FindDescendant(root, "BottomBar");
             if (stamp != null && FindDescendant(stamp, "Validation_Text") == null)
@@ -406,6 +506,12 @@ namespace InTheArena.MainGame.Editor
 
         private static GameObject BuildStageResultPrefab()
         {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(ResultPrefabPath) != null)
+            {
+                InstallSaveRecoveryControls();
+                return AssetDatabase.LoadAssetAtPath<GameObject>(ResultPrefabPath);
+            }
+
             GameObject root = new GameObject(
                 "UI_StageResultPanel",
                 typeof(RectTransform),

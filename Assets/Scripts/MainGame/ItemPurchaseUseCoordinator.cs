@@ -22,6 +22,12 @@ namespace InTheArena.MainGame
         Targeted
     }
 
+    public enum ItemUseConfirmationPolicy
+    {
+        ConfirmUse,
+        CombatClickUse
+    }
+
     public enum ItemConfirmationMode
     {
         Purchase,
@@ -80,6 +86,7 @@ namespace InTheArena.MainGame
 
         private ItemPurchaseUseState m_State = ItemPurchaseUseState.Idle;
         private ItemPurchaseUseMode m_Mode;
+        private ItemUseConfirmationPolicy m_ConfirmationPolicy;
         private ItemData m_ActiveItem;
         private IItemPurchaseConfirmationView m_ActivePopup;
         private CancellationTokenSource m_ActiveCancellationSource;
@@ -110,7 +117,8 @@ namespace InTheArena.MainGame
         private bool TryBeginRequest(
             ItemData itemData,
             ItemPurchaseUseMode mode,
-            out long requestVersion)
+            out long requestVersion,
+            ItemUseConfirmationPolicy confirmationPolicy = ItemUseConfirmationPolicy.ConfirmUse)
         {
             requestVersion = -1;
 
@@ -126,10 +134,17 @@ namespace InTheArena.MainGame
                 return false;
             }
 
+            if (confirmationPolicy == ItemUseConfirmationPolicy.CombatClickUse &&
+                (m_Context.RoundItemUsage.HasUsed(itemData.ItemType) ||
+                 (itemData.ItemType != ItemType.Meteor && itemData.ItemType != ItemType.Mercenary &&
+                  itemData.ItemType != ItemType.TimeExtension)))
+                return false;
+
             m_RequestVersion++;
             m_ActiveRequestVersion = m_RequestVersion;
             m_ActiveItem = itemData;
             m_Mode = mode;
+            m_ConfirmationPolicy = confirmationPolicy;
             m_ObservedGold = saveManager.Gold;
             m_ObservedRound = m_Context.CurrentRound;
             m_State = ItemPurchaseUseState.Preparing;
@@ -190,11 +205,12 @@ namespace InTheArena.MainGame
             ItemData itemData,
             IItemPurchaseConfirmationView popup,
             IItemPurchaseUseExecutor executor,
-            CancellationToken token)
+            CancellationToken token,
+            ItemUseConfirmationPolicy confirmationPolicy = ItemUseConfirmationPolicy.ConfirmUse)
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Immediate, out long requestVersion, confirmationPolicy))
             {
                 return;
             }
@@ -282,11 +298,12 @@ namespace InTheArena.MainGame
         public async Awaitable<long> RequestTargetedUseAsync(
             ItemData itemData,
             IItemPurchaseConfirmationView popup,
-            CancellationToken token)
+            CancellationToken token,
+            ItemUseConfirmationPolicy confirmationPolicy = ItemUseConfirmationPolicy.ConfirmUse)
         {
             m_LastResult = ItemPurchaseUseResult.Rejected;
 
-            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion))
+            if (!TryBeginRequest(itemData, ItemPurchaseUseMode.Targeted, out long requestVersion, confirmationPolicy))
             {
                 return -1;
             }
@@ -387,6 +404,12 @@ namespace InTheArena.MainGame
                         ItemPurchaseUseResult.Failed);
                 }
 
+                if (m_ConfirmationPolicy == ItemUseConfirmationPolicy.CombatClickUse)
+                {
+                    m_ObservedGold = saveManager.Gold;
+                    return ItemRequestPreparationResult.ReadyForUse;
+                }
+
                 return FinishPreparation(
                     requestVersion,
                     ItemRequestPreparationResult.PurchaseSucceeded,
@@ -400,6 +423,9 @@ namespace InTheArena.MainGame
                     ItemRequestPreparationResult.Rejected,
                     ItemPurchaseUseResult.Rejected);
             }
+
+            if (m_ConfirmationPolicy == ItemUseConfirmationPolicy.CombatClickUse)
+                return ItemRequestPreparationResult.ReadyForUse;
 
             if (popup == null)
             {
