@@ -176,7 +176,7 @@ namespace InTheArena.MainGame
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
             var cameraController = InTheArena.Camera.CameraController.Instance;
-            if (cameraController != null)
+            if (cameraController != null && !UsesContinuousPresentation)
             {
                 await cameraController.SetPhaseAsync(InTheArena.Camera.CameraPhase.Betting, token);
             }
@@ -195,9 +195,26 @@ namespace InTheArena.MainGame
                 canvasGroup.blocksRaycasts = false;
             }
             ResetBettingContentPosition();
-            SetBettingContentVisible(!m_StageIntroPending);
+            SetBettingContentVisible(!m_StageIntroPending && !UsesContinuousPresentation);
             SetNowCol(Context.CurrentCall);
         }
+
+        private bool UsesContinuousPresentation => RoundManager.Instance != null &&
+            RoundManager.Instance.UseContinuousPhaseTransitions;
+
+        public async Awaitable RevealContinuousPanelAsync(CancellationToken token)
+        {
+            SetBettingContentVisible(true);
+            LockInteractionForCombatPreparation();
+            await ContinuousPhasePresentation.SlideAsync(
+                m_BettingContentCanvasGroup != null ? m_BettingContentCanvasGroup.transform as RectTransform : null,
+                m_BettingContentRestingPosition, true, token);
+        }
+
+        public Awaitable DismissContinuousPanelAsync(CancellationToken token) =>
+            ContinuousPhasePresentation.SlideAsync(
+                m_BettingContentCanvasGroup != null ? m_BettingContentCanvasGroup.transform as RectTransform : null,
+                m_BettingContentRestingPosition, false, token);
 
         public void PrimeStageOpening(StageData stageData)
         {
@@ -948,6 +965,13 @@ namespace InTheArena.MainGame
 
         private async Awaitable RevealBettingContentFromBottomAsync(CancellationToken token)
         {
+            if (UsesContinuousPresentation)
+            {
+                SetBettingContentVisible(true);
+                LockInteractionForCombatPreparation();
+                await RevealContinuousPanelAsync(token);
+                return;
+            }
             if (m_BettingContentCanvasGroup == null) return;
 
             RectTransform contentRect = m_BettingContentCanvasGroup.transform as RectTransform;
@@ -1081,6 +1105,7 @@ namespace InTheArena.MainGame
             StopAttention();
             AnimateNowCol(callBeforeBet, Context.CurrentCall);
             CompletePhase();
+            if (UsesContinuousPresentation) LockInteractionForCombatPreparation();
             m_PhaseCompletionSource?.TrySetResult();
         }
 

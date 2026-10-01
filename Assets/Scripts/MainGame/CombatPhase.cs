@@ -66,14 +66,30 @@ namespace InTheArena.MainGame
         private FirstEliminatedColumnPrediction? m_BlueFirstEliminatedColumn;
         private bool m_IsFinalEliminationPlaying;
         private bool m_IsItemCastingSlowMotion;
+        private bool m_HasPreparedPreview;
+
+        public async Awaitable PreparePreviewAsync(CancellationToken token)
+        {
+            InitializeCombat();
+            m_CombatCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            await PrepareUnitsAsync(m_CombatCts.Token);
+            token.ThrowIfCancellationRequested();
+            m_HasPreparedPreview = true;
+            Canvas.ForceUpdateCanvases();
+            var cameraController = InTheArena.Camera.CameraController.Instance;
+            if (cameraController != null)
+                await cameraController.SetPhaseAsync(InTheArena.Camera.CameraPhase.Combat, token);
+        }
 
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
         {
-            InitializeCombat();
-
-            m_CombatCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-
-            await PrepareUnitsAsync(m_CombatCts.Token);
+            if (!m_HasPreparedPreview)
+            {
+                InitializeCombat();
+                m_CombatCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                await PrepareUnitsAsync(m_CombatCts.Token);
+            }
+            m_HasPreparedPreview = false;
             if (m_CombatCts.IsCancellationRequested) return;
 
             m_InitialRedUnitCount = RedAliveCount;
@@ -725,6 +741,15 @@ namespace InTheArena.MainGame
 
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
+            HoldResultPresentation();
+            m_HasPreparedPreview = false;
+            CleanupUnits();
+            transform.DOKill();
+        }
+
+        /// <summary>Stop gameplay and HUD input while retaining the final actors for settlement.</summary>
+        public void HoldResultPresentation()
+        {
             BattleSimulation.FreezeBattle();
             EndItemCastingSlowMotion();
             Time.timeScale = 1f;
@@ -742,9 +767,6 @@ namespace InTheArena.MainGame
                 m_CombatCts = null;
             }
 
-            // 유닛 정리
-            CleanupUnits();
-            transform.DOKill();
         }
 
         private void CleanupUnits()

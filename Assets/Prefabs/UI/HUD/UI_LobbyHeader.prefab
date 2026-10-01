@@ -1320,6 +1320,8 @@ MonoBehaviour:
   m_TimerText: {fileID: 4135325446759520220}
   m_TimerBox: {fileID: 3527507684895506976}
   m_StarText: {fileID: 6929327877901314870}
+  m_TicketImage: {fileID: 6401582497723335325}
+  m_FreePassTicketSprite: {fileID: 1694208504, guid: 4a94bd79319faea4cb98e41713f499ed, type: 3}
   m_SettingsButton: {fileID: 279913095838729545}
   m_OptionsPopupPrefab: {fileID: 1003, guid: 51b2e3c4467a4d1e9c1d9d8804b8a1f0, type: 3}
 --- !u!1 &9207683272714963863

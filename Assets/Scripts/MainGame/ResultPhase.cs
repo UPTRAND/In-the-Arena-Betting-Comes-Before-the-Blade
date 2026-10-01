@@ -22,6 +22,10 @@ namespace InTheArena.MainGame
         private bool m_IsWin;
         private int m_RewardCall;
         private BettingPhase m_BettingPhase;
+        private RectTransform m_ContinuousPanel;
+        private Vector2 m_ContinuousPanelPosition;
+        private bool UsesContinuousPresentation => RoundManager.Instance != null &&
+            RoundManager.Instance.UseContinuousPhaseTransitions;
 
 #pragma warning disable 1998
         public override async Awaitable PreparePhaseAsync(CancellationToken token)
@@ -42,6 +46,12 @@ namespace InTheArena.MainGame
                 if (!m_ResultUi.BIsOpened) m_ResultUi.Open();
                 m_ResultUi.Enable();
                 m_ResultUi.Refresh();
+                if (UsesContinuousPresentation)
+                {
+                    m_ContinuousPanel = ContinuousPhasePresentation.GetResultPanel(m_ResultUi.transform);
+                    if (m_ContinuousPanel != null)
+                        m_ContinuousPanelPosition = m_ContinuousPanel.anchoredPosition;
+                }
                 if (m_ResultUi.CanvasGroup != null)
                 {
                     m_ResultUi.CanvasGroup.alpha = 1f;
@@ -57,7 +67,10 @@ namespace InTheArena.MainGame
         {
             if (m_ResultUi != null)
             {
-                await Awaitable.WaitForSecondsAsync(m_ResultDelay, token);
+                if (UsesContinuousPresentation)
+                    await ContinuousPhasePresentation.SlideAsync(m_ContinuousPanel, m_ContinuousPanelPosition, true, token);
+                else
+                    await Awaitable.WaitForSecondsAsync(m_ResultDelay, token);
                 token.ThrowIfCancellationRequested();
 
                 if (!IsPhaseCompleted)
@@ -134,9 +147,25 @@ namespace InTheArena.MainGame
         public int GetRewardCall() => m_RewardCall;
         public bool IsWin() => m_IsWin;
 
+        public async Awaitable DismissContinuousPanelAsync(CancellationToken token)
+        {
+            if (m_ResultUi?.CanvasGroup != null)
+            {
+                m_ResultUi.CanvasGroup.interactable = false;
+                m_ResultUi.CanvasGroup.blocksRaycasts = false;
+            }
+            await ContinuousPhasePresentation.SlideAsync(
+                m_ContinuousPanel, m_ContinuousPanelPosition, false, token);
+        }
+
         public override async Awaitable ExitPhaseAsync(CancellationToken token)
         {
             UnsubscribeEvents();
+            if (m_ContinuousPanel != null)
+            {
+                m_ContinuousPanel.DOKill();
+                m_ContinuousPanel.anchoredPosition = m_ContinuousPanelPosition;
+            }
 
             if (m_ResultUi != null && m_ResultUi.BIsOpened)
             {

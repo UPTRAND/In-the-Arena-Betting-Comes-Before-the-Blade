@@ -69,10 +69,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 1024
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -85,7 +85,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -98,7 +98,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -110,7 +110,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: icon_sheet_preview_1024x256_0
+      name: item_sheet_preview_1280x256_0
       rect:
         serializedVersion: 2
         x: 0
@@ -132,7 +132,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_sheet_preview_1024x256_1
+      name: item_sheet_preview_1280x256_1
       rect:
         serializedVersion: 2
         x: 256
@@ -154,7 +154,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_sheet_preview_1024x256_2
+      name: item_sheet_preview_1280x256_2
       rect:
         serializedVersion: 2
         x: 512
@@ -176,7 +176,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: icon_sheet_preview_1024x256_3
+      name: item_sheet_preview_1280x256_3
       rect:
         serializedVersion: 2
         x: 768
@@ -197,6 +197,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: item_sheet_preview_1280x256_4
+      rect:
+        serializedVersion: 2
+        x: 1024
+        y: 0
+        width: 256
+        height: 256
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 694082504e7248e49f3d89838c1cc94b
+      internalID: 1694208504
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -213,10 +235,11 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":256.0,"y":256.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      icon_sheet_preview_1024x256_0: -255582160
-      icon_sheet_preview_1024x256_1: 331134306
-      icon_sheet_preview_1024x256_2: 121881410
-      icon_sheet_preview_1024x256_3: -324385737
+      item_sheet_preview_1280x256_0: -255582160
+      item_sheet_preview_1280x256_1: 331134306
+      item_sheet_preview_1280x256_2: 121881410
+      item_sheet_preview_1280x256_3: -324385737
+      item_sheet_preview_1280x256_4: 1694208504
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

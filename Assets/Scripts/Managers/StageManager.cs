@@ -542,7 +542,8 @@ namespace InTheArena.MainGame
                 }
 
                 m_CurrentRoundIndex++;
-                await ScreenFaderTransition.FadeOutAsync(1f, token);
+                if (RoundManager.Instance == null || !RoundManager.Instance.UseContinuousPhaseTransitions)
+                    await ScreenFaderTransition.FadeOutAsync(1f, token);
             }
 
             await ReturnToLobbyAsync();

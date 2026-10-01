@@ -18,6 +18,12 @@ namespace InTheArena.Camera
 
         private Rect m_CachedViewport = new Rect(0, 0, 1, 1);
         private Vector3[] m_CornersCache = new Vector3[4];
+        private Rect? m_PersistentCameraRect;
+
+        public void SetPersistentCameraRect(Rect cameraRect)
+        {
+            m_PersistentCameraRect = cameraRect;
+        }
 
         private const float ViewportEpsilon = 0.001f;
         private static readonly Rect FullViewport = new Rect(0f, 0f, 1f, 1f);
@@ -38,6 +44,12 @@ namespace InTheArena.Camera
         public bool TryGetTargetCameraRect(out Rect targetRect)
         {
             targetRect = FullViewport;
+            if (m_PersistentCameraRect.HasValue)
+            {
+                // A full-screen clear prevents stale overlay HUD pixels outside a partial camera rect.
+                // The arena rectangle is a framing region, independent of whether a phase HUD is active.
+                return IsValidViewport(m_PersistentCameraRect.Value);
+            }
             if (m_Camera == null ||
                 m_UIRect == null ||
                 !m_UIRect.gameObject.activeInHierarchy)
@@ -56,6 +68,7 @@ namespace InTheArena.Camera
 
         public Rect GetEffectiveViewportRect()
         {
+            if (m_PersistentCameraRect.HasValue) return m_PersistentCameraRect.Value;
             if (m_Camera == null ||
                 m_UIRect == null ||
                 !m_UIRect.gameObject.activeInHierarchy)

@@ -111,38 +111,43 @@ namespace InTheArena.UI
 
         private void ResolveOrCreateCountText()
         {
-            if (m_CountText != null || m_SlotRoot == null)
+            if (m_SlotRoot == null)
             {
                 return;
             }
 
-            Transform existing = m_SlotRoot.Find("CountText") ??
-                m_SlotRoot.Find("ItemCount_Text");
-            if (existing != null)
-            {
-                m_CountText = existing.GetComponent<TMP_Text>();
-            }
-
             if (m_CountText == null)
             {
-                GameObject countObject = new GameObject(
-                    "CountText",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(TextMeshProUGUI));
-                countObject.transform.SetParent(m_SlotRoot, false);
-                m_CountText = countObject.GetComponent<TextMeshProUGUI>();
+                Transform existing = m_SlotRoot.Find("CountText") ??
+                    m_SlotRoot.Find("ItemCount_Text");
+                m_CountText = existing != null ? existing.GetComponent<TMP_Text>() : null;
             }
+
+            if (m_CountText != null)
+            {
+                m_CountText.textWrappingMode = TextWrappingModes.NoWrap;
+                m_CountText.raycastTarget = false;
+                return;
+            }
+
+            GameObject countObject = new GameObject(
+                "CountText",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI));
+            countObject.transform.SetParent(m_SlotRoot, false);
+            m_CountText = countObject.GetComponent<TextMeshProUGUI>();
 
             RectTransform countRect = m_CountText.rectTransform;
             countRect.anchorMin = new Vector2(1f, 0f);
             countRect.anchorMax = new Vector2(1f, 0f);
             countRect.pivot = new Vector2(1f, 0f);
             countRect.anchoredPosition = new Vector2(-6f, 6f);
-            countRect.sizeDelta = new Vector2(80f, 32f);
+            countRect.sizeDelta = new Vector2(120f, 56f);
 
             m_CountText.alignment = TextAlignmentOptions.BottomRight;
-            m_CountText.fontSize = 18f;
+            m_CountText.fontSize = 40f;
+            m_CountText.textWrappingMode = TextWrappingModes.NoWrap;
             m_CountText.raycastTarget = false;
             m_CountText.color = Color.white;
             m_CountText.font ??= TMP_Settings.defaultFontAsset;

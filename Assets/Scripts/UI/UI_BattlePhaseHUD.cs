@@ -82,9 +82,38 @@ namespace InTheArena.UI
         private Tween m_DuplicateItemFeedbackTween;
         private Vector2 m_DuplicateItemFeedbackBasePosition;
 
+        private const float LowerHudReferenceAspect = 1920f / 1080f;
+        private RectTransform m_ItemAndSpeedArea;
+        private RectTransform m_BottomArea;
+        private Vector2 m_ItemAndSpeedOriginalPosition;
+        private Vector2 m_BottomOriginalSize;
+        private readonly List<LowerHudChildLayout> m_LowerHudChildren = new List<LowerHudChildLayout>();
+        private bool m_HasLowerHudLayout;
+        private bool m_HasAppliedLowerHudLayout;
+        private Vector2 m_LowerHudViewportSize;
+
+        private readonly struct LowerHudChildLayout
+        {
+            public readonly RectTransform Rect;
+            public readonly Vector2 Position;
+            public readonly float AnchorY;
+            public readonly bool StretchVertically;
+            public readonly bool KeepAtBottom;
+
+            public LowerHudChildLayout(RectTransform rect)
+            {
+                Rect = rect;
+                Position = rect.anchoredPosition;
+                AnchorY = Mathf.Lerp(rect.anchorMin.y, rect.anchorMax.y, rect.pivot.y);
+                StretchVertically = !Mathf.Approximately(rect.anchorMin.y, rect.anchorMax.y);
+                KeepAtBottom = rect.name == "Deko_Bottom";
+            }
+        }
+
         protected override void Awake()
         {
             base.Awake();
+            CacheLowerHudLayout();
             m_TargetingLifetimeCancellation = new CancellationTokenSource();
             EnsureCombatItemTeamSelectionController();
             EnsureDuplicateItemFeedback();
@@ -92,6 +121,53 @@ namespace InTheArena.UI
             ResolveItemPresenters();
             SetBattleView(true);
             ResetDisplay();
+        }
+
+        private void OnEnable()
+        {
+            Canvas.willRenderCanvases += RefreshLowerHudLayout;
+            RefreshLowerHudLayout();
+        }
+
+        private void CacheLowerHudLayout()
+        {
+            if (m_HasLowerHudLayout) return;
+            m_ItemAndSpeedArea = transform.Find("ItemAndSpeed_Area") as RectTransform;
+            m_BottomArea = transform.Find("BottomArea") as RectTransform;
+            if (m_ItemAndSpeedArea != null)
+                m_ItemAndSpeedOriginalPosition = m_ItemAndSpeedArea.anchoredPosition;
+            if (m_BottomArea != null)
+            {
+                m_BottomOriginalSize = m_BottomArea.sizeDelta;
+                for (int i = 0; i < m_BottomArea.childCount; i++)
+                    if (m_BottomArea.GetChild(i) is RectTransform child)
+                        m_LowerHudChildren.Add(new LowerHudChildLayout(child));
+            }
+            m_HasLowerHudLayout = true;
+        }
+
+        private void RefreshLowerHudLayout()
+        {
+            CacheLowerHudLayout();
+            RectTransform root = rectTransform;
+            if (root == null || root.rect.width <= 0f || root.rect.height <= 0f) return;
+            Vector2 size = root.rect.size;
+            if (m_HasAppliedLowerHudLayout && (size - m_LowerHudViewportSize).sqrMagnitude < 0.0001f) return;
+            m_HasAppliedLowerHudLayout = true;
+            m_LowerHudViewportSize = size;
+            float extraHeight = Mathf.Max(0f, size.y - size.x * LowerHudReferenceAspect);
+            if (m_ItemAndSpeedArea != null)
+                m_ItemAndSpeedArea.anchoredPosition = m_ItemAndSpeedOriginalPosition + Vector2.up * extraHeight;
+            if (m_BottomArea == null) return;
+
+            m_BottomArea.sizeDelta = m_BottomOriginalSize + Vector2.up * extraHeight;
+            foreach (LowerHudChildLayout child in m_LowerHudChildren)
+            {
+                if (child.Rect == null || child.StretchVertically) continue;
+                // Top content stays at the reference height; the bottom ornament stays at the screen edge.
+                float offset = child.KeepAtBottom ? -child.AnchorY : 1f - child.AnchorY;
+                child.Rect.anchoredPosition = child.Position + Vector2.up * (offset * extraHeight);
+            }
         }
 
         public void BindAndShow(
@@ -144,6 +220,7 @@ namespace InTheArena.UI
         public override void OnOpened()
         {
             base.OnOpened();
+            RefreshLowerHudLayout();
             SubscribeEvents();
             Refresh();
         }
@@ -159,6 +236,7 @@ namespace InTheArena.UI
 
         private void OnDisable()
         {
+            Canvas.willRenderCanvases -= RefreshLowerHudLayout;
             CancelTargetingRequest();
         }
 
@@ -987,6 +1065,7 @@ namespace InTheArena.UI
 
         protected override void OnDestroy()
         {
+            Canvas.willRenderCanvases -= RefreshLowerHudLayout;
             m_TargetingLifetimeCancellation?.Cancel();
             if (m_CombatItemTeamSelectionController != null)
             {

@@ -44,6 +44,11 @@ namespace InTheArena.MainGame
         [SerializeField] private CombatPhase m_CombatPhase;
         [SerializeField] private ResultPhase m_ResultPhase;
 
+        [Header("Phase Transition Prototype")]
+        [Tooltip("Enable before entering Play Mode to keep the arena visible between round phases.")]
+        [SerializeField] private bool m_UseContinuousPhaseTransitions = true;
+        public bool UseContinuousPhaseTransitions => m_UseContinuousPhaseTransitions;
+
         public BettingPhase BettingPhase 
         { 
             get 
@@ -148,6 +153,12 @@ namespace InTheArena.MainGame
             {
                 // 1. 라운드 데이터 설정
                 SetupRoundData(roundIndex);
+
+                if (UseContinuousPhaseTransitions)
+                {
+                    await RunContinuousPhasesAsync(m_RoundCts.Token);
+                    return;
+                }
 
                 // 2. Betting Phase
                 Debug.Log($"[RoundManager] Round {roundIndex + 1} - Betting Phase 시작");
@@ -283,6 +294,67 @@ namespace InTheArena.MainGame
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+            }
+        }
+
+        private async Awaitable RunContinuousPhasesAsync(CancellationToken token)
+        {
+            // The preview owns real combat actors even while Betting is the active phase.
+            // Always release them on cancellation, including cancellation during Result.
+            m_CombatPhase.InitializePhase(m_Context);
+            try
+            {
+                var viewport = FindFirstObjectByType<InTheArena.Camera.CameraViewportProvider>();
+                viewport?.SetPersistentCameraRect(ContinuousPhasePresentation.ArenaViewport);
+                StageBackgroundController.ShowBattleBackgrounds();
+                SoundManager.Instance?.PlayBgm(BettingBgmId);
+                m_ActivePhase = m_BettingPhase;
+                m_BettingPhase.InitializePhase(m_Context);
+                await m_BettingPhase.PreparePhaseAsync(token);
+                await m_CombatPhase.PreparePreviewAsync(token);
+                token.ThrowIfCancellationRequested();
+
+                if (!m_HasPlayedStageIntro)
+                {
+                    // Clear the scene-loading cover only once. Round boundaries never cover the arena.
+                    await ScreenFaderTransition.FadeInAsync(0.3f, token);
+                    await m_BettingPhase.PlayStageOpeningAsync(m_CurrentStageData, token);
+                    m_HasPlayedStageIntro = true;
+                }
+                else
+                {
+                    await m_BettingPhase.RevealContinuousPanelAsync(token);
+                }
+                await m_BettingPhase.EnterPhaseAsync(token);
+                token.ThrowIfCancellationRequested();
+                m_BettingPhase.LockInteractionForCombatPreparation();
+                m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+                await m_BettingPhase.DismissContinuousPanelAsync(token);
+                await CleanupActivePhaseAsync();
+
+                SoundManager.Instance?.PlayRandomBgm(BattleBgmIds);
+                m_ActivePhase = m_CombatPhase;
+                await m_CombatPhase.PreparePhaseAsync(token);
+                await m_CombatPhase.EnterPhaseAsync(token);
+                token.ThrowIfCancellationRequested();
+                m_ItemPurchaseUseCoordinator?.CancelActiveRequest();
+                m_CombatPhase.HoldResultPresentation();
+                m_ActivePhase = null;
+                SettleRound();
+
+                m_ActivePhase = m_ResultPhase;
+                m_ResultPhase.InitializePhase(m_Context);
+                await m_ResultPhase.PreparePhaseAsync(token);
+                await m_ResultPhase.EnterPhaseAsync(token);
+                token.ThrowIfCancellationRequested();
+                await m_ResultPhase.DismissContinuousPanelAsync(token);
+                await CleanupActivePhaseAsync();
+                m_Context.IsRoundCompleted = true;
+            }
+            finally
+            {
+                await CleanupActivePhaseAsync();
+                await m_CombatPhase.ExitPhaseAsync(CancellationToken.None);
             }
         }
 
